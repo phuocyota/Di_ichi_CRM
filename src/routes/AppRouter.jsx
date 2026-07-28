@@ -7,9 +7,12 @@ import ProtectedRoute from './ProtectedRoute.jsx'
 
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage.jsx'))
 const ClassPage = lazy(() => import('../pages/Classes/ClassPage.jsx'))
+const FinancePage = lazy(() => import('../pages/Finance/FinancePage.jsx'))
 const LoginPage = lazy(() => import('../pages/auth/LoginPage.jsx'))
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage.jsx'))
 const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage.jsx'))
+const SchedulePage = lazy(() => import('../pages/Schedule/SchedulePage.jsx'))
+const StaffPage = lazy(() => import('../pages/Staff/StaffPage.jsx'))
 const StudentPage = lazy(() => import('../pages/Students/StudentPage.jsx'))
 
 function RouteFallback() {
@@ -36,9 +39,9 @@ function AppRouter() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/students" element={<StudentPage />} />
               <Route path="/classes" element={<ClassPage />} />
-              <Route path="/schedule" element={<PlaceholderPage title="Lịch học" />} />
-              <Route path="/staff" element={<PlaceholderPage title="Nhân sự" />} />
-              <Route path="/finance" element={<PlaceholderPage title="Tài chính" />} />
+              <Route path="/schedule" element={<SchedulePage />} />
+              <Route path="/staff" element={<StaffPage />} />
+              <Route path="/finance" element={<FinancePage />} />
               <Route path="/reports" element={<PlaceholderPage title="Báo cáo" />} />
               <Route path="/settings" element={<PlaceholderPage title="Cài đặt" />} />
             </Route>
