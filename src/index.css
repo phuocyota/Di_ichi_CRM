@@ -36,3 +36,94 @@
     text-decoration: none;
   }
 }
+
+@layer components {
+  .schedule-calendar .fc {
+    --fc-border-color: #d1d5db;
+    --fc-page-bg-color: #ffffff;
+    --fc-neutral-bg-color: #f8fafc;
+    --fc-today-bg-color: rgb(37 99 235 / 0.08);
+    --fc-now-indicator-color: #ef4444;
+    color: #0f172a;
+    font-size: 0.875rem;
+  }
+
+  .schedule-calendar .fc .fc-scrollgrid {
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px rgb(209 213 219 / 0.4);
+  }
+
+  .schedule-calendar .fc .fc-scrollgrid,
+  .schedule-calendar .fc .fc-theme-standard td,
+  .schedule-calendar .fc .fc-theme-standard th {
+    border-color: #d1d5db;
+  }
+
+  .schedule-calendar .fc .fc-col-header-cell {
+    background: #f8fafc;
+  }
+
+  .schedule-calendar .fc .fc-col-header-cell-cushion,
+  .schedule-calendar .fc .fc-daygrid-day-number {
+    color: #334155;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .schedule-calendar .fc .fc-timegrid-slot-label-cushion {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .schedule-calendar .fc .fc-timegrid-axis,
+  .schedule-calendar .fc .fc-timegrid-slot-label {
+    background: #f8fafc;
+  }
+
+  .schedule-calendar .fc .fc-timegrid-slot {
+    background: #ffffff;
+  }
+
+  .schedule-calendar .fc .fc-timegrid-slot:nth-child(even) {
+    background: #fbfdff;
+  }
+
+  .schedule-calendar .fc .fc-daygrid-day-frame {
+    background: #ffffff;
+  }
+
+  .schedule-calendar .fc .fc-day-today .fc-daygrid-day-frame {
+    background: #eff6ff;
+  }
+
+  .schedule-calendar .fc .fc-event {
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.14);
+  }
+
+  .schedule-calendar .fc .fc-event-main {
+    padding: 0.125rem;
+  }
+
+  .schedule-calendar .fc .fc-daygrid-event {
+    min-height: 4.25rem;
+    white-space: normal;
+  }
+
+  .schedule-calendar .fc .fc-timegrid-event {
+    min-height: 4rem;
+  }
+
+  @media (max-width: 640px) {
+    .schedule-calendar .fc {
+      font-size: 0.75rem;
+    }
+
+    .schedule-calendar .fc .fc-daygrid-event {
+      min-height: 3.5rem;
+    }
+  }
+}
