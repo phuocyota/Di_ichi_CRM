@@ -3,10 +3,11 @@ import {
   BookOpen,
   CalendarDays,
   GraduationCap,
+  HeartHandshake,
   LayoutDashboard,
   ReceiptText,
-  Settings,
   Users,
+  // Settings,
 } from 'lucide-react'
 
 export const navigationItems = [
@@ -23,6 +24,13 @@ export const navigationItems = [
     icon: GraduationCap,
     color: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
     activeColor: 'bg-emerald-600 text-white shadow-emerald-200',
+  },
+  {
+    label: 'Phụ huynh',
+    path: '/parents',
+    icon: HeartHandshake,
+    color: 'bg-sky-50 text-sky-700 ring-sky-100',
+    activeColor: 'bg-sky-600 text-white shadow-sky-200',
   },
   {
     label: 'Lớp học',
@@ -59,11 +67,11 @@ export const navigationItems = [
     color: 'bg-orange-50 text-orange-700 ring-orange-100',
     activeColor: 'bg-orange-500 text-white shadow-orange-200',
   },
-  {
-    label: 'Cài đặt',
-    path: '/settings',
-    icon: Settings,
-    color: 'bg-slate-100 text-slate-700 ring-slate-200',
-    activeColor: 'bg-slate-700 text-white shadow-slate-200',
-  },
+  // {
+  //   label: 'Cài đặt',
+  //   path: '/settings',
+  //   icon: Settings,
+  //   color: 'bg-slate-100 text-slate-700 ring-slate-200',
+  //   activeColor: 'bg-slate-700 text-white shadow-slate-200',
+  // },
 ]
