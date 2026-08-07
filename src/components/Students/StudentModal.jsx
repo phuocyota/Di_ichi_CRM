@@ -2,6 +2,17 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X } from 'lucide-react'
 
+function toDateInputValue(value) {
+  if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+
+  const parts = value.split('/')
+  if (parts.length !== 3) return ''
+
+  const [day, month, year] = parts
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
 function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSubmit: submitModal }) {
   const isOpen = Boolean(modal)
   const config = configs[modal] || { title: 'Thao tác học viên', submitText: 'Xác nhận' }
@@ -35,7 +46,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
       code: selectedStudent?.code || '',
       name: selectedStudent?.name || '',
       gender: selectedStudent?.gender || '',
-      birthDate: selectedStudent?.birthDate || '',
+      birthDate: toDateInputValue(selectedStudent?.birthDate),
       phone: selectedStudent?.phone || '',
       parent: selectedStudent?.parent || '',
       parentPhone: selectedStudent?.parentPhone || '',
@@ -44,7 +55,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
       teacher: selectedStudent?.teacher || '',
       branch: selectedStudent?.branch || '',
       statusValue: selectedStudent?.statusValue || '',
-      enrollmentDate: selectedStudent?.enrollmentDate || '',
+      enrollmentDate: toDateInputValue(selectedStudent?.enrollmentDate),
       reason: '',
       file: '',
     })
@@ -141,7 +152,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
                 </label>
                 <label className="block">
                   <span className={labelClass}>Ngày sinh</span>
-                  <input className={inputClass} placeholder="dd/mm/yyyy" {...register('birthDate')} />
+                  <input type="date" className={inputClass} {...register('birthDate')} />
                 </label>
                 <label className="block">
                   <span className={labelClass}>Số điện thoại{renderRequired()}</span>
@@ -155,8 +166,8 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
                 <label className="block">
                   <span className={labelClass}>Ngày nhập học{renderRequired()}</span>
                   <input
+                    type="date"
                     className={inputClass}
-                    placeholder="dd/mm/yyyy"
                     {...register('enrollmentDate', requiredRule('Vui lòng nhập ngày nhập học'))}
                   />
                   {renderError('enrollmentDate')}
