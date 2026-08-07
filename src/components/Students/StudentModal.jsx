@@ -12,6 +12,18 @@ function dateInputValue(value) {
 }
 
 function StudentModal({ modal, configs, selectedStudent, filters, directories, onClose, onSubmit: submitModal }) {
+function toDateInputValue(value) {
+  if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+
+  const parts = value.split('/')
+  if (parts.length !== 3) return ''
+
+  const [day, month, year] = parts
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
+function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSubmit: submitModal }) {
   const isOpen = Boolean(modal)
   const config = configs[modal] || { title: 'Thao tác học viên', submitText: 'Xác nhận' }
   const {
@@ -44,7 +56,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, o
       code: selectedStudent?.code || '',
       name: selectedStudent?.name || '',
       gender: selectedStudent?.gender || '',
-      birthDate: dateInputValue(selectedStudent?.birthDate),
+      birthDate: toDateInputValue(selectedStudent?.birthDate),
       phone: selectedStudent?.phone || '',
       parent: selectedStudent?.parent || '',
       parentPhone: selectedStudent?.parentPhone || '',
@@ -53,7 +65,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, o
       teacherId: selectedStudent?.teacherId || '',
       branchId: selectedStudent?.branchId || '',
       statusValue: selectedStudent?.statusValue || '',
-      enrollmentDate: dateInputValue(selectedStudent?.enrollmentDate),
+      enrollmentDate: toDateInputValue(selectedStudent?.enrollmentDate),
       reason: '',
       file: '',
     })
@@ -164,8 +176,8 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, o
                 <label className="block">
                   <span className={labelClass}>Ngày nhập học{renderRequired()}</span>
                   <input
-                    className={inputClass}
                     type="date"
+                    className={inputClass}
                     {...register('enrollmentDate', requiredRule('Vui lòng nhập ngày nhập học'))}
                   />
                   {renderError('enrollmentDate')}
