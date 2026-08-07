@@ -18,7 +18,7 @@ import {
   studentTuitionItems,
   students,
 } from '../../datas/students.js'
-import { createResource, deleteResource, findIdByName, getStudentSummary, indexById, initials, loadResources, updateResource } from '../../services/crmApi.js'
+import { createResource, deleteResource, getStudentSummary, indexById, initials, loadResources, updateResource } from '../../services/crmApi.js'
 
 const statusColors = {
   active: '#10b981',
@@ -30,6 +30,15 @@ const statusColors = {
 const emptyStatistics = studentStatistics.map((item) => ({ ...item, value: 0 }))
 const emptyCharts = { monthly: [], status: [], courses: [], branches: [] }
 let summaryRequest
+
+function normalizeDate(value, fieldLabel) {
+  if (!value) return undefined
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+
+  const parts = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (parts) return `${parts[3]}-${parts[2]}-${parts[1]}`
+  throw new Error(`${fieldLabel} không đúng định dạng ngày`)
+}
 
 function requestStudentSummary() {
   if (!summaryRequest) {
@@ -131,16 +140,19 @@ function StudentPage() {
       if (type === 'delete') {
         await deleteResource('student', student.id)
       } else if (type === 'add' || type === 'edit') {
+        const branchId = values.branchId || student?.branchId
+        if (!branchId) throw new Error('Vui lòng chọn cơ sở')
+
         const payload = {
           code: values.code || `HV-${Date.now()}`,
-          branchId: findIdByName(directories.branches, values.branch),
+          branchId,
           name: values.name,
           gender: { Nam: 'male', Nữ: 'female' }[values.gender] || values.gender || null,
-          birthDate: values.birthDate || undefined,
+          birthDate: normalizeDate(values.birthDate, 'Ngày sinh'),
           phone: values.phone || undefined,
           email: values.email || undefined,
           status: values.statusValue || 'active',
-          enrollmentDate: values.enrollmentDate || undefined,
+          enrollmentDate: normalizeDate(values.enrollmentDate, 'Ngày nhập học'),
           note: values.reason || null,
         }
         const saved = type === 'add'
@@ -149,8 +161,8 @@ function StudentPage() {
         if (type === 'add' && values.parent && values.parentPhone) {
           await createResource('student-guardian', { studentId: saved.id, name: values.parent, phone: values.parentPhone, relationship: 'Phụ huynh', isPrimary: true })
         }
-        if (type === 'add' && values.className) {
-          await createResource('enrollment', { studentId: saved.id, classId: findIdByName(directories.classes, values.className), enrolledAt: values.enrollmentDate, status: 'active', isCurrent: true })
+        if (type === 'add' && values.classId) {
+          await createResource('enrollment', { studentId: saved.id, classId: values.classId, enrolledAt: normalizeDate(values.enrollmentDate, 'Ngày nhập học'), status: 'active', isCurrent: true })
         }
       } else {
         toast.info('Backend hiện chưa có endpoint nghiệp vụ tương ứng')
@@ -231,6 +243,7 @@ function StudentPage() {
         configs={modalConfigs}
         selectedStudent={modal === 'add' ? null : selectedStudent}
         filters={effectiveFilters}
+        directories={directories}
         onClose={() => setModal(null)}
         onSubmit={handleModalSubmit}
       />
