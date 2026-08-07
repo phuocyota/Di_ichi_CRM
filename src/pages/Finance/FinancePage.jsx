@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import FinanceDashboard from '../../components/Finance/FinanceDashboard.jsx'
 import FinanceDetail from '../../components/Finance/FinanceDetail.jsx'
@@ -19,6 +19,7 @@ import {
   scholarships,
   vouchers,
 } from '../../datas/finances.js'
+import { createResource, indexById, loadResources, numeric, updateResource } from '../../services/crmApi.js'
 
 function FinancePage() {
   const [activeTab, setActiveTab] = useState('Dashboard tài chính')
@@ -27,6 +28,54 @@ function FinancePage() {
   const [selectedTransaction, setSelectedTransaction] = useState(financeTransactions[0])
   const [modal, setModal] = useState(null)
   const [modalTransaction, setModalTransaction] = useState(null)
+  const [apiDirectories, setApiDirectories] = useState({})
+
+  const refreshTransactions = async () => {
+    const result = await loadResources(['finance-transaction', 'student', 'class', 'course', 'branch', 'payment', 'staff', 'receipt', 'promotion', 'voucher', 'scholarship'])
+    const studentsById = indexById(result.student)
+    const classesById = indexById(result.class)
+    const coursesById = indexById(result.course)
+    const branchesById = indexById(result.branch)
+    const staffsById = indexById(result.staff)
+    const mapped = result['finance-transaction'].map((item) => {
+      const student = studentsById[item.studentId]
+      const classItem = classesById[item.classId]
+      const transactionPayments = result.payment.filter((payment) => payment.transactionId === item.id && payment.status === 'successful')
+      const latestPayment = transactionPayments.sort((a, b) => String(b.paidAt).localeCompare(String(a.paidAt)))[0]
+      const status = financeFilters.statuses.find((entry) => entry.value === item.status)
+      const method = financeFilters.paymentMethods.find((entry) => entry.value === latestPayment?.method)
+      return {
+        ...item,
+        student: student?.name || item.studentId,
+        studentCode: student?.code || '—',
+        course: coursesById[classItem?.courseId]?.name || '—',
+        className: classItem?.name || item.classId,
+        branch: branchesById[item.branchId]?.name || item.branchId,
+        tuitionFee: numeric(item.tuitionFee),
+        promotion: numeric(item.promotionAmount),
+        voucher: numeric(item.voucherAmount),
+        discount: numeric(item.discountAmount),
+        scholarship: numeric(item.scholarshipAmount),
+        payable: numeric(item.payableAmount),
+        paid: numeric(item.paidAmount),
+        debt: numeric(item.debtAmount),
+        method: method?.label || '—',
+        methodValue: latestPayment?.method || '',
+        status: status?.label || item.status,
+        statusValue: item.status,
+        paidAt: latestPayment?.paidAt || '',
+        collector: staffsById[item.collectorId]?.name || '—',
+        _receiptId: result.receipt.find((receipt) => receipt.transactionId === item.id)?.id,
+      }
+    })
+    setApiDirectories(result)
+    setTransactions(mapped)
+    setSelectedTransaction((current) => mapped.find((item) => item.id === current?.id) || mapped[0] || null)
+  }
+
+  useEffect(() => {
+    refreshTransactions().catch((error) => toast.error(`Không tải được tài chính từ API: ${error.message}`))
+  }, [])
 
   const filteredTransactions = useMemo(() => {
     const lowerKeyword = keyword.trim().toLowerCase()
@@ -56,7 +105,58 @@ function FinancePage() {
     setModalTransaction(null)
   }
 
-  const handleModalSubmit = (type, values, transaction) => {
+  const handleModalSubmit = async (type, values, transaction) => {
+    try {
+      if (['collectTuition', 'cashPayment', 'transferPayment', 'collectDebt'].includes(type)) {
+        const methodByType = { qrPayment: 'qr', cashPayment: 'cash', transferPayment: 'transfer' }
+        await createResource('payment', {
+          transactionId: transaction.id,
+          amount: Number(values.amount),
+          method: methodByType[type] || values.methodValue,
+          paidAt: values.paidAt,
+          status: 'successful',
+          note: values.reason || undefined,
+        })
+        await refreshTransactions()
+        toast.success('Đã ghi nhận thanh toán')
+        closeModal()
+        return
+      }
+      if (type === 'extendPayment') {
+        await updateResource('finance-transaction', transaction.id, { dueDate: values.dueDate })
+      } else if (type === 'applyVoucher') {
+        const voucherId = apiDirectories.voucher?.find((item) => item.code === values.voucherCode)?.id
+        await createResource('transaction-voucher', { transactionId: transaction.id, voucherId, appliedAmount: numeric(apiDirectories.voucher?.find((item) => item.id === voucherId)?.discountValue) })
+      } else if (type === 'applyPromotion') {
+        const promotionId = apiDirectories.promotion?.find((item) => item.code === values.promotionCode)?.id
+        await createResource('transaction-promotion', { transactionId: transaction.id, promotionId, appliedAmount: numeric(apiDirectories.promotion?.find((item) => item.id === promotionId)?.discountValue) })
+      } else if (type === 'applyScholarship') {
+        const scholarshipId = apiDirectories.scholarship?.find((item) => item.id === values.scholarshipId)?.id
+        await createResource('transaction-scholarship', { transactionId: transaction.id, scholarshipId, appliedAmount: numeric(apiDirectories.scholarship?.find((item) => item.id === scholarshipId)?.discountValue) })
+      } else if (type === 'discountTuition') {
+        await createResource('manual-discount', { transactionId: transaction.id, amount: Number(values.discountAmount), reason: values.reason, approvedBy: transaction.collectorId })
+      } else if (type === 'refundTuition') {
+        await createResource('refund', { transactionId: transaction.id, amount: Number(values.refundAmount), method: transaction.methodValue || 'transfer', reason: values.reason, status: 'successful' })
+      } else if (type === 'cancelReceipt' && transaction._receiptId) {
+        await updateResource('receipt', transaction._receiptId, { status: 'cancelled', cancelledAt: new Date().toISOString(), cancelReason: values.reason })
+      } else if (['recordDebt', 'createReceipt', 'editReceipt', 'qrPayment'].includes(type)) {
+        toast.info('Biểu mẫu hiện tại chưa đủ trường bắt buộc theo API backend')
+        closeModal()
+        return
+      } else {
+        throw new Error('LOCAL_ACTION')
+      }
+      await refreshTransactions()
+      toast.success('Đã cập nhật dữ liệu tài chính')
+      closeModal()
+      return
+    } catch (error) {
+      if (error.message !== 'LOCAL_ACTION') {
+        toast.error(error.message)
+        return
+      }
+    }
+
     if (['collectTuition', 'createReceipt', 'qrPayment', 'cashPayment', 'transferPayment', 'collectDebt'].includes(type)) {
       const amount = Number(values.amount || 0)
       const methodMap = { qrPayment: 'QR', cashPayment: 'Tiền mặt', transferPayment: 'Chuyển khoản' }
@@ -119,6 +219,16 @@ function FinancePage() {
   const isDashboard = activeTab === 'Dashboard tài chính'
   const isReport = activeTab === 'Báo cáo tài chính'
   const isPromotionView = ['Khuyến mãi', 'Voucher', 'Giảm học phí', 'Học bổng'].includes(activeTab)
+  const promotionItems = apiDirectories.promotion?.length ? apiDirectories.promotion.map((item) => ({ ...item, value: numeric(item.discountValue) })) : promotions
+  const voucherItems = apiDirectories.voucher?.length ? apiDirectories.voucher.map((item) => ({ ...item, value: numeric(item.discountValue), expiredAt: item.validTo })) : vouchers
+  const scholarshipItems = apiDirectories.scholarship?.length ? apiDirectories.scholarship.map((item) => ({ ...item, value: numeric(item.discountValue) })) : scholarships
+  const effectiveFilters = {
+    ...financeFilters,
+    students: [...new Set(transactions.map((item) => item.student))],
+    courses: [...new Set(transactions.map((item) => item.course))],
+    classes: [...new Set(transactions.map((item) => item.className))],
+    branches: [...new Set(transactions.map((item) => item.branch))],
+  }
 
   return (
     <div className="space-y-5">
@@ -153,7 +263,7 @@ function FinancePage() {
             </div>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {[...promotions, ...vouchers, ...scholarships].map((item) => (
+            {[...promotionItems, ...voucherItems, ...scholarshipItems].map((item) => (
               <div key={item.id} className="rounded-xl border border-gray-300 bg-slate-50 p-4">
                 <p className="text-sm font-black text-slate-950">{item.name || item.code}</p>
                 <p className="mt-2 text-sm font-semibold text-slate-600">{item.code || item.condition || item.expiredAt}</p>
@@ -169,7 +279,7 @@ function FinancePage() {
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_26rem]">
           <FinanceTable
             transactions={filteredTransactions}
-            filters={financeFilters}
+            filters={effectiveFilters}
             keyword={keyword}
             onKeywordChange={setKeyword}
             onSelectTransaction={handleSelectTransaction}
@@ -180,9 +290,9 @@ function FinancePage() {
             tabs={financeDetailTabs}
             receipts={receipts}
             debts={debtList}
-            promotions={promotions}
-            vouchers={vouchers}
-            scholarships={scholarships}
+            promotions={promotionItems}
+            vouchers={voucherItems}
+            scholarships={scholarshipItems}
             onOpenModal={openModal}
           />
         </div>
@@ -192,10 +302,10 @@ function FinancePage() {
         modal={modal}
         config={financeModalConfigs[modal]}
         transaction={modalTransaction}
-        filters={financeFilters}
-        promotions={promotions}
-        vouchers={vouchers}
-        scholarships={scholarships}
+        filters={effectiveFilters}
+        promotions={promotionItems}
+        vouchers={voucherItems}
+        scholarships={scholarshipItems}
         onClose={closeModal}
         onSubmit={handleModalSubmit}
       />

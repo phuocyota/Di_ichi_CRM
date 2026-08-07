@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -38,18 +38,97 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { parentCareActivities, parentCharts, parentFilters, parentStatistics, parents } from '../../datas/parents.js'
+import { parentFilters, parentStatistics, parents } from '../../datas/parents.js'
+import { getParentSummary, indexById, initials, loadResources } from '../../services/crmApi.js'
 
 const formatCurrency = (value) => value ? `${Math.round(value / 1000000)}M` : '0'
+
+let parentSummaryRequest
+
+function requestParentSummary() {
+  if (!parentSummaryRequest) {
+    parentSummaryRequest = getParentSummary().finally(() => {
+      parentSummaryRequest = null
+    })
+  }
+  return parentSummaryRequest
+}
+
+const emptyParentSummary = {
+  statistics: parentStatistics.map((item) => ({ ...item, value: 0 })),
+  charts: { communication: [], status: [], payment: [] },
+  careActivities: [],
+}
 
 function ParentPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [keyword, setKeyword] = useState('')
   const [selectedParent, setSelectedParent] = useState(parents[0])
+  const [parentItems, setParentItems] = useState(parents)
+  const [parentSummary, setParentSummary] = useState(emptyParentSummary)
   const [modal, setModal] = useState(null)
   const [sorting, setSorting] = useState([])
   const [columnFilters, setColumnFilters] = useState([])
   const [filterValues, setFilterValues] = useState({ branch: '', course: '', className: '', careLevel: '', statusValue: '' })
+
+  useEffect(() => {
+    if (activeTab !== 'list') return
+
+    loadResources(['student-guardian', 'student', 'branch'])
+      .then((result) => {
+        const studentsById = indexById(result.student)
+        const branchesById = indexById(result.branch)
+        const mapped = result['student-guardian'].map((item) => {
+          const student = studentsById[item.studentId]
+          return {
+            ...item,
+            code: `PH-${item.id.slice(0, 8)}`,
+            avatar: initials(item.name),
+            student: student?.name || item.studentId,
+            studentCode: student?.code || '—',
+            relation: item.relationship,
+            course: '—',
+            className: '—',
+            branch: branchesById[student?.branchId]?.name || '—',
+            careLevel: 'Ổn định',
+            debt: 0,
+            status: 'Đang đồng hành',
+            statusValue: 'active',
+            attendanceAlert: '—',
+            learningNote: '—',
+            lastContact: '—',
+          }
+        })
+        setParentItems(mapped)
+        setSelectedParent(mapped[0] || null)
+      })
+      .catch((error) => toast.error(`Không tải được phụ huynh từ API: ${error.message}`))
+  }, [activeTab])
+
+  useEffect(() => {
+    requestParentSummary()
+      .then((result) => {
+        const statistics = result?.statistics || result?.summary || {}
+        const charts = result?.charts || {}
+        const values = [
+          statistics.totalGuardians ?? statistics.totalParents ?? 0,
+          statistics.activeGuardians ?? statistics.activeParents ?? 0,
+          statistics.careNeededGuardians ?? statistics.careNeededParents ?? 0,
+          statistics.debtGuardians ?? statistics.debtParents ?? 0,
+        ]
+
+        setParentSummary({
+          statistics: parentStatistics.map((item, index) => ({ ...item, value: values[index] })),
+          charts: {
+            communication: charts.communication || result?.communicationSeries || [],
+            status: charts.statusDistribution || charts.status || [],
+            payment: charts.paymentByBranch || charts.payment || [],
+          },
+          careActivities: result?.recentCareActivities || result?.careActivities || [],
+        })
+      })
+      .catch((error) => toast.error(`Không tải được tổng quan phụ huynh: ${error.message}`))
+  }, [])
 
   const updateFilter = (id, value) => {
     setFilterValues((current) => ({ ...current, [id]: value }))
@@ -118,7 +197,7 @@ function ParentPage() {
   )
 
   const table = useReactTable({
-    data: parents,
+    data: parentItems,
     columns,
     state: { sorting, globalFilter: keyword, columnFilters },
     onSortingChange: setSorting,
@@ -183,7 +262,7 @@ function ParentPage() {
       {activeTab === 'dashboard' ? (
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {parentStatistics.map((item) => {
+            {parentSummary.statistics.map((item) => {
               const Icon = item.icon
               return (
                 <article key={item.label} className={`rounded-xl border p-5 shadow-sm ${item.color}`}>
@@ -206,7 +285,7 @@ function ParentPage() {
               <p className="mt-1 text-sm font-medium text-slate-500">Cuộc gọi, tin nhắn và lịch hẹn chăm sóc.</p>
               <div className="mt-5 h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={parentCharts.communication} margin={{ left: 0, right: 16, top: 8 }}>
+                  <LineChart data={parentSummary.charts.communication} margin={{ left: 0, right: 16, top: 8 }}>
                     <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} />
                     <YAxis axisLine={false} tickLine={false} />
@@ -226,8 +305,8 @@ function ParentPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Tooltip formatter={(value) => [`${value}%`, 'Tỷ lệ']} />
-                    <Pie data={parentCharts.status} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
-                      {parentCharts.status.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
+                    <Pie data={parentSummary.charts.status} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
+                      {parentSummary.charts.status.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
@@ -240,7 +319,7 @@ function ParentPage() {
               <h2 className="text-lg font-black text-slate-950">Thanh toán theo cơ sở</h2>
               <div className="mt-5 h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={parentCharts.payment} margin={{ left: 0, right: 12, top: 8 }}>
+                  <BarChart data={parentSummary.charts.payment} margin={{ left: 0, right: 12, top: 8 }}>
                     <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="branch" axisLine={false} tickLine={false} />
                     <YAxis tickFormatter={formatCurrency} axisLine={false} tickLine={false} />
@@ -254,7 +333,7 @@ function ParentPage() {
             <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black text-slate-950">Hoạt động chăm sóc gần đây</h2>
               <div className="mt-4 space-y-3">
-                {parentCareActivities.map((item) => {
+                {parentSummary.careActivities.map((item) => {
                   const Icon = item.icon
                   return (
                     <div key={item.id} className="rounded-xl border border-gray-300 bg-slate-50 p-4">

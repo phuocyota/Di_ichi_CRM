@@ -24,17 +24,16 @@ Dự án frontend cho hệ thống quản trị trung tâm Anh ngữ theo hướ
 - jsPDF
 - jsPDF AutoTable
 
-## Quy Ước Dữ Liệu Mẫu
+## Kết Nối API
 
-Dự án hiện chưa sử dụng API. Toàn bộ dữ liệu mẫu đặt trong `src/datas`.
+Sao chép `.env.example` thành `.env.local`, sau đó cấu hình `VITE_API_BASE_URL`
+và `VITE_API_PROXY_TARGET`. Mặc định frontend gọi `/api` và Vite chuyển tiếp
+request đến `http://localhost:3004` trong môi trường phát triển.
 
-Các file dữ liệu hiện có:
-
-- `src/datas/adminUsers.js`
-- `src/datas/dashboard.js`
-- `src/datas/navigation.js`
-
-`src/services` chỉ chứa hàm xử lý nội bộ đọc dữ liệu từ `src/datas`, chưa tạo Axios client và chưa gọi endpoint bên ngoài.
+Đăng nhập và các màn học viên, phụ huynh, nhân sự, lớp học, lịch học, tài chính
+gọi API theo Swagger của backend. Dashboard tổng hợp vẫn dùng dữ liệu cục bộ do
+backend chưa có endpoint tương ứng. Dữ liệu trong `src/datas` được giữ để render
+trạng thái ban đầu và những phần API chưa định nghĩa.
 
 ## Quy Ước Tổ Chức Component
 

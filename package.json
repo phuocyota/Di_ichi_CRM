@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "deploy": "bash deploy.sh",
     "lint": "oxlint",
     "preview": "vite preview"
   },

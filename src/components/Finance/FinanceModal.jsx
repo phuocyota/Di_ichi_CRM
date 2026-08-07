@@ -70,14 +70,16 @@ function FinanceModal({ modal, config, transaction, filters, promotions, voucher
       </label>
       <label className="block">
         <span className={labelClass}>Phương thức thanh toán</span>
-        <select className={inputClass} {...register('methodValue')}>
+        <select className={inputClass} {...register('methodValue', required('Vui lòng chọn phương thức'))}>
           <option value="">Chọn phương thức</option>
           {filters.paymentMethods.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
+        {renderError('methodValue')}
       </label>
       <label className="block">
         <span className={labelClass}>Ngày thanh toán</span>
-        <input type="date" className={inputClass} {...register('paidAt')} />
+        <input type="date" className={inputClass} {...register('paidAt', required('Vui lòng chọn ngày thanh toán'))} />
+        {renderError('paidAt')}
       </label>
     </div>
   )

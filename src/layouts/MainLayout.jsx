@@ -1,12 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Bell, LogOut, Menu, Search, X } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/common/BrandLogo.jsx'
 import { navigationItems } from '../datas/navigation.js'
+import { removeStoredSession } from '../services/apiClient.js'
 
 function MainLayout() {
   const navigate = useNavigate()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+
+  useEffect(() => {
+    const handleUnauthorized = () => navigate('/login', { replace: true })
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
+  }, [navigate])
+
   const currentUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('ec_admin_user')) || null
@@ -16,8 +24,7 @@ function MainLayout() {
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('ec_admin_token')
-    localStorage.removeItem('ec_admin_user')
+    removeStoredSession()
     navigate('/login', { replace: true })
   }
 

@@ -1,4 +1,6 @@
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -9,6 +11,26 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+
+function DistributionChart({ title, description, data, color }) {
+  return (
+    <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <p className="mt-1 text-sm font-medium text-slate-500">{description}</p>
+      <div className="mt-5 h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ left: 0, right: 16, top: 8 }}>
+            <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(value) => [`${value} học viên`, 'Số lượng']} />
+            <Bar dataKey="value" fill={color} radius={[8, 8, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
 
 function StudentDashboard({ statistics, charts }) {
   return (
@@ -80,6 +102,21 @@ function StudentDashboard({ statistics, charts }) {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <DistributionChart
+          title="Phân bổ theo khóa học"
+          description="Học viên thuộc các khóa học hiện hành."
+          data={charts.courses || []}
+          color="#2563eb"
+        />
+        <DistributionChart
+          title="Phân bổ theo cơ sở"
+          description="Số lượng học viên tại từng cơ sở."
+          data={charts.branches || []}
+          color="#10b981"
+        />
       </section>
     </div>
   )

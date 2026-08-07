@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import StaffDashboard from '../../components/Staff/StaffDashboard.jsx'
 import StaffDetail from '../../components/Staff/StaffDetail.jsx'
@@ -10,26 +10,45 @@ import {
   attendanceData,
   certificates,
   managedClasses,
-  staffCharts,
   staffDetailTabs,
   staffFilters,
   staffGroups,
   staffModalConfigs,
-  staffs,
   staffStatistics,
   staffTabs,
   teacherKPIs,
   teachingSchedules,
 } from '../../datas/staffs.js'
+import { createResource, deleteResource, findIdByName, getStaffSummary, indexById, initials, listResource, loadResources, updateResource } from '../../services/crmApi.js'
+
+let staffSummaryRequest
+
+function requestStaffSummary() {
+  if (!staffSummaryRequest) {
+    staffSummaryRequest = getStaffSummary().finally(() => {
+      staffSummaryRequest = null
+    })
+  }
+  return staffSummaryRequest
+}
+
+const emptyStaffSummary = {
+  statistics: staffStatistics.map((item) => ({ ...item, value: 0 })),
+  charts: { departments: [], specialties: [], monthlyKpi: [], kpiCompletion: [] },
+  staffsNeedAttention: [],
+}
 
 function StaffPage() {
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [activeGroup, setActiveGroup] = useState('all')
   const [keyword, setKeyword] = useState('')
-  const [staffItems, setStaffItems] = useState(staffs)
-  const [selectedStaff, setSelectedStaff] = useState(staffs[0])
+  const [staffItems, setStaffItems] = useState([])
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [staffDataLoaded, setStaffDataLoaded] = useState(false)
+  const [staffSummary, setStaffSummary] = useState(emptyStaffSummary)
   const [modal, setModal] = useState(null)
   const [modalStaff, setModalStaff] = useState(null)
+  const [directories, setDirectories] = useState({})
 
   const filteredStaffs = useMemo(() => {
     return staffItems.filter((item) => {
@@ -45,9 +64,14 @@ function StaffPage() {
     setActiveTab('Hồ sơ nhân sự')
   }
 
-  const openModal = (type, staff = selectedStaff) => {
-    setModal(type)
-    setModalStaff(type === 'add' ? null : staff)
+  const openModal = async (type, staff = selectedStaff) => {
+    try {
+      const availableStaffs = staffDataLoaded ? staffItems : await refreshStaffs()
+      setModal(type)
+      setModalStaff(type === 'add' ? null : (staff || availableStaffs?.[0] || null))
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   const closeModal = () => {
@@ -55,94 +79,137 @@ function StaffPage() {
     setModalStaff(null)
   }
 
-  const buildStaffFromValues = (values, sourceStaff) => {
-    const status = staffFilters.statuses.find((item) => item.value === values.statusValue)
-    const typeValue = values.type === 'Giáo viên' ? 'teacher' : 'staff'
-    const avatar = values.name
-      ? values.name
-          .split(' ')
-          .slice(-2)
-          .map((part) => part[0])
-          .join('')
-          .toUpperCase()
-      : 'NS'
+  const refreshStaffs = useCallback(async (force = false) => {
+    if (!force && staffDataLoaded) return staffItems
 
-    return {
-      ...(sourceStaff || {}),
-      id: sourceStaff?.id || `STF${Date.now()}`,
-      code: values.code || sourceStaff?.code || `NS${Date.now().toString().slice(-4)}`,
-      avatar,
-      name: values.name || sourceStaff?.name || 'Nhân sự mới',
-      type: values.type || sourceStaff?.type || 'Nhân viên',
-      typeValue,
-      position: values.position || sourceStaff?.position || 'Nhân viên',
-      specialty: values.specialty || sourceStaff?.specialty || 'General',
-      department: values.department || sourceStaff?.department || 'Vận hành',
-      phone: values.phone || sourceStaff?.phone || '',
-      email: values.email || sourceStaff?.email || '',
-      status: status?.label || sourceStaff?.status || 'Đang làm việc',
-      statusValue: values.statusValue || sourceStaff?.statusValue || 'active',
-      startDate: values.startDate || sourceStaff?.startDate || '',
-      birthDate: values.birthDate || sourceStaff?.birthDate || '',
-      gender: values.gender || sourceStaff?.gender || '',
-      citizenId: values.citizenId || sourceStaff?.citizenId || '',
-      address: values.address || sourceStaff?.address || '',
-      major: values.major || sourceStaff?.major || '',
-      degree: values.degree || sourceStaff?.degree || '',
-      experience: values.experience || sourceStaff?.experience || '',
-      languages: values.languages || sourceStaff?.languages || '',
-      skills: values.skills ? values.skills.split(',').map((item) => item.trim()).filter(Boolean) : sourceStaff?.skills || [],
+    const result = await loadResources(['staff', 'branch', 'department', 'position', 'specialty'])
+    const branches = indexById(result.branch)
+    const departments = indexById(result.department)
+    const positions = indexById(result.position)
+    const specialties = indexById(result.specialty)
+    const mapped = result.staff.map((item) => {
+      const status = staffFilters.statuses.find((entry) => entry.value === item.status)
+      return {
+        ...item,
+        avatar: initials(item.name),
+        type: item.type === 'teacher' ? 'Giáo viên' : 'Nhân viên',
+        typeValue: item.type,
+        branch: branches[item.branchId]?.name || item.branchId,
+        department: departments[item.departmentId]?.name || '—',
+        position: positions[item.positionId]?.name || '—',
+        specialty: specialties[item.specialtyId]?.name || '—',
+        status: status?.label || item.status,
+        statusValue: item.status,
+        experience: item.experienceYears ? `${item.experienceYears} năm` : '',
+        languages: item.languages?.text || '',
+        skills: item.skills?.items || [],
+      }
+    })
+    setDirectories(result)
+    setStaffItems(mapped)
+    setSelectedStaff((current) => mapped.find((item) => item.id === current?.id) || mapped[0] || null)
+    setStaffDataLoaded(true)
+    return mapped
+  }, [staffDataLoaded, staffItems])
+
+  useEffect(() => {
+    requestStaffSummary()
+      .then((result) => {
+        const statistics = result?.statistics || {}
+        const values = [
+          statistics.totalStaff ?? 0,
+          statistics.teachers ?? 0,
+          statistics.employees ?? 0,
+          statistics.activeStaff ?? 0,
+          statistics.inactiveStaff ?? 0,
+        ]
+        const attention = (result?.staffsNeedAttention || []).map((item) => {
+          const status = staffFilters.statuses.find((entry) => entry.value === item.status)
+          return {
+            ...item,
+            status: status?.label || item.status,
+            statusValue: item.status,
+          }
+        })
+
+        setStaffSummary({
+          statistics: staffStatistics.map((item, index) => ({ ...item, value: values[index] })),
+          charts: {
+            departments: result?.charts?.departments || [],
+            specialties: result?.charts?.specialties || [],
+            monthlyKpi: result?.charts?.monthlyKpi || [],
+            kpiCompletion: result?.charts?.kpiCompletion || [],
+          },
+          staffsNeedAttention: attention,
+        })
+      })
+      .catch((error) => toast.error(`Không tải được tổng quan nhân sự: ${error.message}`))
+  }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'Dashboard' && !staffDataLoaded) {
+      refreshStaffs().catch((error) => toast.error(`Không tải được nhân sự từ API: ${error.message}`))
+    }
+  }, [activeTab, refreshStaffs, staffDataLoaded])
+
+  const handleModalSubmit = async (type, values, staff) => {
+    try {
+      if (type === 'delete') {
+        await deleteResource('staff', staff.id)
+      } else if (['add', 'edit'].includes(type)) {
+        const formValues = values
+        const payload = {
+          code: formValues.code || `NS-${Date.now()}`,
+          branchId: findIdByName(directories.branch, formValues.branch),
+          departmentId: findIdByName(directories.department, formValues.department),
+          positionId: findIdByName(directories.position, formValues.position),
+          specialtyId: findIdByName(directories.specialty, formValues.specialty),
+          name: formValues.name,
+          type: formValues.type === 'Giáo viên' ? 'teacher' : (formValues.typeValue || 'staff'),
+          phone: formValues.phone || undefined,
+          email: formValues.email || undefined,
+          status: formValues.statusValue || 'active',
+          startDate: formValues.startDate || undefined,
+          birthDate: formValues.birthDate || undefined,
+          gender: formValues.gender || undefined,
+          citizenId: formValues.citizenId || undefined,
+          address: formValues.address || undefined,
+          major: formValues.major || undefined,
+          degree: formValues.degree || undefined,
+          experienceYears: Number.parseInt(formValues.experience, 10) || undefined,
+          languages: formValues.languages ? { text: formValues.languages } : undefined,
+          skills: formValues.skills ? { items: typeof formValues.skills === 'string' ? formValues.skills.split(',').map((item) => item.trim()).filter(Boolean) : formValues.skills } : undefined,
+        }
+        if (type === 'add') await createResource('staff', payload)
+        else await updateResource('staff', staff.id, payload)
+      } else if (type === 'assignClass') {
+        const classId = findIdByName(await listResource('class'), values.className)
+        await createResource('class-staff', { classId, staffId: staff.id, role: 'teacher' })
+      } else if (type === 'transferDepartment') {
+        await updateResource('staff', staff.id, { departmentId: findIdByName(directories.department, values.department) })
+      } else if (type === 'updateSpecialty') {
+        await updateResource('staff', staff.id, { specialtyId: findIdByName(directories.specialty, values.specialty) })
+      } else if (type === 'updateCertificate') {
+        await createResource('staff-certificate', { staffId: staff.id, title: values.certificateTitle, issuer: values.certificateIssuer || undefined, issuedAt: values.issuedAt || undefined, expiresAt: values.expiresAt || undefined })
+      } else {
+        toast.info('Tác vụ này chưa có contract API tương ứng')
+        closeModal()
+        return
+      }
+      await refreshStaffs(true)
+      toast.success(type === 'delete' ? 'Đã xóa nhân sự' : 'Đã lưu thay đổi nhân sự')
+      closeModal()
+    } catch (error) {
+      toast.error(error.message)
     }
   }
 
-  const handleModalSubmit = (type, values, staff) => {
-    if (type === 'add') {
-      const nextStaff = buildStaffFromValues(values, null)
-      setStaffItems((items) => [...items, nextStaff])
-      setSelectedStaff(nextStaff)
-      toast.success('Đã thêm nhân sự')
-    } else if (type === 'edit') {
-      const nextStaff = buildStaffFromValues(values, staff)
-      setStaffItems((items) => items.map((item) => (item.id === staff.id ? nextStaff : item)))
-      setSelectedStaff(nextStaff)
-      toast.success('Đã cập nhật nhân sự')
-    } else if (type === 'delete') {
-      setStaffItems((items) => items.filter((item) => item.id !== staff.id))
-      setSelectedStaff((current) => current?.id === staff.id ? staffItems.find((item) => item.id !== staff.id) || staffs[0] : current)
-      toast.success('Đã xóa nhân sự')
-    } else if (type === 'transferDepartment') {
-      setStaffItems((items) => items.map((item) => item.id === staff.id ? { ...item, department: values.department } : item))
-      setSelectedStaff((current) => current?.id === staff.id ? { ...current, department: values.department } : current)
-      toast.success('Đã chuyển bộ phận')
-    } else if (type === 'updateSpecialty') {
-      setStaffItems((items) => items.map((item) => item.id === staff.id ? { ...item, specialty: values.specialty } : item))
-      setSelectedStaff((current) => current?.id === staff.id ? { ...current, specialty: values.specialty } : current)
-      toast.success('Đã cập nhật chuyên môn')
-    } else if (type === 'assignClass') {
-      toast.success('Đã phân công lớp')
-    } else if (type === 'updateCertificate') {
-      toast.success('Đã cập nhật chứng chỉ')
-    } else if (type === 'resetPassword') {
-      toast.success('Đã reset mật khẩu')
-    } else if (type === 'lockAccount') {
-      toast.success('Đã khóa tài khoản')
-    } else if (type === 'unlockAccount') {
-      toast.success('Đã mở khóa tài khoản')
-    } else if (type === 'import') {
-      toast.success('Đã import dữ liệu mẫu')
-    } else if (type === 'exportExcel') {
-      toast.success('Đã export Excel')
-    } else if (type === 'exportPdf') {
-      toast.success('Đã export PDF')
-    } else if (type === 'printProfile') {
-      toast.success('Đã gửi hồ sơ sang hàng đợi in')
-    } else if (type === 'email') {
-      toast.success('Đã gửi Email')
-    } else if (type === 'notify') {
-      toast.success('Đã gửi thông báo')
-    }
-
-    closeModal()
+  const effectiveFilters = {
+    ...staffFilters,
+    branches: directories.branch?.map((item) => item.name) || staffFilters.branches,
+    positions: directories.position?.map((item) => item.name) || staffFilters.positions,
+    departments: directories.department?.map((item) => item.name) || staffFilters.departments,
+    specialties: directories.specialty?.map((item) => item.name) || staffFilters.specialties,
   }
 
   return (
@@ -160,13 +227,17 @@ function StaffPage() {
       />
 
       {activeTab === 'Dashboard' ? (
-        <StaffDashboard statistics={staffStatistics} charts={staffCharts} staffs={filteredStaffs} />
+        <StaffDashboard
+          statistics={staffSummary.statistics}
+          charts={staffSummary.charts}
+          staffs={staffSummary.staffsNeedAttention}
+        />
       ) : null}
 
       {activeTab === 'Danh sách nhân sự' ? (
         <StaffTable
           staffs={filteredStaffs}
-          filters={staffFilters}
+          filters={effectiveFilters}
           keyword={keyword}
           onKeywordChange={setKeyword}
           onSelectStaff={handleSelectStaff}
@@ -174,7 +245,7 @@ function StaffPage() {
         />
       ) : null}
 
-      {activeTab === 'Hồ sơ nhân sự' ? (
+      {activeTab === 'Hồ sơ nhân sự' && selectedStaff ? (
         <StaffDetail
           staff={selectedStaff}
           tabs={staffDetailTabs}
@@ -192,7 +263,7 @@ function StaffPage() {
         modal={modal}
         config={staffModalConfigs[modal]}
         staff={modalStaff}
-        filters={staffFilters}
+        filters={effectiveFilters}
         onClose={closeModal}
         onSubmit={handleModalSubmit}
       />

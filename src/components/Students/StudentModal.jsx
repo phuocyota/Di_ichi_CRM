@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X } from 'lucide-react'
 
-function StudentModal({ modal, configs, selectedStudent, filters, onClose }) {
+function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSubmit: submitModal }) {
   const isOpen = Boolean(modal)
   const config = configs[modal] || { title: 'Thao tác học viên', submitText: 'Xác nhận' }
   const {
@@ -54,9 +54,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose }) {
     return null
   }
 
-  const onSubmit = () => {
-    onClose()
-  }
+  const onSubmit = (values) => submitModal?.(modal, values, selectedStudent)
 
   const isDelete = modal === 'delete'
   const isImport = modal === 'import'
@@ -92,7 +90,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose }) {
         <form className="max-h-[calc(92vh-92px)] space-y-4 overflow-y-auto p-5" onSubmit={handleSubmit(onSubmit)}>
           {isDelete ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-              Bạn có chắc chắn muốn xóa học viên {selectedStudent?.name || 'đã chọn'}? Thao tác này chỉ là mô phỏng dữ liệu mẫu.
+              Bạn có chắc chắn muốn xóa vĩnh viễn học viên {selectedStudent?.name || 'đã chọn'} và các dữ liệu liên quan?
             </div>
           ) : null}
 

@@ -23,7 +23,7 @@ function RevenueLineChart({ data, periods }) {
               type="button"
               className={[
                 'rounded-md px-3 py-2 text-xs font-bold transition',
-                index === 2 ? 'bg-red-600 text-white shadow-md shadow-red-100' : 'bg-red-50 text-red-700',
+                periods.length === 1 || index === 2 ? 'bg-red-600 text-white shadow-md shadow-red-100' : 'bg-red-50 text-red-700',
               ].join(' ')}
             >
               {item}

@@ -302,6 +302,7 @@ export const accounts = [
 
 export const staffFilters = {
   types: ['Giáo viên', 'Nhân viên'],
+  branches: ['Cơ sở 1', 'Cơ sở 2', 'Cơ sở 3'],
   positions: ['Giáo viên IELTS Senior', 'Giáo viên Kids', 'Giáo viên Communication', 'Cố vấn học tập', 'Tư vấn tuyển sinh', 'Kế toán', 'Marketing Executive'],
   departments: ['Đào tạo', 'Học vụ', 'Tư vấn', 'Marketing', 'Kế toán', 'Vận hành'],
   specialties: ['IELTS', 'Kids', 'Communication', 'Grammar', 'TOEIC', 'Academic Care', 'Sales', 'Finance', 'Digital Marketing'],

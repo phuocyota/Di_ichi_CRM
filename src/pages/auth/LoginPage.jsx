@@ -4,7 +4,7 @@ import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import BrandLogo from '../../components/common/BrandLogo.jsx'
-import { signInWithMockAccount } from '../../services/mockAuthService.js'
+import { signIn } from '../../services/authService.js'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -13,26 +13,22 @@ function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      email: 'admin@englishcenter.local',
-      password: 'admin123',
+      email: '',
+      password: '',
     },
   })
 
-  const onSubmit = (values) => {
-    const result = signInWithMockAccount(values)
-
-    if (!result.ok) {
-      toast.error(result.message)
-      return
+  const onSubmit = async (values) => {
+    try {
+      await signIn(values)
+      toast.success('Đăng nhập thành công')
+      navigate(location.state?.from?.pathname || '/dashboard', { replace: true })
+    } catch (error) {
+      toast.error(error.message)
     }
-
-    localStorage.setItem('ec_admin_token', result.token)
-    localStorage.setItem('ec_admin_user', JSON.stringify(result.user))
-    toast.success('Đăng nhập thành công')
-    navigate(location.state?.from?.pathname || '/dashboard', { replace: true })
   }
 
   return (
@@ -88,9 +84,10 @@ function LoginPage() {
 
         <button
           type="submit"
-          className="h-12 w-full rounded-md bg-[linear-gradient(135deg,#1d4ed8_0%,#2563eb_52%,#ef4444_100%)] text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:brightness-105"
+          disabled={isSubmitting}
+          className="h-12 w-full rounded-md bg-[linear-gradient(135deg,#1d4ed8_0%,#2563eb_52%,#ef4444_100%)] text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
         >
-          Đăng nhập
+          {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
     </div>

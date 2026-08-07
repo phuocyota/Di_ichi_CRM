@@ -54,7 +54,7 @@ function parseSchedule(schedule) {
   }
 }
 
-function ClassModal({ modal, configs, selectedClass, filters, onClose }) {
+function ClassModal({ modal, configs, selectedClass, filters, onClose, onSubmit: submitModal }) {
   const isOpen = Boolean(modal)
   const config = configs[modal] || { title: 'Thao tác lớp học', submitText: 'Xác nhận' }
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
@@ -109,7 +109,7 @@ function ClassModal({ modal, configs, selectedClass, filters, onClose }) {
   const required = (message) => ({ required: message })
   const star = <span className="ml-1 text-red-600">*</span>
 
-  const onSubmit = () => onClose()
+  const onSubmit = (values) => submitModal?.(modal, values, selectedClass)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6">
@@ -127,7 +127,7 @@ function ClassModal({ modal, configs, selectedClass, filters, onClose }) {
         <form className="max-h-[calc(92vh-92px)] space-y-4 overflow-y-auto p-5" onSubmit={handleSubmit(onSubmit)}>
           {isDelete ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-              Bạn có chắc chắn muốn xóa lớp {selectedClass?.name || 'đã chọn'}? Thao tác này chỉ mô phỏng với dữ liệu mẫu.
+              Bạn có chắc chắn muốn xóa vĩnh viễn lớp {selectedClass?.name || 'đã chọn'} và các dữ liệu liên quan?
             </div>
           ) : null}
 

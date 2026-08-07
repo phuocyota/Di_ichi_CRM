@@ -16,6 +16,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
       code: staff?.code || '',
       name: staff?.name || '',
       type: staff?.type || '',
+      branch: staff?.branch || '',
       position: staff?.position || '',
       specialty: staff?.specialty || '',
       department: staff?.department || '',
@@ -71,6 +72,14 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
             {filters.types.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
           {renderError('type')}
+        </label>
+        <label className="block">
+          <span className={labelClass}>Cơ sở</span>
+          <select className={inputClass} {...register('branch', required('Vui lòng chọn cơ sở'))}>
+            <option value="">Chọn cơ sở</option>
+            {filters.branches.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          {renderError('branch')}
         </label>
         <label className="block">
           <span className={labelClass}>Chức vụ</span>

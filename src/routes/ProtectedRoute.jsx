@@ -1,8 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { getAccessToken } from '../services/apiClient.js'
 
 function ProtectedRoute() {
   const location = useLocation()
-  const token = localStorage.getItem('ec_admin_token')
+  const token = getAccessToken()
 
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location }} />

@@ -145,7 +145,6 @@ function ScheduleCalendar({
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           locale={viLocale}
-          initialDate="2026-07-28"
           initialView={initialView}
           headerToolbar={false}
           allDaySlot={false}
