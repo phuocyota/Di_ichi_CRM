@@ -2,7 +2,16 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X } from 'lucide-react'
 
-function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSubmit: submitModal }) {
+function dateInputValue(value) {
+  if (!value) return ''
+  const isoDate = String(value).match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+  if (isoDate) return isoDate
+
+  const parts = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  return parts ? `${parts[3]}-${parts[2]}-${parts[1]}` : ''
+}
+
+function StudentModal({ modal, configs, selectedStudent, filters, directories, onClose, onSubmit: submitModal }) {
   const isOpen = Boolean(modal)
   const config = configs[modal] || { title: 'Thao tác học viên', submitText: 'Xác nhận' }
   const {
@@ -19,10 +28,10 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
       phone: '',
       parent: '',
       parentPhone: '',
-      course: '',
-      className: '',
-      teacher: '',
-      branch: '',
+      courseId: '',
+      classId: '',
+      teacherId: '',
+      branchId: '',
       statusValue: '',
       enrollmentDate: '',
       reason: '',
@@ -35,16 +44,16 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
       code: selectedStudent?.code || '',
       name: selectedStudent?.name || '',
       gender: selectedStudent?.gender || '',
-      birthDate: selectedStudent?.birthDate || '',
+      birthDate: dateInputValue(selectedStudent?.birthDate),
       phone: selectedStudent?.phone || '',
       parent: selectedStudent?.parent || '',
       parentPhone: selectedStudent?.parentPhone || '',
-      course: selectedStudent?.course || '',
-      className: selectedStudent?.className || '',
-      teacher: selectedStudent?.teacher || '',
-      branch: selectedStudent?.branch || '',
+      courseId: selectedStudent?.courseId || '',
+      classId: selectedStudent?.classId || '',
+      teacherId: selectedStudent?.teacherId || '',
+      branchId: selectedStudent?.branchId || '',
       statusValue: selectedStudent?.statusValue || '',
-      enrollmentDate: selectedStudent?.enrollmentDate || '',
+      enrollmentDate: dateInputValue(selectedStudent?.enrollmentDate),
       reason: '',
       file: '',
     })
@@ -141,7 +150,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
                 </label>
                 <label className="block">
                   <span className={labelClass}>Ngày sinh</span>
-                  <input className={inputClass} placeholder="dd/mm/yyyy" {...register('birthDate')} />
+                  <input type="date" className={inputClass} {...register('birthDate')} />
                 </label>
                 <label className="block">
                   <span className={labelClass}>Số điện thoại{renderRequired()}</span>
@@ -156,7 +165,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
                   <span className={labelClass}>Ngày nhập học{renderRequired()}</span>
                   <input
                     className={inputClass}
-                    placeholder="dd/mm/yyyy"
+                    type="date"
                     {...register('enrollmentDate', requiredRule('Vui lòng nhập ngày nhập học'))}
                   />
                   {renderError('enrollmentDate')}
@@ -194,47 +203,48 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
                   <span className={labelClass}>Khóa học{isStudentForm ? renderRequired() : null}</span>
                   <select
                     className={inputClass}
-                    {...register('course', isStudentForm ? requiredRule('Vui lòng chọn khóa học') : {})}
+                    {...register('courseId', isStudentForm ? requiredRule('Vui lòng chọn khóa học') : {})}
                   >
                     <option value="">Chọn khóa học</option>
-                    {filters.courses.map((item) => (
-                      <option key={item} value={item}>{item}</option>
+                    {directories.courses.map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                   </select>
-                  {renderError('course')}
+                  {renderError('courseId')}
                 </label>
                 <label className="block">
                   <span className={labelClass}>Lớp học{isStudentForm || isTransfer ? renderRequired() : null}</span>
                   <select
                     className={inputClass}
-                    {...register('className', isStudentForm || isTransfer ? requiredRule('Vui lòng chọn lớp học') : {})}
+                    {...register('classId', isStudentForm || isTransfer ? requiredRule('Vui lòng chọn lớp học') : {})}
                   >
                     <option value="">Chọn lớp học</option>
-                    {filters.classes.map((item) => (
-                      <option key={item} value={item}>{item}</option>
+                    {directories.classes.map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                   </select>
-                  {renderError('className')}
+                  {renderError('classId')}
                 </label>
                 {isStudentForm ? (
                   <>
                     <label className="block">
                       <span className={labelClass}>Giáo viên</span>
-                      <select className={inputClass} {...register('teacher')}>
+                      <select className={inputClass} {...register('teacherId')}>
                         <option value="">Chọn giáo viên</option>
-                        {filters.teachers.map((item) => (
-                          <option key={item} value={item}>{item}</option>
+                        {directories.teachers.map((item) => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
                       </select>
                     </label>
                     <label className="block">
-                      <span className={labelClass}>Cơ sở</span>
-                      <select className={inputClass} {...register('branch')}>
+                      <span className={labelClass}>Cơ sở{renderRequired()}</span>
+                      <select className={inputClass} {...register('branchId', requiredRule('Vui lòng chọn cơ sở'))}>
                         <option value="">Chọn cơ sở</option>
-                        {filters.branches.map((item) => (
-                          <option key={item} value={item}>{item}</option>
+                        {directories.branches.map((item) => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
                       </select>
+                      {renderError('branchId')}
                     </label>
                     <label className="block">
                       <span className={labelClass}>Trạng thái{renderRequired()}</span>
