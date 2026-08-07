@@ -12,18 +12,6 @@ function dateInputValue(value) {
 }
 
 function StudentModal({ modal, configs, selectedStudent, filters, directories, onClose, onSubmit: submitModal }) {
-function toDateInputValue(value) {
-  if (!value) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
-
-  const parts = value.split('/')
-  if (parts.length !== 3) return ''
-
-  const [day, month, year] = parts
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-}
-
-function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSubmit: submitModal }) {
   const isOpen = Boolean(modal)
   const config = configs[modal] || { title: 'Thao tác học viên', submitText: 'Xác nhận' }
   const {
@@ -56,7 +44,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
       code: selectedStudent?.code || '',
       name: selectedStudent?.name || '',
       gender: selectedStudent?.gender || '',
-      birthDate: toDateInputValue(selectedStudent?.birthDate),
+      birthDate: dateInputValue(selectedStudent?.birthDate),
       phone: selectedStudent?.phone || '',
       parent: selectedStudent?.parent || '',
       parentPhone: selectedStudent?.parentPhone || '',
@@ -65,7 +53,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, onClose, onSub
       teacherId: selectedStudent?.teacherId || '',
       branchId: selectedStudent?.branchId || '',
       statusValue: selectedStudent?.statusValue || '',
-      enrollmentDate: toDateInputValue(selectedStudent?.enrollmentDate),
+      enrollmentDate: dateInputValue(selectedStudent?.enrollmentDate),
       reason: '',
       file: '',
     })
