@@ -4,6 +4,14 @@ import { AlertTriangle, Upload, X } from 'lucide-react'
 
 function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
   const isOpen = Boolean(config)
+  const safeFilters = {
+    branches: [],
+    positions: [],
+    departments: [],
+    specialties: [],
+    statuses: [],
+    ...(filters || {}),
+  }
   const {
     register,
     handleSubmit,
@@ -15,7 +23,6 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
     reset({
       code: staff?.code || '',
       name: staff?.name || '',
-      type: staff?.type || '',
       branch: staff?.branch || '',
       position: staff?.position || '',
       specialty: staff?.specialty || '',
@@ -57,7 +64,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block">
-          <span className={labelClass}>Mã nhân sự</span>
+          <span className={labelClass}>Mã giáo viên</span>
           <input className={inputClass} placeholder="Tự động nếu để trống" {...register('code')} />
         </label>
         <label className="block">
@@ -66,18 +73,10 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           {renderError('name')}
         </label>
         <label className="block">
-          <span className={labelClass}>Loại nhân sự</span>
-          <select className={inputClass} {...register('type', required('Vui lòng chọn loại nhân sự'))}>
-            <option value="">Chọn loại nhân sự</option>
-            {filters.types.map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
-          {renderError('type')}
-        </label>
-        <label className="block">
           <span className={labelClass}>Cơ sở</span>
           <select className={inputClass} {...register('branch', required('Vui lòng chọn cơ sở'))}>
             <option value="">Chọn cơ sở</option>
-            {filters.branches.map((item) => <option key={item} value={item}>{item}</option>)}
+            {safeFilters.branches.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
           {renderError('branch')}
         </label>
@@ -85,21 +84,21 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           <span className={labelClass}>Chức vụ</span>
           <select className={inputClass} {...register('position', required('Vui lòng chọn chức vụ'))}>
             <option value="">Chọn chức vụ</option>
-            {filters.positions.map((item) => <option key={item} value={item}>{item}</option>)}
+            {safeFilters.positions.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
         <label className="block">
           <span className={labelClass}>Bộ phận</span>
           <select className={inputClass} {...register('department', required('Vui lòng chọn bộ phận'))}>
             <option value="">Chọn bộ phận</option>
-            {filters.departments.map((item) => <option key={item} value={item}>{item}</option>)}
+            {safeFilters.departments.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
         <label className="block">
           <span className={labelClass}>Chuyên môn</span>
           <select className={inputClass} {...register('specialty')}>
             <option value="">Chọn chuyên môn</option>
-            {filters.specialties.map((item) => <option key={item} value={item}>{item}</option>)}
+            {safeFilters.specialties.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
         <label className="block">
@@ -118,7 +117,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           <span className={labelClass}>Trạng thái</span>
           <select className={inputClass} {...register('statusValue')}>
             <option value="">Chọn trạng thái</option>
-            {filters.statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {safeFilters.statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </label>
         <label className="block">
@@ -186,7 +185,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           <span className={labelClass}>Bộ phận mới</span>
           <select className={inputClass} {...register('department', required('Vui lòng chọn bộ phận'))}>
             <option value="">Chọn bộ phận</option>
-            {filters.departments.map((item) => <option key={item} value={item}>{item}</option>)}
+            {safeFilters.departments.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
       )
@@ -198,7 +197,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           <span className={labelClass}>Chuyên môn mới</span>
           <select className={inputClass} {...register('specialty', required('Vui lòng chọn chuyên môn'))}>
             <option value="">Chọn chuyên môn</option>
-            {filters.specialties.map((item) => <option key={item} value={item}>{item}</option>)}
+            {safeFilters.specialties.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
       )
@@ -246,7 +245,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           </label>
           <label className="block">
             <span className={labelClass}>Nội dung</span>
-            <textarea rows={5} className={textareaClass} placeholder="Nhập nội dung gửi cho nhân sự" {...register('messageContent')} />
+            <textarea rows={5} className={textareaClass} placeholder="Nhập nội dung gửi cho giáo viên" {...register('messageContent')} />
           </label>
         </div>
       )
@@ -257,7 +256,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
         <div className="space-y-4">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
             <p className="flex items-center gap-2 text-base font-black"><AlertTriangle size={18} /> Xác nhận xóa</p>
-            <p className="mt-2">Bạn có chắc chắn muốn xóa nhân sự {staff?.name || 'đã chọn'}? Thao tác này chỉ cập nhật dữ liệu mẫu.</p>
+            <p className="mt-2">Bạn có chắc chắn muốn xóa giáo viên {staff?.name || 'đã chọn'}? Thao tác này chỉ cập nhật dữ liệu mẫu.</p>
           </div>
           <label className="block">
             <span className={labelClass}>Lý do</span>
@@ -270,14 +269,14 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
     if (config.intent === 'export') {
       return (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-          Xuất dữ liệu nhân sự theo bộ lọc hiện tại. Khi tích hợp API, thao tác này sẽ tải file thật.
+          Xuất dữ liệu giáo viên theo bộ lọc hiện tại. Khi tích hợp API, thao tác này sẽ tải file thật.
         </div>
       )
     }
 
     return (
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-        Xác nhận thao tác cho {staff?.name || 'nhân sự đã chọn'}.
+        Xác nhận thao tác cho {staff?.name || 'giáo viên đã chọn'}.
       </div>
     )
   }
@@ -289,7 +288,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           <div>
             <h2 className="text-lg font-black text-slate-950">{config.title}</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              {staff?.name || 'Nhập thông tin nhân sự theo biểu mẫu.'}
+              {staff?.name || 'Nhập thông tin giáo viên theo biểu mẫu.'}
             </p>
           </div>
           <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50" aria-label="Đóng modal" onClick={onClose}>

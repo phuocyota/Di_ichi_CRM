@@ -5,9 +5,10 @@ import {
   GraduationCap,
   HeartHandshake,
   LayoutDashboard,
+  Megaphone,
   ReceiptText,
+  Settings,
   Users,
-  // Settings,
 } from 'lucide-react'
 
 export const navigationItems = [
@@ -33,8 +34,8 @@ export const navigationItems = [
     activeColor: 'bg-sky-600 text-white shadow-sky-200',
   },
   {
-    label: 'Lớp học',
-    path: '/classes',
+    label: 'Khóa học',
+    path: '/courses',
     icon: BookOpen,
     color: 'bg-amber-50 text-amber-700 ring-amber-100',
     activeColor: 'bg-amber-500 text-white shadow-amber-200',
@@ -47,7 +48,7 @@ export const navigationItems = [
     activeColor: 'bg-cyan-600 text-white shadow-cyan-200',
   },
   {
-    label: 'Nhân sự',
+    label: 'Giáo viên',
     path: '/staff',
     icon: Users,
     color: 'bg-violet-50 text-violet-700 ring-violet-100',
@@ -61,17 +62,24 @@ export const navigationItems = [
     activeColor: 'bg-rose-600 text-white shadow-rose-200',
   },
   {
+    label: 'Marketing & Sale',
+    path: '/marketing-sales',
+    icon: Megaphone,
+    color: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-100',
+    activeColor: 'bg-fuchsia-600 text-white shadow-fuchsia-200',
+  },
+  {
     label: 'Báo cáo',
     path: '/reports',
     icon: BarChart3,
     color: 'bg-orange-50 text-orange-700 ring-orange-100',
     activeColor: 'bg-orange-500 text-white shadow-orange-200',
   },
-  // {
-  //   label: 'Cài đặt',
-  //   path: '/settings',
-  //   icon: Settings,
-  //   color: 'bg-slate-100 text-slate-700 ring-slate-200',
-  //   activeColor: 'bg-slate-700 text-white shadow-slate-200',
-  // },
+  {
+    label: 'Cài đặt hệ thống',
+    path: '/system-settings',
+    icon: Settings,
+    color: 'bg-slate-100 text-slate-700 ring-slate-200',
+    activeColor: 'bg-slate-700 text-white shadow-slate-200',
+  },
 ]

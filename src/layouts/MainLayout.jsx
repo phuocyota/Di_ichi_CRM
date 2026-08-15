@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, LogOut, Menu, Search, X } from 'lucide-react'
+import { LogOut, Menu, Search, X } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/common/BrandLogo.jsx'
+import NotificationPopover from '../components/common/NotificationPopover.jsx'
 import { navigationItems } from '../datas/navigation.js'
 import { removeStoredSession } from '../services/apiClient.js'
 
@@ -53,7 +54,7 @@ function MainLayout() {
   )
 
   const renderNavigation = (onNavigate) => (
-    <nav className="flex-1 space-y-2 px-3 py-4">
+    <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-4">
       {navigationItems.map((item) => {
         const Icon = item.icon
 
@@ -105,7 +106,7 @@ function MainLayout() {
 
   return (
     <div className="min-h-screen bg-muted text-ink-900">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-red-100 bg-white lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 left-0 hidden h-dvh w-64 border-r border-red-100 bg-white lg:flex lg:flex-col">
         {renderBrandPanel()}
         {renderNavigation()}
         {renderLogout()}
@@ -119,7 +120,7 @@ function MainLayout() {
             aria-label="Đóng menu"
             onClick={() => setIsMobileNavOpen(false)}
           />
-          <aside className="relative flex h-full w-[min(20rem,86vw)] flex-col border-r border-red-100 bg-white shadow-2xl">
+          <aside className="relative flex h-dvh w-[min(20rem,86vw)] flex-col border-r border-red-100 bg-white shadow-2xl">
             {renderBrandPanel(true)}
             {renderNavigation(() => setIsMobileNavOpen(false))}
             {renderLogout()}
@@ -150,16 +151,7 @@ function MainLayout() {
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-700 shadow-sm transition hover:bg-amber-100"
-              aria-label="Thông báo"
-            >
-              <Bell size={19} aria-hidden="true" />
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
-                3
-              </span>
-            </button>
+            <NotificationPopover />
             <div className="hidden items-center gap-3 rounded-md border border-red-100 bg-[linear-gradient(135deg,#fff1f2_0%,#ffffff_52%,#eff6ff_100%)] px-3 py-2 shadow-sm sm:flex">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-600 text-sm font-bold text-white shadow-md shadow-red-100">
                 QV

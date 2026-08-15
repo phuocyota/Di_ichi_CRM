@@ -1,0 +1,206 @@
+export const courseTabs = [
+  { key: 'courses', label: 'Khóa học' },
+  { key: 'classes', label: 'Lớp học' },
+  { key: 'results', label: 'Kết quả học tập' },
+]
+
+export const courseCategories = [
+  { id: 'cat-kids', name: 'Kids' },
+  { id: 'cat-ielts', name: 'IELTS' },
+  { id: 'cat-toeic', name: 'TOEIC' },
+  { id: 'cat-communication', name: 'Giao tiếp' },
+]
+
+export const courseStatuses = [
+  { value: 'recruiting', label: 'Đang tuyển sinh', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { value: 'paused', label: 'Tạm dừng', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'finished', label: 'Kết thúc', badgeClass: 'bg-slate-100 text-slate-700 border-slate-200' },
+]
+
+export const classStatuses = [
+  { value: 'upcoming', label: 'Sắp khai giảng', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: 'active', label: 'Đang học', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { value: 'full', label: 'Đã đủ sĩ số', badgeClass: 'bg-violet-50 text-violet-700 border-violet-200' },
+  { value: 'finished', label: 'Kết thúc', badgeClass: 'bg-slate-100 text-slate-700 border-slate-200' },
+]
+
+export const courses = [
+  {
+    id: 'course-ielts-foundation',
+    code: 'IELTS01',
+    name: 'IELTS Foundation',
+    categoryId: 'cat-ielts',
+    level: 'Foundation',
+    duration: '3 tháng',
+    sessions: 36,
+    tuition: 12000000,
+    description: 'Xây nền IELTS cho học viên mới bắt đầu, tập trung đủ 4 kỹ năng.',
+    status: 'recruiting',
+  },
+  {
+    id: 'course-toeic-500',
+    code: 'TOEIC01',
+    name: 'TOEIC 500+',
+    categoryId: 'cat-toeic',
+    level: 'Intermediate',
+    duration: '2 tháng',
+    sessions: 24,
+    tuition: 8000000,
+    description: 'Luyện nghe đọc TOEIC và chiến lược đạt mục tiêu 500+.',
+    status: 'recruiting',
+  },
+  {
+    id: 'course-starter-kids',
+    code: 'KIDS01',
+    name: 'Starter Kids',
+    categoryId: 'cat-kids',
+    level: 'Starter',
+    duration: '4 tháng',
+    sessions: 48,
+    tuition: 10000000,
+    description: 'Tiếng Anh thiếu nhi nền tảng qua hoạt động, phản xạ và phát âm.',
+    status: 'recruiting',
+  },
+  {
+    id: 'course-communication-basic',
+    code: 'COM01',
+    name: 'Giao tiếp cơ bản',
+    categoryId: 'cat-communication',
+    level: 'Basic',
+    duration: '2.5 tháng',
+    sessions: 30,
+    tuition: 7500000,
+    description: 'Cải thiện phản xạ giao tiếp trong học tập và công việc.',
+    status: 'paused',
+  },
+]
+
+export const teachers = [
+  { id: 'teacher-001', name: 'Nguyễn Văn A', specialty: 'IELTS' },
+  { id: 'teacher-002', name: 'Trần Thị B', specialty: 'Kids' },
+  { id: 'teacher-003', name: 'Lê Quốc Huy', specialty: 'TOEIC' },
+  { id: 'teacher-004', name: 'Phạm Minh Châu', specialty: 'Giao tiếp' },
+]
+
+export const rooms = [
+  { id: 'room-201', name: 'P.201' },
+  { id: 'room-202', name: 'P.202' },
+  { id: 'room-301', name: 'P.301' },
+  { id: 'room-lab-a', name: 'Lab A' },
+]
+
+export const students = [
+  { id: 'student-001', code: 'HV001248', name: 'Nguyễn Minh Anh' },
+  { id: 'student-002', code: 'HV001247', name: 'Trần Gia Bảo' },
+  { id: 'student-003', code: 'HV001246', name: 'Lê Hoàng Nam' },
+  { id: 'student-004', code: 'HV001245', name: 'Phạm Thảo Vy' },
+  { id: 'student-005', code: 'HV001244', name: 'Đỗ Hải Linh' },
+]
+
+export const courseClasses = [
+  {
+    id: 'class-ielts-fd-01',
+    code: 'IELTS-FD-01',
+    name: 'IELTS Foundation 01',
+    courseId: 'course-ielts-foundation',
+    teacherId: 'teacher-001',
+    roomId: 'room-201',
+    startDate: '2026-08-20',
+    endDate: '2026-11-20',
+    schedule: 'T2-T4 18:00 - 20:00',
+    currentStudents: 18,
+    maxStudents: 20,
+    studentIds: ['student-001', 'student-002'],
+    status: 'active',
+  },
+  {
+    id: 'class-ielts-fd-02',
+    code: 'IELTS-FD-02',
+    name: 'IELTS Foundation 02',
+    courseId: 'course-ielts-foundation',
+    teacherId: 'teacher-002',
+    roomId: 'room-202',
+    startDate: '2026-09-05',
+    endDate: '2026-12-05',
+    schedule: 'T3-T5 19:00 - 21:00',
+    currentStudents: 20,
+    maxStudents: 20,
+    studentIds: ['student-003', 'student-004'],
+    status: 'full',
+  },
+  {
+    id: 'class-toeic-500-01',
+    code: 'TOEIC-500-01',
+    name: 'TOEIC 500+ 01',
+    courseId: 'course-toeic-500',
+    teacherId: 'teacher-003',
+    roomId: 'room-301',
+    startDate: '2026-08-28',
+    endDate: '2026-10-28',
+    schedule: 'T2-T6 19:30 - 21:00',
+    currentStudents: 16,
+    maxStudents: 22,
+    studentIds: ['student-005'],
+    status: 'upcoming',
+  },
+  {
+    id: 'class-kids-starter-01',
+    code: 'KIDS-ST-01',
+    name: 'Starter Kids 01',
+    courseId: 'course-starter-kids',
+    teacherId: 'teacher-002',
+    roomId: 'room-lab-a',
+    startDate: '2026-07-15',
+    endDate: '2026-11-15',
+    schedule: 'T7-CN 08:00 - 10:00',
+    currentStudents: 14,
+    maxStudents: 18,
+    studentIds: ['student-001', 'student-004', 'student-005'],
+    status: 'active',
+  },
+]
+
+export const learningResults = [
+  {
+    id: 'result-001',
+    studentId: 'student-001',
+    classId: 'class-ielts-fd-01',
+    courseId: 'course-ielts-foundation',
+    teacherId: 'teacher-001',
+    attendance: { totalSessions: 24, present: 23, excusedAbsent: 1, unexcusedAbsent: 0 },
+    scores: { midterm: 8.0, final: 8.5, average: 8.3, rank: 'Giỏi' },
+    skills: { listening: 8.0, speaking: 8.2, reading: 8.5, writing: 8.3 },
+    progress: 'Tiến bộ rõ ở phần Reading và Writing.',
+    strength: 'Nắm cấu trúc bài tốt, làm bài ổn định.',
+    improvement: 'Cần tăng tốc phản xạ Speaking.',
+    recommendation: 'Có thể học tiếp IELTS Intensive.',
+  },
+  {
+    id: 'result-002',
+    studentId: 'student-002',
+    classId: 'class-ielts-fd-01',
+    courseId: 'course-ielts-foundation',
+    teacherId: 'teacher-001',
+    attendance: { totalSessions: 24, present: 21, excusedAbsent: 2, unexcusedAbsent: 1 },
+    scores: { midterm: 7.5, final: 8.0, average: 7.8, rank: 'Khá' },
+    skills: { listening: 7.8, speaking: 7.4, reading: 8.0, writing: 7.9 },
+    progress: 'Ổn định hơn ở Listening.',
+    strength: 'Chăm chỉ làm bài tập và phản hồi tốt.',
+    improvement: 'Cần luyện phát âm và mở rộng từ vựng.',
+    recommendation: 'Duy trì lớp luyện Speaking bổ trợ.',
+  },
+  {
+    id: 'result-003',
+    studentId: 'student-005',
+    classId: 'class-toeic-500-01',
+    courseId: 'course-toeic-500',
+    teacherId: 'teacher-003',
+    attendance: { totalSessions: 12, present: 12, excusedAbsent: 0, unexcusedAbsent: 0 },
+    scores: { midterm: 7.0, final: 7.6, average: 7.3, rank: 'Khá' },
+    skills: { listening: 7.5, speaking: 7.0, reading: 7.4, writing: 7.1 },
+    progress: 'Tăng tốc độ xử lý câu hỏi Part 3, Part 4.',
+    strength: 'Kỷ luật học tốt.',
+    improvement: 'Cần luyện thêm từ vựng công sở.',
+    recommendation: 'Làm thêm đề TOEIC mỗi tuần.',
+  },
+]

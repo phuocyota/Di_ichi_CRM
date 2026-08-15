@@ -21,8 +21,13 @@ function ScheduleModal({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm()
+
+  const selectedClassName = watch('className')
+  const selectedClass = classes.find((item) => item.name === selectedClassName)
 
   useEffect(() => {
     const isEditing = Boolean(event?.id)
@@ -43,9 +48,22 @@ function ScheduleModal({
       notifyTitle: isEditing ? `Thông báo lịch học ${event?.className || ''}`.trim() : '',
       notifyContent: '',
       exportFormat: 'Excel',
+      repeatFullCourse: false,
       reason: '',
     })
   }, [classrooms, classes, event, modal, reset, teachers])
+
+  useEffect(() => {
+    if (!selectedClassName || !['create', 'edit', 'makeup', 'recurring'].includes(modal)) return
+
+    const selectedClass = classes.find((item) => item.name === selectedClassName)
+    if (!selectedClass) return
+
+    setValue('course', selectedClass.course || '')
+    setValue('teacher', selectedClass.teacher || '')
+    setValue('room', selectedClass.room || '')
+    setValue('branch', selectedClass.branch || '')
+  }, [classes, modal, selectedClassName, setValue])
 
   if (!isOpen) return null
 
@@ -96,6 +114,9 @@ function ScheduleModal({
           {filters.courses.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
       </label>
+      <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
+        Chọn lớp học để tự đồng bộ khóa học, giáo viên, phòng học và cơ sở từ module Khóa học.
+      </div>
       <label className="block">
         <span className={labelClass}>Giáo viên</span>
         <select className={inputClass} {...register('teacher', required('Vui lòng chọn giáo viên'))}>
@@ -125,6 +146,23 @@ function ScheduleModal({
         </select>
       </label>
       {renderTimeFields()}
+      {modal === 'create' ? (
+        <label className="md:col-span-2 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-600"
+            {...register('repeatFullCourse')}
+          />
+          <span>
+            <span className="block text-sm font-black text-emerald-800">Lặp lại toàn khóa</span>
+            <span className="mt-1 block text-xs font-bold text-emerald-700">
+              {selectedClass?.sessions
+                ? `Tạo ${selectedClass.sessions} buổi theo tuần cho lớp ${selectedClass.name}.`
+                : 'Chọn lớp học để hệ thống lấy số buổi từ khóa học.'}
+            </span>
+          </span>
+        </label>
+      ) : null}
     </div>
   )
 

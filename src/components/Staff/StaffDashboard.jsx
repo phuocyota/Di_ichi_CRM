@@ -16,7 +16,7 @@ import {
 function StaffDashboard({ statistics, charts, staffs }) {
   return (
     <div className="space-y-5">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {statistics.map((item) => {
           const Icon = item.icon
 
@@ -39,15 +39,15 @@ function StaffDashboard({ statistics, charts, staffs }) {
 
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">Nhân sự theo phòng ban</h2>
-          <p className="mt-1 text-sm font-medium text-slate-500">Phân bổ nhân sự theo bộ phận vận hành.</p>
+          <h2 className="text-lg font-black text-slate-950">Giáo viên theo bộ phận</h2>
+          <p className="mt-1 text-sm font-medium text-slate-500">Phân bổ giáo viên theo bộ phận đào tạo.</p>
           <div className="mt-5 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={charts.departments} margin={{ left: 0, right: 12, top: 8 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip formatter={(value) => [`${value} người`, 'Nhân sự']} />
+                <Tooltip formatter={(value) => [`${value} giáo viên`, 'Giáo viên']} />
                 <Bar dataKey="value" fill="#2563eb" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -100,7 +100,7 @@ function StaffDashboard({ statistics, charts, staffs }) {
 
         <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">Tỷ lệ hoàn thành KPI</h2>
-          <p className="mt-1 text-sm font-medium text-slate-500">Nhóm nhân sự theo mức hoàn thành.</p>
+          <p className="mt-1 text-sm font-medium text-slate-500">Nhóm giáo viên theo mức hoàn thành.</p>
           <div className="mt-4 space-y-3">
             {charts.kpiCompletion.map((item) => (
               <div key={item.name} className="rounded-xl border border-gray-300 bg-slate-50 p-4">
@@ -118,13 +118,13 @@ function StaffDashboard({ statistics, charts, staffs }) {
       </section>
 
       <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-black text-slate-950">Nhân sự cần theo dõi</h2>
+        <h2 className="text-lg font-black text-slate-950">Giáo viên cần theo dõi</h2>
         <p className="mt-1 text-sm font-medium text-slate-500">Các hồ sơ thử việc, tạm nghỉ hoặc đã nghỉ việc.</p>
         <div className="mt-4 overflow-x-auto rounded-xl border border-gray-300">
           <table className="min-w-[760px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs font-black uppercase text-slate-500">
               <tr>
-                <th className="px-4 py-3">Mã nhân sự</th>
+                <th className="px-4 py-3">Mã giáo viên</th>
                 <th className="px-4 py-3">Họ tên</th>
                 <th className="px-4 py-3">Chức vụ</th>
                 <th className="px-4 py-3">Bộ phận</th>

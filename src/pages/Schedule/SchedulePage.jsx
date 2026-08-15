@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
 import ScheduleCalendar from '../../components/Schedule/ScheduleCalendar.jsx'
@@ -9,15 +9,18 @@ import ScheduleSidebar from '../../components/Schedule/ScheduleSidebar.jsx'
 import {
   classrooms,
   classes,
+  schedules,
   scheduleFilters,
   scheduleModalConfigs,
   scheduleStatistics,
   scheduleStatuses,
+  teacherLeaves,
   teachers,
 } from '../../datas/schedules.js'
 import { createResource, deleteResource, findIdByName, getScheduleSummary, indexById, updateResource } from '../../services/crmApi.js'
 
 const scheduleSummaryRequests = new Map()
+const scheduleStorageKey = 'diichi-crm-schedules'
 
 function requestScheduleSummary(params) {
   const key = JSON.stringify(params)
@@ -32,11 +35,18 @@ function SchedulePage() {
   const calendarRef = useRef(null)
   const scheduleRangeRef = useRef(null)
   const scheduleRequestId = useRef(0)
-  const [scheduleItems, setScheduleItems] = useState([])
+  const [scheduleItems, setScheduleItems] = useState(() => {
+    try {
+      const stored = localStorage.getItem(scheduleStorageKey)
+      return stored ? JSON.parse(stored) : schedules
+    } catch {
+      return schedules
+    }
+  })
   const [summaryStatistics, setSummaryStatistics] = useState(
     scheduleStatistics.map((item) => ({ ...item, value: 0 })),
   )
-  const [teacherLeaveItems, setTeacherLeaveItems] = useState([])
+  const [teacherLeaveItems, setTeacherLeaveItems] = useState(teacherLeaves)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [modal, setModal] = useState(null)
   const [modalEvent, setModalEvent] = useState(null)
@@ -44,6 +54,10 @@ function SchedulePage() {
   const [calendarTitle, setCalendarTitle] = useState('')
   const [filters, setFilters] = useState({})
   const [apiDirectories, setApiDirectories] = useState({})
+
+  useEffect(() => {
+    localStorage.setItem(scheduleStorageKey, JSON.stringify(scheduleItems))
+  }, [scheduleItems])
 
   const refreshSchedules = async (range = scheduleRangeRef.current) => {
     if (!range) return
@@ -53,28 +67,7 @@ function SchedulePage() {
     if (requestId !== scheduleRequestId.current) return
 
     const options = result?.filterOptions || {}
-    const classIndex = indexById(options.classes)
-    const courseIndex = indexById(options.courses)
-    const staffIndex = indexById(options.teachers)
-    const roomIndex = indexById(options.rooms)
     const branchIndex = indexById(options.branches)
-    const mapped = (result?.schedules || []).map((item) => {
-      const classItem = classIndex[item.classId]
-      return {
-        ...item,
-        classCode: classItem?.code || item.classId,
-        className: classItem?.name || item.classId,
-        course: courseIndex[classItem?.courseId]?.name || '—',
-        teacher: staffIndex[item.teacherId]?.name || item.teacherId,
-        room: roomIndex[item.roomId]?.name || '—',
-        branch: branchIndex[item.branchId]?.name || item.branchId,
-        start: item.start || item.startAt,
-        end: item.end || item.endAt,
-        attendance: { checked: 0, pending: 0, excused: 0, absent: 0 },
-        students: [],
-        homework: [],
-      }
-    })
     setApiDirectories({
       classes: options.classes || [],
       courses: options.courses || [],
@@ -85,19 +78,18 @@ function SchedulePage() {
       })),
       branches: options.branches || [],
     })
+
     const statistics = result?.statistics || {}
     const statisticValues = [
-      statistics.todayClasses ?? 0,
-      statistics.checkedClasses ?? 0,
-      statistics.upcomingClasses ?? 0,
-      statistics.conflictClasses ?? 0,
+      statistics.todayClasses ?? scheduleItems.filter((item) => dayjs(item.start).isSame(dayjs(), 'day')).length,
+      statistics.checkedClasses ?? scheduleItems.filter((item) => item.status === 'checked').length,
+      statistics.upcomingClasses ?? scheduleItems.filter((item) => dayjs(item.start).isAfter(dayjs())).length,
+      statistics.conflictClasses ?? scheduleItems.filter((item) => item.status === 'conflict').length,
     ]
     setSummaryStatistics(
       scheduleStatistics.map((item, index) => ({ ...item, value: statisticValues[index] })),
     )
-    setTeacherLeaveItems(result?.teacherLeaves || [])
-    setScheduleItems(mapped)
-    setSelectedEvent((current) => mapped.find((item) => item.id === current?.id) || null)
+    setTeacherLeaveItems(result?.teacherLeaves?.length ? result.teacherLeaves : teacherLeaves)
   }
 
   const filteredSchedules = useMemo(() => {
@@ -143,7 +135,8 @@ function SchedulePage() {
 
   const buildScheduleFromValues = (values, sourceEvent) => {
     const selectedClass = classes.find((item) => item.name === values.className) || classes[0]
-    const selectedRoom = classrooms.find((item) => item.name === values.room)
+    const selectedRoom = classrooms.find((item) => item.name === values.room) || classrooms.find((item) => item.id === selectedClass.roomId)
+    const selectedTeacher = teachers.find((item) => item.name === values.teacher) || teachers.find((item) => item.id === selectedClass.teacherId)
     const date = values.date || dayjs(sourceEvent?.start).format('YYYY-MM-DD')
 
     return {
@@ -152,8 +145,11 @@ function SchedulePage() {
       classId: selectedClass.id,
       classCode: selectedClass.code,
       className: values.className || selectedClass.name,
+      courseId: selectedClass.courseId || sourceEvent?.courseId,
       course: values.course || selectedClass.course,
+      teacherId: selectedTeacher?.id || selectedClass.teacherId || sourceEvent?.teacherId,
       teacher: values.teacher || selectedClass.teacher,
+      roomId: selectedRoom?.id || selectedClass.roomId || sourceEvent?.roomId,
       room: values.room || selectedClass.room,
       branch: values.branch || selectedRoom?.branch || selectedClass.branch,
       start: `${date}T${values.startTime || '18:00'}:00`,
@@ -167,8 +163,24 @@ function SchedulePage() {
     }
   }
 
+  const buildFullCourseSchedules = (values) => {
+    const selectedClass = classes.find((item) => item.name === values.className) || classes[0]
+    const seed = buildScheduleFromValues(values, null)
+    const totalSessions = Math.max(Number(selectedClass.sessions || 1), 1)
+
+    return Array.from({ length: totalSessions }, (_, index) => ({
+      ...seed,
+      id: `SCH${Date.now()}-${index + 1}`,
+      sessionNo: index + 1,
+      start: dayjs(seed.start).add(index, 'week').format('YYYY-MM-DDTHH:mm:ss'),
+      end: dayjs(seed.end).add(index, 'week').format('YYYY-MM-DDTHH:mm:ss'),
+      lessonNote: `${seed.lessonNote} Buổi ${index + 1}/${totalSessions}.`,
+    }))
+  }
+
   const handleModalSubmit = async (type, values, event) => {
-    try {
+    if (apiDirectories.classes?.length && event?.id && !String(event.id).startsWith('SCH')) {
+      try {
       if (['create', 'makeup', 'edit'].includes(type)) {
         const classItem = apiDirectories.classes?.find((item) => item.name === values.className)
         const payload = {
@@ -212,12 +224,21 @@ function SchedulePage() {
         closeModal()
         return
       }
-    } catch (error) {
-      toast.error(error.message)
-      return
+      } catch (error) {
+        toast.error(error.message)
+        return
+      }
     }
 
     if (type === 'create' || type === 'makeup') {
+      if (type === 'create' && values.repeatFullCourse) {
+        const fullCourseSchedules = buildFullCourseSchedules(values)
+        setScheduleItems((items) => [...items, ...fullCourseSchedules])
+        toast.success(`Đã tạo ${fullCourseSchedules.length} buổi học cho toàn khóa`)
+        closeModal()
+        return
+      }
+
       const nextSchedule = buildScheduleFromValues({ ...values, status: type === 'makeup' ? 'makeup' : values.status }, null)
       setScheduleItems((items) => [...items, nextSchedule])
       toast.success(type === 'makeup' ? 'Đã tạo buổi học bù' : 'Đã tạo lịch học mới')
@@ -319,13 +340,24 @@ function SchedulePage() {
       .catch((error) => toast.error(`Không tải được lịch học từ API: ${error.message}`))
   }
 
+  const filteredClassOptions = filters.course
+    ? classes.filter((item) => item.course === filters.course)
+    : classes
+
   const effectiveFilters = {
     ...scheduleFilters,
-    branches: apiDirectories.branches?.map((item) => item.name) || scheduleFilters.branches,
-    courses: apiDirectories.courses?.map((item) => item.name) || scheduleFilters.courses,
-    classes: apiDirectories.classes?.map((item) => item.name) || scheduleFilters.classes,
-    teachers: apiDirectories.teachers?.map((item) => item.name) || scheduleFilters.teachers,
-    rooms: apiDirectories.rooms?.map((item) => item.name) || scheduleFilters.rooms,
+    branches: scheduleFilters.branches,
+    courses: scheduleFilters.courses,
+    classes: filteredClassOptions.map((item) => item.name),
+    teachers: scheduleFilters.teachers,
+    rooms: scheduleFilters.rooms,
+  }
+
+  const handleSidebarFilterChange = (key, value) => {
+    setFilters((current) => {
+      if (key === 'course') return { ...current, course: value, className: '' }
+      return { ...current, [key]: value }
+    })
   }
 
   return (
@@ -360,7 +392,7 @@ function SchedulePage() {
           upcomingSchedules={sidebarUpcoming}
           conflictSchedules={sidebarConflicts}
           teacherLeaves={teacherLeaveItems}
-          onFilterChange={(key, value) => setFilters((current) => ({ ...current, [key]: value }))}
+          onFilterChange={handleSidebarFilterChange}
           onClearFilters={() => setFilters({})}
           onSelectEvent={setSelectedEvent}
         />
@@ -378,9 +410,9 @@ function SchedulePage() {
         event={modalEvent}
         configs={scheduleModalConfigs}
         filters={effectiveFilters}
-        classes={apiDirectories.classes?.length ? apiDirectories.classes : classes}
-        teachers={apiDirectories.teachers?.length ? apiDirectories.teachers : teachers}
-        classrooms={apiDirectories.rooms?.length ? apiDirectories.rooms : classrooms}
+        classes={classes}
+        teachers={teachers}
+        classrooms={classrooms}
         onClose={closeModal}
         onSubmit={handleModalSubmit}
       />

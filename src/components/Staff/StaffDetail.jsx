@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { Bell, Building2, KeyRound, Lock, Mail, Pencil, Printer, ShieldCheck, Unlock } from 'lucide-react'
+import { Bell, Building2, Pencil, Printer } from 'lucide-react'
 
 function StaffDetail({
   staff,
-  tabs,
+  tabs = [],
   managedClasses,
   teachingSchedules,
   attendanceData,
   teacherKPIs,
   certificates,
-  accounts,
   onOpenModal,
 }) {
-  const [activeTab, setActiveTab] = useState(tabs[0])
+  const detailTabs = tabs.length ? tabs : ['Thông tin', 'Chuyên môn', 'Lớp phụ trách', 'Lịch giảng dạy', 'Chấm công', 'KPI']
+  const [activeTab, setActiveTab] = useState(detailTabs[0])
   const staffClasses = managedClasses.filter((item) => item.staffId === staff.id)
   const staffSchedules = teachingSchedules.filter((item) => item.staffId === staff.id)
   const staffAttendances = attendanceData.filter((item) => item.staffId === staff.id)
   const staffCertificates = certificates.filter((item) => item.staffId === staff.id)
   const staffKpi = teacherKPIs.find((item) => item.staffId === staff.id)
-  const account = accounts.find((item) => item.staffId === staff.id)
-
   const renderInfoCards = (rows) => (
     <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {rows.map(([label, value]) => (
@@ -82,9 +80,6 @@ function StaffDetail({
           <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" onClick={() => onOpenModal('assignClass', staff)}>
             <Building2 size={16} /> Phân công lớp
           </button>
-          <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" onClick={() => onOpenModal('email', staff)}>
-            <Mail size={16} /> Email
-          </button>
           <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" onClick={() => onOpenModal('notify', staff)}>
             <Bell size={16} /> Thông báo
           </button>
@@ -95,7 +90,7 @@ function StaffDetail({
       </div>
 
       <div className="mt-6 flex gap-2 overflow-x-auto pb-2">
-        {tabs.map((tab) => (
+        {detailTabs.map((tab) => (
           <button
             key={tab}
             type="button"
@@ -211,32 +206,6 @@ function StaffDetail({
         ['Đánh giá của học viên', staffKpi?.studentRating],
         ['Đánh giá của quản lý', staffKpi?.managerRating],
       ]) : null}
-
-      {activeTab === 'Tài khoản' ? (
-        <>
-          {renderInfoCards([
-            ['Tên đăng nhập', account?.username],
-            ['Vai trò', account?.role],
-            ['Quyền hạn', account?.permissions.join(', ')],
-            ['Trạng thái tài khoản', account?.status],
-            ['Lần đăng nhập gần nhất', account?.lastLogin],
-          ])}
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 text-sm font-bold text-orange-700" onClick={() => onOpenModal('lockAccount', staff)}>
-              <Lock size={16} /> Khóa tài khoản
-            </button>
-            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-700" onClick={() => onOpenModal('unlockAccount', staff)}>
-              <Unlock size={16} /> Mở khóa tài khoản
-            </button>
-            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-sm font-bold text-blue-700" onClick={() => onOpenModal('resetPassword', staff)}>
-              <KeyRound size={16} /> Reset mật khẩu
-            </button>
-            <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700">
-              <ShieldCheck size={16} /> Phân quyền theo vai trò
-            </span>
-          </div>
-        </>
-      ) : null}
     </section>
   )
 }

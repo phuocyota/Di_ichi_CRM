@@ -33,7 +33,7 @@ function ChartBox({ title, subtitle, children }) {
 function ReportDashboard({ statistics, charts, onTabChange }) {
   const quickLinks = [
     { label: 'Tuyển sinh', key: 'admissions', value: 'Lead +14.2%', icon: GraduationCap, className: 'bg-blue-50 text-blue-700 border-blue-100' },
-    { label: 'Học tập', key: 'learning', value: 'Chuyên cần 91.2%', icon: BookOpen, className: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    { label: 'Học viên', key: 'students', value: 'Chuyên cần 91.2%', icon: BookOpen, className: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
     { label: 'Giáo viên', key: 'teachers', value: 'KPI 88.6%', icon: Users, className: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
     { label: 'Tài chính', key: 'finance', value: 'Lợi nhuận 168M', icon: Landmark, className: 'bg-amber-50 text-amber-700 border-amber-100' },
   ]
@@ -95,7 +95,7 @@ function ReportDashboard({ statistics, charts, onTabChange }) {
           </ResponsiveContainer>
         </ChartBox>
 
-        <ChartBox title="Học viên theo trạng thái" subtitle="Cơ cấu học viên hiện tại theo trạng thái học tập.">
+        <ChartBox title="Học viên theo trạng thái" subtitle="Cơ cấu học viên hiện tại theo tình trạng học viên.">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip formatter={(value) => [`${value}%`, 'Tỷ lệ']} />
