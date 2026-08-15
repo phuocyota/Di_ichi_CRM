@@ -1,12 +1,9 @@
-import { FileDown, FileSpreadsheet, Mail, Printer, Search, Upload, UserPlus } from 'lucide-react'
+import { FileDown, FileSpreadsheet, Printer, Search, Upload, UserPlus } from 'lucide-react'
 
 function StaffHeader({
   activeTab,
   onTabChange,
-  activeGroup,
-  onGroupChange,
-  groups,
-  tabs,
+  tabs = [],
   keyword,
   onKeywordChange,
   onOpenModal,
@@ -16,11 +13,11 @@ function StaffHeader({
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <nav className="text-sm font-semibold text-slate-500">
-            Admin Portal / <span className="text-blue-700">Quản lý Nhân sự</span>
+            Admin Portal / <span className="text-blue-700">Quản lý giáo viên</span>
           </nav>
-          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Quản lý Nhân sự</h1>
+          <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Quản lý giáo viên</h1>
           <p className="mt-2 text-sm font-medium text-slate-500">
-            Quản lý giáo viên, nhân viên, tài khoản, phân công lớp và KPI vận hành trung tâm.
+            Quản lý hồ sơ giáo viên, chuyên môn, phân công lớp, lịch giảng dạy và KPI.
           </p>
         </div>
 
@@ -41,7 +38,7 @@ function StaffHeader({
               onClick={() => onOpenModal('add')}
             >
               <UserPlus size={18} aria-hidden="true" />
-              Thêm nhân sự
+              Thêm giáo viên
             </button>
           </div>
 
@@ -81,26 +78,6 @@ function StaffHeader({
               {tab}
             </button>
           ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {groups.map((group) => (
-            <button
-              key={group.key}
-              type="button"
-              className={[
-                'rounded-xl px-4 py-2 text-sm font-bold transition',
-                activeGroup === group.key ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-              ].join(' ')}
-              onClick={() => onGroupChange(group.key)}
-            >
-              {group.label}
-            </button>
-          ))}
-          <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" onClick={() => onOpenModal('email')}>
-            <Mail size={16} aria-hidden="true" />
-            Gửi Email
-          </button>
         </div>
       </div>
     </section>

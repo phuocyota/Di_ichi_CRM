@@ -1,25 +1,29 @@
 import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
+import AdmissionReport from '../../components/Reports/AdmissionReport.jsx'
+import ClassReport from '../../components/Reports/ClassReport.jsx'
 import ReportContent from '../../components/Reports/ReportContent.jsx'
 import ReportDashboard from '../../components/Reports/ReportDashboard.jsx'
 import ReportDetail from '../../components/Reports/ReportDetail.jsx'
 import ReportFilterModal from '../../components/Reports/ReportFilterModal.jsx'
 import ReportHeader from '../../components/Reports/ReportHeader.jsx'
+import StudentReport from '../../components/Reports/StudentReport.jsx'
+import TeacherReport from '../../components/Reports/TeacherReport.jsx'
 import {
   admissionReports,
   classReports,
   financeReports,
-  learningReports,
   reportCharts,
   reportStatistics,
+  studentReports,
   teacherReports,
 } from '../../datas/reports.js'
 
 const reportMap = {
   dashboard: { key: 'dashboard', label: 'Dashboard báo cáo' },
   admissions: admissionReports,
-  learning: learningReports,
+  students: studentReports,
   teachers: teacherReports,
   finance: financeReports,
   classes: classReports,
@@ -28,7 +32,7 @@ const reportMap = {
 const tabs = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'admissions', label: 'Tuyển sinh' },
-  { key: 'learning', label: 'Học tập' },
+  { key: 'students', label: 'Học viên' },
   { key: 'teachers', label: 'Giáo viên' },
   { key: 'finance', label: 'Tài chính' },
   { key: 'classes', label: 'Lớp học' },
@@ -65,7 +69,7 @@ function ReportPage() {
   const [modal, setModal] = useState(null)
   const [selectedRow, setSelectedRow] = useState(null)
 
-  const reportOptions = useMemo(() => getOptions({ admissionReports, learningReports, teacherReports, financeReports, classReports }), [])
+  const reportOptions = useMemo(() => getOptions({ admissionReports, studentReports, teacherReports, financeReports, classReports }), [])
   const activeReport = reportMap[activeTab]
   const reportRows = useMemo(() => activeReport?.details || [], [activeReport])
   const filteredRows = useMemo(() => filterRows(reportRows, keyword, filters), [filters, keyword, reportRows])
@@ -130,6 +134,14 @@ function ReportPage() {
 
       {activeTab === 'dashboard' ? (
         <ReportDashboard statistics={reportStatistics} charts={reportCharts} onTabChange={setActiveTab} />
+      ) : activeTab === 'admissions' ? (
+        <AdmissionReport report={admissionReports} onRefresh={handleRefresh} />
+      ) : activeTab === 'students' ? (
+        <StudentReport report={studentReports} onRefresh={handleRefresh} />
+      ) : activeTab === 'teachers' ? (
+        <TeacherReport report={teacherReports} onRefresh={handleRefresh} />
+      ) : activeTab === 'classes' ? (
+        <ClassReport report={classReports} onRefresh={handleRefresh} />
       ) : (
         <>
           <ReportContent reportKey={activeTab} report={activeReport} rows={filteredRows} onOpenDetail={openDetail} />

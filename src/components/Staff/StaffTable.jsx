@@ -7,14 +7,21 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Eye, KeyRound, Lock, Pencil, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Eye, Pencil, Search, Trash2 } from 'lucide-react'
 
 function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, onOpenModal }) {
+  const safeFilters = {
+    positions: [],
+    departments: [],
+    specialties: [],
+    statuses: [],
+    dateRanges: [],
+    ...(filters || {}),
+  }
   const [sorting, setSorting] = useState([])
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState([])
   const [filterValues, setFilterValues] = useState({
-    type: '',
     position: '',
     department: '',
     specialty: '',
@@ -60,10 +67,9 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
           </span>
         ),
       },
-      { accessorKey: 'code', header: 'Mã nhân sự' },
+      { accessorKey: 'code', header: 'Mã giáo viên' },
       { accessorKey: 'name', header: 'Họ tên' },
       { accessorKey: 'position', header: 'Chức vụ', filterFn: 'equalsString' },
-      { accessorKey: 'type', header: 'Loại nhân sự', filterFn: 'equalsString' },
       { accessorKey: 'specialty', header: 'Chuyên môn', filterFn: 'equalsString' },
       { accessorKey: 'department', header: 'Bộ phận', filterFn: 'equalsString' },
       { accessorKey: 'phone', header: 'Số điện thoại' },
@@ -73,7 +79,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
         header: 'Trạng thái',
         filterFn: 'equalsString',
         cell: ({ row }) => {
-          const status = filters.statuses.find((item) => item.value === row.original.statusValue)
+          const status = safeFilters.statuses.find((item) => item.value === row.original.statusValue)
 
           return (
             <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${status?.badgeClass || ''}`}>
@@ -100,7 +106,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
             <button
               type="button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
-              title="Cập nhật nhân sự"
+              title="Cập nhật giáo viên"
               aria-label={`Sửa ${row.original.name}`}
               onClick={() => onOpenModal('edit', row.original)}
             >
@@ -108,26 +114,8 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
             </button>
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100"
-              title="Reset mật khẩu"
-              aria-label={`Reset mật khẩu ${row.original.name}`}
-              onClick={() => onOpenModal('resetPassword', row.original)}
-            >
-              <KeyRound size={17} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 text-orange-700 transition hover:bg-orange-100"
-              title="Khóa tài khoản"
-              aria-label={`Khóa tài khoản ${row.original.name}`}
-              onClick={() => onOpenModal('lockAccount', row.original)}
-            >
-              <Lock size={17} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100"
-              title="Xóa nhân sự"
+              title="Xóa giáo viên"
               aria-label={`Xóa ${row.original.name}`}
               onClick={() => onOpenModal('delete', row.original)}
             >
@@ -137,7 +125,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
         ),
       },
     ],
-    [filters.statuses, onOpenModal, onSelectStaff],
+    [safeFilters.statuses, onOpenModal, onSelectStaff],
   )
 
   const table = useReactTable({
@@ -167,7 +155,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
       <div className="mb-5 flex flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-lg font-black text-slate-950">Danh sách nhân sự</h2>
+            <h2 className="text-lg font-black text-slate-950">Danh sách giáo viên</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
               Đã chọn {Object.keys(rowSelection).length} dòng.
             </p>
@@ -183,12 +171,11 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {[
-            ['type', 'Loại nhân sự', filters.types],
-            ['position', 'Chức vụ', filters.positions],
-            ['department', 'Bộ phận', filters.departments],
-            ['specialty', 'Chuyên môn', filters.specialties],
+            ['position', 'Chức vụ', safeFilters.positions],
+            ['department', 'Bộ phận', safeFilters.departments],
+            ['specialty', 'Chuyên môn', safeFilters.specialties],
           ].map(([id, label, options]) => (
             <label key={id} className="block">
               <span className="text-xs font-bold text-slate-500">{label}</span>
@@ -198,7 +185,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
                 onChange={(event) => updateFilter(id, event.target.value)}
               >
                 <option value="">Tất cả</option>
-                {options.map((item) => (
+                {(options || []).map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -214,7 +201,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
               onChange={(event) => updateFilter('statusValue', event.target.value)}
             >
               <option value="">Tất cả</option>
-              {filters.statuses.map((item) => (
+              {safeFilters.statuses.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
                 </option>
@@ -229,7 +216,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
               onChange={(event) => setFilterValues((current) => ({ ...current, dateRange: event.target.value }))}
             >
               <option value="">Tất cả</option>
-              {filters.dateRanges.map((item) => (
+              {safeFilters.dateRanges.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>
@@ -238,7 +225,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-300">
-        <table className="min-w-[1500px] w-full border-collapse text-left text-sm">
+        <table className="min-w-[1320px] w-full border-collapse text-left text-sm">
           <thead className="bg-slate-50 text-xs font-black uppercase text-slate-500">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>

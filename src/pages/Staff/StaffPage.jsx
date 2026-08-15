@@ -6,13 +6,11 @@ import StaffHeader from '../../components/Staff/StaffHeader.jsx'
 import StaffModal from '../../components/Staff/StaffModal.jsx'
 import StaffTable from '../../components/Staff/StaffTable.jsx'
 import {
-  accounts,
   attendanceData,
   certificates,
   managedClasses,
   staffDetailTabs,
   staffFilters,
-  staffGroups,
   staffModalConfigs,
   staffStatistics,
   staffTabs,
@@ -22,6 +20,8 @@ import {
 import { createResource, deleteResource, findIdByName, getStaffSummary, indexById, initials, listResource, loadResources, updateResource } from '../../services/crmApi.js'
 
 let staffSummaryRequest
+const teacherTabs = staffTabs?.length ? staffTabs : ['Dashboard', 'Danh sách giáo viên', 'Hồ sơ giáo viên']
+const teacherDetailTabs = staffDetailTabs?.length ? staffDetailTabs : ['Thông tin', 'Chuyên môn', 'Lớp phụ trách', 'Lịch giảng dạy', 'Chấm công', 'KPI']
 
 function requestStaffSummary() {
   if (!staffSummaryRequest) {
@@ -40,7 +40,6 @@ const emptyStaffSummary = {
 
 function StaffPage() {
   const [activeTab, setActiveTab] = useState('Dashboard')
-  const [activeGroup, setActiveGroup] = useState('all')
   const [keyword, setKeyword] = useState('')
   const [staffItems, setStaffItems] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
@@ -51,17 +50,12 @@ function StaffPage() {
   const [directories, setDirectories] = useState({})
 
   const filteredStaffs = useMemo(() => {
-    return staffItems.filter((item) => {
-      if (activeGroup === 'teacher' && item.typeValue !== 'teacher') return false
-      if (activeGroup === 'staff' && item.typeValue !== 'staff') return false
-      if (activeGroup === 'account') return accounts.some((account) => account.staffId === item.id)
-      return true
-    })
-  }, [activeGroup, staffItems])
+    return staffItems.filter((item) => item.typeValue === 'teacher')
+  }, [staffItems])
 
   const handleSelectStaff = (staff) => {
     setSelectedStaff(staff)
-    setActiveTab('Hồ sơ nhân sự')
+    setActiveTab('Hồ sơ giáo viên')
   }
 
   const openModal = async (type, staff = selectedStaff) => {
@@ -87,12 +81,12 @@ function StaffPage() {
     const departments = indexById(result.department)
     const positions = indexById(result.position)
     const specialties = indexById(result.specialty)
-    const mapped = result.staff.map((item) => {
+    const mapped = result.staff.filter((item) => item.type === 'teacher').map((item) => {
       const status = staffFilters.statuses.find((entry) => entry.value === item.status)
       return {
         ...item,
         avatar: initials(item.name),
-        type: item.type === 'teacher' ? 'Giáo viên' : 'Nhân viên',
+        type: 'Giáo viên',
         typeValue: item.type,
         branch: branches[item.branchId]?.name || item.branchId,
         department: departments[item.departmentId]?.name || '—',
@@ -117,13 +111,12 @@ function StaffPage() {
       .then((result) => {
         const statistics = result?.statistics || {}
         const values = [
-          statistics.totalStaff ?? 0,
           statistics.teachers ?? 0,
-          statistics.employees ?? 0,
           statistics.activeStaff ?? 0,
+          statistics.pausedStaff ?? 0,
           statistics.inactiveStaff ?? 0,
         ]
-        const attention = (result?.staffsNeedAttention || []).map((item) => {
+        const attention = (result?.staffsNeedAttention || []).filter((item) => item.type === 'teacher' || item.typeValue === 'teacher').map((item) => {
           const status = staffFilters.statuses.find((entry) => entry.value === item.status)
           return {
             ...item,
@@ -143,12 +136,12 @@ function StaffPage() {
           staffsNeedAttention: attention,
         })
       })
-      .catch((error) => toast.error(`Không tải được tổng quan nhân sự: ${error.message}`))
+      .catch((error) => toast.error(`Không tải được tổng quan giáo viên: ${error.message}`))
   }, [])
 
   useEffect(() => {
     if (activeTab !== 'Dashboard' && !staffDataLoaded) {
-      refreshStaffs().catch((error) => toast.error(`Không tải được nhân sự từ API: ${error.message}`))
+      refreshStaffs().catch((error) => toast.error(`Không tải được giáo viên từ API: ${error.message}`))
     }
   }, [activeTab, refreshStaffs, staffDataLoaded])
 
@@ -159,13 +152,13 @@ function StaffPage() {
       } else if (['add', 'edit'].includes(type)) {
         const formValues = values
         const payload = {
-          code: formValues.code || `NS-${Date.now()}`,
+          code: formValues.code || `GV-${Date.now()}`,
           branchId: findIdByName(directories.branch, formValues.branch),
           departmentId: findIdByName(directories.department, formValues.department),
           positionId: findIdByName(directories.position, formValues.position),
           specialtyId: findIdByName(directories.specialty, formValues.specialty),
           name: formValues.name,
-          type: formValues.type === 'Giáo viên' ? 'teacher' : (formValues.typeValue || 'staff'),
+          type: 'teacher',
           phone: formValues.phone || undefined,
           email: formValues.email || undefined,
           status: formValues.statusValue || 'active',
@@ -197,7 +190,7 @@ function StaffPage() {
         return
       }
       await refreshStaffs(true)
-      toast.success(type === 'delete' ? 'Đã xóa nhân sự' : 'Đã lưu thay đổi nhân sự')
+      toast.success(type === 'delete' ? 'Đã xóa giáo viên' : 'Đã lưu thay đổi giáo viên')
       closeModal()
     } catch (error) {
       toast.error(error.message)
@@ -207,9 +200,9 @@ function StaffPage() {
   const effectiveFilters = {
     ...staffFilters,
     branches: directories.branch?.map((item) => item.name) || staffFilters.branches,
-    positions: directories.position?.map((item) => item.name) || staffFilters.positions,
-    departments: directories.department?.map((item) => item.name) || staffFilters.departments,
-    specialties: directories.specialty?.map((item) => item.name) || staffFilters.specialties,
+    positions: Array.from(new Set(staffItems.map((item) => item.position).filter((item) => item && item !== '—'))) || staffFilters.positions,
+    departments: Array.from(new Set(staffItems.map((item) => item.department).filter((item) => item && item !== '—'))) || staffFilters.departments,
+    specialties: Array.from(new Set(staffItems.map((item) => item.specialty).filter((item) => item && item !== '—'))) || staffFilters.specialties,
   }
 
   return (
@@ -217,10 +210,7 @@ function StaffPage() {
       <StaffHeader
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        activeGroup={activeGroup}
-        onGroupChange={setActiveGroup}
-        groups={staffGroups}
-        tabs={staffTabs}
+        tabs={teacherTabs}
         keyword={keyword}
         onKeywordChange={setKeyword}
         onOpenModal={openModal}
@@ -234,7 +224,7 @@ function StaffPage() {
         />
       ) : null}
 
-      {activeTab === 'Danh sách nhân sự' ? (
+      {activeTab === 'Danh sách giáo viên' ? (
         <StaffTable
           staffs={filteredStaffs}
           filters={effectiveFilters}
@@ -245,16 +235,15 @@ function StaffPage() {
         />
       ) : null}
 
-      {activeTab === 'Hồ sơ nhân sự' && selectedStaff ? (
+      {activeTab === 'Hồ sơ giáo viên' && selectedStaff ? (
         <StaffDetail
           staff={selectedStaff}
-          tabs={staffDetailTabs}
+          tabs={teacherDetailTabs}
           managedClasses={managedClasses}
           teachingSchedules={teachingSchedules}
           attendanceData={attendanceData}
           teacherKPIs={teacherKPIs}
           certificates={certificates}
-          accounts={accounts}
           onOpenModal={openModal}
         />
       ) : null}

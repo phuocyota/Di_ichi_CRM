@@ -12,7 +12,7 @@ function ReportHeader({ activeTab, tabs, keyword, filters, onTabChange, onKeywor
           </nav>
           <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">Báo cáo & Thống kê</h1>
           <p className="mt-2 max-w-3xl text-sm font-medium text-slate-500">
-            Bảng điều hành dành cho Ban giám đốc: theo dõi tuyển sinh, học tập, giáo viên, tài chính và lớp học theo thời gian thực.
+            Bảng điều hành dành cho Ban giám đốc: theo dõi tuyển sinh, học viên, giáo viên, tài chính và lớp học theo thời gian thực.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">
             <span className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-slate-50 px-3 py-2">

@@ -1,327 +1,270 @@
-import {
-  BadgeDollarSign,
-  Banknote,
-  CalendarDays,
-  CircleDollarSign,
-  ClipboardList,
-  CreditCard,
-  ReceiptText,
-  TrendingUp,
-} from 'lucide-react'
+import { courseClasses, courses, students } from './courses.js'
 
-export const paymentStatuses = [
-  { label: 'Đã thanh toán', value: 'paid', badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-  { label: 'Thanh toán một phần', value: 'partial', badgeClass: 'border-amber-200 bg-amber-50 text-amber-700' },
-  { label: 'Còn công nợ', value: 'debt', badgeClass: 'border-red-200 bg-red-50 text-red-700' },
-  { label: 'Quá hạn', value: 'overdue', badgeClass: 'border-rose-200 bg-rose-50 text-rose-700' },
-  { label: 'Đã hủy', value: 'cancelled', badgeClass: 'border-slate-200 bg-slate-100 text-slate-700' },
+const courseMap = Object.fromEntries(courses.map((item) => [item.id, item]))
+const classMap = Object.fromEntries(courseClasses.map((item) => [item.id, item]))
+const studentMap = Object.fromEntries(students.map((item) => [item.id, item]))
+
+export const financeTabs = ['Học phí', 'Lịch sử thu tiền', 'Công nợ', 'Doanh thu']
+
+export const tuitionStatuses = [
+  { value: 'unpaid', label: 'Chưa thanh toán', badgeClass: 'border-slate-200 bg-slate-100 text-slate-700' },
+  { value: 'partial', label: 'Đã thanh toán một phần', badgeClass: 'border-amber-200 bg-amber-50 text-amber-700' },
+  { value: 'paid', label: 'Đã thanh toán', badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  { value: 'overdue', label: 'Quá hạn', badgeClass: 'border-red-200 bg-red-50 text-red-700' },
+]
+
+export const debtStatuses = [
+  { value: 'not_due', label: 'Chưa đến hạn', badgeClass: 'border-blue-200 bg-blue-50 text-blue-700' },
+  { value: 'due_soon', label: 'Sắp đến hạn', badgeClass: 'border-amber-200 bg-amber-50 text-amber-700' },
+  { value: 'overdue', label: 'Quá hạn', badgeClass: 'border-red-200 bg-red-50 text-red-700' },
 ]
 
 export const paymentMethods = [
-  { label: 'QR', value: 'qr', color: '#2563eb' },
-  { label: 'Tiền mặt', value: 'cash', color: '#10b981' },
-  { label: 'Chuyển khoản', value: 'transfer', color: '#f59e0b' },
-  { label: 'Thẻ', value: 'card', color: '#8b5cf6' },
+  { value: 'cash', label: 'Tiền mặt' },
+  { value: 'transfer', label: 'Chuyển khoản' },
+  { value: 'qr', label: 'QR Code' },
 ]
 
-export const financeStatistics = [
-  { label: 'Doanh thu hôm nay', value: '38.5M', description: '7 phiếu thu trong ngày', icon: CircleDollarSign, color: 'border-blue-200 bg-blue-50 text-blue-700' },
-  { label: 'Doanh thu tuần', value: '186M', description: 'Tăng 12% so với tuần trước', icon: TrendingUp, color: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-  { label: 'Doanh thu tháng', value: '742M', description: 'Đạt 78% mục tiêu tháng', icon: BadgeDollarSign, color: 'border-amber-200 bg-amber-50 text-amber-700' },
-  { label: 'Doanh thu năm', value: '6.8B', description: 'Tổng doanh thu năm 2026', icon: CalendarDays, color: 'border-violet-200 bg-violet-50 text-violet-700' },
-  { label: 'Tổng công nợ', value: '128M', description: '23 học viên còn nợ', icon: ClipboardList, color: 'border-red-200 bg-red-50 text-red-700' },
-  { label: 'Tổng học phí đã thu', value: '5.9B', description: 'Sau khuyến mãi và học bổng', icon: ReceiptText, color: 'border-cyan-200 bg-cyan-50 text-cyan-700' },
-  { label: 'Tổng chi phí', value: '1.7B', description: 'Lương, vận hành, marketing', icon: Banknote, color: 'border-orange-200 bg-orange-50 text-orange-700' },
-  { label: 'Tổng số phiếu thu', value: '1,248', description: 'Phiếu thu đã phát hành', icon: CreditCard, color: 'border-slate-200 bg-slate-100 text-slate-700' },
+export const collectors = [
+  { id: 'collector-001', name: 'Võ Thanh Tùng' },
+  { id: 'collector-002', name: 'Hoàng Bảo Ngọc' },
+  { id: 'collector-003', name: 'Nguyễn Minh Châu' },
 ]
 
-export const financeTransactions = [
+export const tuitionTimeFilters = [
+  { value: '', label: 'Tất cả thời gian' },
+  { value: 'due_7_days', label: 'Hạn trong 7 ngày' },
+  { value: 'due_this_month', label: 'Hạn trong tháng' },
+  { value: 'overdue', label: 'Đã quá hạn' },
+]
+
+export const tuitionFees = [
   {
-    id: 'TRX001',
-    code: 'GD0001',
-    student: 'Nguyễn Minh Anh',
-    studentCode: 'HV001248',
-    course: 'IELTS Foundation',
-    className: 'IELTS Foundation A12',
-    branch: 'Cơ sở 1',
-    tuitionFee: 12000000,
-    promotion: 1000000,
-    voucher: 500000,
-    discount: 0,
-    scholarship: 0,
-    payable: 10500000,
-    paid: 10500000,
-    debt: 0,
-    method: 'Chuyển khoản',
-    methodValue: 'transfer',
-    status: 'Đã thanh toán',
-    statusValue: 'paid',
-    paidAt: '2026-07-28',
-    dueDate: '2026-07-30',
-    collector: 'Võ Thanh Tùng',
-    note: 'Thanh toán đủ học phí đợt 1.',
-  },
-  {
-    id: 'TRX002',
-    code: 'GD0002',
-    student: 'Trần Gia Bảo',
-    studentCode: 'HV001247',
-    course: 'IELTS Foundation',
-    className: 'IELTS Foundation A12',
-    branch: 'Cơ sở 1',
-    tuitionFee: 12000000,
-    promotion: 0,
-    voucher: 0,
+    id: 'tuition-001',
+    code: 'HP0001',
+    studentId: 'student-001',
+    courseId: 'course-ielts-foundation',
+    classId: 'class-ielts-fd-01',
+    totalFee: 12000000,
     discount: 1000000,
     scholarship: 0,
-    payable: 11000000,
-    paid: 6000000,
-    debt: 5000000,
-    method: 'QR',
-    methodValue: 'qr',
-    status: 'Thanh toán một phần',
-    statusValue: 'partial',
-    paidAt: '2026-07-27',
-    dueDate: '2026-08-05',
-    collector: 'Võ Thanh Tùng',
-    note: 'Phụ huynh hẹn thanh toán phần còn lại.',
+    voucher: 500000,
+    dueDate: '2026-08-20',
+    status: 'paid',
   },
   {
-    id: 'TRX003',
-    code: 'GD0003',
-    student: 'Lê Hoàng Nam',
-    studentCode: 'HV001246',
-    course: 'Communication',
-    className: 'Communication C05',
-    branch: 'Cơ sở 1',
-    tuitionFee: 8500000,
-    promotion: 500000,
+    id: 'tuition-002',
+    code: 'HP0002',
+    studentId: 'student-002',
+    courseId: 'course-ielts-foundation',
+    classId: 'class-ielts-fd-01',
+    totalFee: 12000000,
+    discount: 0,
+    scholarship: 0,
     voucher: 0,
+    dueDate: '2026-08-25',
+    status: 'partial',
+  },
+  {
+    id: 'tuition-003',
+    code: 'HP0003',
+    studentId: 'student-003',
+    courseId: 'course-toeic-500',
+    classId: 'class-toeic-500-01',
+    totalFee: 8000000,
+    discount: 500000,
+    scholarship: 0,
+    voucher: 0,
+    dueDate: '2026-08-16',
+    status: 'overdue',
+  },
+  {
+    id: 'tuition-004',
+    code: 'HP0004',
+    studentId: 'student-004',
+    courseId: 'course-starter-kids',
+    classId: 'class-kids-starter-01',
+    totalFee: 10000000,
     discount: 0,
     scholarship: 1500000,
-    payable: 6500000,
-    paid: 0,
-    debt: 6500000,
-    method: 'Tiền mặt',
-    methodValue: 'cash',
-    status: 'Quá hạn',
-    statusValue: 'overdue',
-    paidAt: '',
-    dueDate: '2026-07-20',
-    collector: 'Đỗ Anh Khoa',
-    note: 'Đã nhắc nợ lần 2.',
-  },
-  {
-    id: 'TRX004',
-    code: 'GD0004',
-    student: 'Phạm Thảo Vy',
-    studentCode: 'HV001245',
-    course: 'Kids Starter',
-    className: 'Kids Starter K08',
-    branch: 'Cơ sở 2',
-    tuitionFee: 7600000,
-    promotion: 300000,
     voucher: 300000,
-    discount: 0,
-    scholarship: 0,
-    payable: 7000000,
-    paid: 7000000,
-    debt: 0,
-    method: 'Tiền mặt',
-    methodValue: 'cash',
-    status: 'Đã thanh toán',
-    statusValue: 'paid',
-    paidAt: '2026-07-26',
-    dueDate: '2026-07-28',
-    collector: 'Hoàng Bảo Ngọc',
-    note: 'Đã in phiếu thu.',
+    dueDate: '2026-09-02',
+    status: 'partial',
   },
   {
-    id: 'TRX005',
-    code: 'GD0005',
-    student: 'Đặng Bảo An',
-    studentCode: 'HV001260',
-    course: 'Teen Grammar',
-    className: 'Teen Grammar T11',
-    branch: 'Cơ sở 2',
-    tuitionFee: 6900000,
-    promotion: 0,
-    voucher: 200000,
+    id: 'tuition-005',
+    code: 'HP0005',
+    studentId: 'student-005',
+    courseId: 'course-toeic-500',
+    classId: 'class-toeic-500-01',
+    totalFee: 8000000,
     discount: 0,
     scholarship: 0,
-    payable: 6700000,
-    paid: 3000000,
-    debt: 3700000,
-    method: 'Chuyển khoản',
-    methodValue: 'transfer',
-    status: 'Còn công nợ',
-    statusValue: 'debt',
-    paidAt: '2026-07-25',
-    dueDate: '2026-08-01',
-    collector: 'Võ Thanh Tùng',
-    note: 'Cần gửi thông báo trước hạn.',
-  },
-  {
-    id: 'TRX006',
-    code: 'GD0006',
-    student: 'Lâm Minh Khôi',
-    studentCode: 'HV001261',
-    course: 'IELTS Intensive',
-    className: 'IELTS Intensive I03',
-    branch: 'Cơ sở 3',
-    tuitionFee: 16500000,
-    promotion: 1500000,
     voucher: 0,
-    discount: 0,
-    scholarship: 2000000,
-    payable: 13000000,
-    paid: 13000000,
-    debt: 0,
-    method: 'QR',
-    methodValue: 'qr',
-    status: 'Đã thanh toán',
-    statusValue: 'paid',
-    paidAt: '2026-07-24',
-    dueDate: '2026-07-27',
-    collector: 'Võ Thanh Tùng',
-    note: 'Thanh toán QR thành công.',
+    dueDate: '2026-09-10',
+    status: 'unpaid',
   },
 ]
 
-export const receipts = [
-  { id: 'REC001', transactionId: 'TRX001', code: 'PT0001', paidAt: '2026-07-28', amount: 10500000, method: 'Chuyển khoản', collector: 'Võ Thanh Tùng', note: 'Thu đủ học phí đợt 1' },
-  { id: 'REC002', transactionId: 'TRX002', code: 'PT0002', paidAt: '2026-07-27', amount: 6000000, method: 'QR', collector: 'Võ Thanh Tùng', note: 'Thu trước một phần' },
-  { id: 'REC003', transactionId: 'TRX004', code: 'PT0003', paidAt: '2026-07-26', amount: 7000000, method: 'Tiền mặt', collector: 'Hoàng Bảo Ngọc', note: 'Đã in biên lai' },
-  { id: 'REC004', transactionId: 'TRX005', code: 'PT0004', paidAt: '2026-07-25', amount: 3000000, method: 'Chuyển khoản', collector: 'Võ Thanh Tùng', note: 'Còn nợ 3.7M' },
-  { id: 'REC005', transactionId: 'TRX006', code: 'PT0005', paidAt: '2026-07-24', amount: 13000000, method: 'QR', collector: 'Võ Thanh Tùng', note: 'QR Banking' },
+export const payments = [
+  {
+    id: 'payment-001',
+    receiptNo: 'PT0001',
+    tuitionId: 'tuition-001',
+    studentId: 'student-001',
+    amount: 10500000,
+    method: 'transfer',
+    paidAt: '2026-08-13',
+    collectorId: 'collector-001',
+    payer: 'Phạm Thu Hương',
+    transactionCode: 'VCB250813001',
+    proofName: 'bien-lai-hp0001.pdf',
+    note: 'Thanh toán đủ sau ưu đãi nhập học.',
+    status: 'active',
+  },
+  {
+    id: 'payment-002',
+    receiptNo: 'PT0002',
+    tuitionId: 'tuition-002',
+    studentId: 'student-002',
+    amount: 5000000,
+    method: 'qr',
+    paidAt: '2026-08-13',
+    collectorId: 'collector-001',
+    payer: 'Nguyễn Văn Hùng',
+    transactionCode: 'QR250813112',
+    proofName: 'qr-nguyen-hoang-nam.png',
+    note: 'Đợt 1 khi đăng ký khóa IELTS Foundation.',
+    status: 'active',
+  },
+  {
+    id: 'payment-003',
+    receiptNo: 'PT0003',
+    tuitionId: 'tuition-002',
+    studentId: 'student-002',
+    amount: 3000000,
+    method: 'cash',
+    paidAt: '2026-08-15',
+    collectorId: 'collector-002',
+    payer: 'Nguyễn Văn Hùng',
+    transactionCode: '',
+    proofName: '',
+    note: 'Đợt 2, phụ huynh nộp tại quầy.',
+    status: 'active',
+  },
+  {
+    id: 'payment-004',
+    receiptNo: 'PT0004',
+    tuitionId: 'tuition-004',
+    studentId: 'student-004',
+    amount: 4500000,
+    method: 'transfer',
+    paidAt: '2026-08-12',
+    collectorId: 'collector-003',
+    payer: 'Lê Quốc Bảo',
+    transactionCode: 'TCB250812778',
+    proofName: 'chuyen-khoan-le-gia-huy.jpg',
+    note: 'Đợt 1 sau khi áp dụng học bổng.',
+    status: 'active',
+  },
 ]
 
-export const debtList = [
-  { id: 'DEBT001', transactionId: 'TRX002', student: 'Trần Gia Bảo', amount: 5000000, dueDate: '2026-08-05', status: 'Chưa đến hạn', reminders: ['27/07: Gửi SMS xác nhận lịch thanh toán'] },
-  { id: 'DEBT002', transactionId: 'TRX003', student: 'Lê Hoàng Nam', amount: 6500000, dueDate: '2026-07-20', status: 'Quá hạn', reminders: ['21/07: Gọi phụ huynh', '26/07: Gửi email nhắc nợ'] },
-  { id: 'DEBT003', transactionId: 'TRX005', student: 'Đặng Bảo An', amount: 3700000, dueDate: '2026-08-01', status: 'Sắp đến hạn', reminders: ['25/07: Ghi nhận thanh toán một phần'] },
-]
-
-export const promotions = [
-  { id: 'PRO001', name: 'Ưu đãi khai giảng', code: 'OPENING2026', type: 'Khuyến mãi', value: 1000000, status: 'Đang áp dụng' },
-  { id: 'PRO002', name: 'Giảm học phí anh em', code: 'SIBLING', type: 'Giảm học phí', value: 500000, status: 'Đang áp dụng' },
-  { id: 'PRO003', name: 'Early Bird', code: 'EARLY10', type: 'Khuyến mãi', value: 10, status: 'Theo phần trăm' },
-]
-
-export const vouchers = [
-  { id: 'VOU001', code: 'DII500', value: 500000, expiredAt: '2026-08-31', status: 'Còn hiệu lực' },
-  { id: 'VOU002', code: 'KIDS300', value: 300000, expiredAt: '2026-09-15', status: 'Còn hiệu lực' },
-  { id: 'VOU003', code: 'GRAMMAR200', value: 200000, expiredAt: '2026-08-10', status: 'Còn hiệu lực' },
-]
-
-export const scholarships = [
-  { id: 'SCHOLAR001', name: 'Học bổng IELTS Potential', value: 2000000, condition: 'Placement test >= 7.0', status: 'Đang áp dụng' },
-  { id: 'SCHOLAR002', name: 'Học bổng chuyên cần', value: 1500000, condition: 'Chuyên cần >= 95%', status: 'Đang áp dụng' },
-]
-
-export const financeReports = {
-  dailyRevenue: [
-    { date: '22/07', revenue: 42000000 },
-    { date: '23/07', revenue: 56000000 },
-    { date: '24/07', revenue: 68000000 },
-    { date: '25/07', revenue: 39000000 },
-    { date: '26/07', revenue: 72000000 },
-    { date: '27/07', revenue: 51000000 },
-    { date: '28/07', revenue: 38500000 },
-  ],
-  monthlyRevenue: [
-    { month: 'T1', revenue: 560000000 },
-    { month: 'T2', revenue: 610000000 },
-    { month: 'T3', revenue: 640000000 },
-    { month: 'T4', revenue: 700000000 },
-    { month: 'T5', revenue: 730000000 },
-    { month: 'T6', revenue: 760000000 },
-    { month: 'T7', revenue: 742000000 },
-  ],
-  byCourse: [
-    { name: 'IELTS Foundation', revenue: 280000000 },
-    { name: 'IELTS Intensive', revenue: 210000000 },
-    { name: 'Kids Starter', revenue: 132000000 },
-    { name: 'Communication', revenue: 86000000 },
-    { name: 'Teen Grammar', revenue: 34000000 },
-  ],
-  byBranch: [
-    { name: 'Cơ sở 1', revenue: 390000000 },
-    { name: 'Cơ sở 2', revenue: 246000000 },
-    { name: 'Cơ sở 3', revenue: 106000000 },
-  ],
-  paymentRatio: [
-    { name: 'QR', value: 34, fill: '#2563eb' },
-    { name: 'Tiền mặt', value: 26, fill: '#10b981' },
-    { name: 'Chuyển khoản', value: 35, fill: '#f59e0b' },
-    { name: 'Thẻ', value: 5, fill: '#8b5cf6' },
-  ],
-  debtStatus: [
-    { name: 'Chưa đến hạn', value: 5000000, fill: '#2563eb' },
-    { name: 'Sắp đến hạn', value: 3700000, fill: '#f59e0b' },
-    { name: 'Quá hạn', value: 6500000, fill: '#ef4444' },
-  ],
-  topCourses: [
-    { name: 'IELTS Foundation', revenue: 280000000 },
-    { name: 'IELTS Intensive', revenue: 210000000 },
-    { name: 'Kids Starter', revenue: 132000000 },
-  ],
-  topBranches: [
-    { name: 'Cơ sở 1', revenue: 390000000 },
-    { name: 'Cơ sở 2', revenue: 246000000 },
-    { name: 'Cơ sở 3', revenue: 106000000 },
-  ],
+export function getTuitionPayable(tuition) {
+  return Math.max(tuition.totalFee - tuition.discount - tuition.scholarship - tuition.voucher, 0)
 }
 
-export const financeFilters = {
-  students: financeTransactions.map((item) => item.student),
-  courses: ['IELTS Foundation', 'IELTS Intensive', 'Kids Starter', 'Communication', 'Teen Grammar'],
-  classes: ['IELTS Foundation A12', 'IELTS Intensive I03', 'Kids Starter K08', 'Communication C05', 'Teen Grammar T11'],
-  branches: ['Cơ sở 1', 'Cơ sở 2', 'Cơ sở 3'],
-  paymentMethods,
-  statuses: paymentStatuses,
-  dateRanges: ['Hôm nay', '7 ngày tới', 'Tháng này', 'Tùy chỉnh'],
-  revenueRanges: ['Dưới 5 triệu', '5 - 10 triệu', '10 - 20 triệu', 'Trên 20 triệu'],
-  dueRanges: ['Chưa đến hạn', 'Sắp đến hạn', 'Quá hạn'],
+export function getPaidAmount(tuitionId, paymentItems = payments) {
+  return paymentItems
+    .filter((item) => item.tuitionId === tuitionId && item.status !== 'cancelled')
+    .reduce((sum, item) => sum + item.amount, 0)
 }
 
-export const financeTabs = [
-  'Dashboard tài chính',
-  'Thu học phí',
-  'Phiếu thu',
-  'Thanh toán QR',
-  'Tiền mặt',
-  'Chuyển khoản',
-  'Công nợ',
-  'Khuyến mãi',
-  'Voucher',
-  'Giảm học phí',
-  'Học bổng',
-  'Báo cáo tài chính',
-]
+export function enrichTuition(tuition, paymentItems = payments) {
+  const student = studentMap[tuition.studentId]
+  const course = courseMap[tuition.courseId]
+  const classItem = classMap[tuition.classId]
+  const payable = getTuitionPayable(tuition)
+  const paid = getPaidAmount(tuition.id, paymentItems)
+  const remaining = Math.max(payable - paid, 0)
+  const debtStatus = getDebtStatus(tuition.dueDate)
+  const status = remaining === 0 ? 'paid' : paid > 0 ? 'partial' : debtStatus === 'overdue' ? 'overdue' : tuition.status
 
-export const financeDetailTabs = ['Thông tin học phí', 'Lịch sử thanh toán', 'Công nợ', 'Khuyến mãi']
+  return {
+    ...tuition,
+    studentCode: student?.code || tuition.studentId,
+    studentName: student?.name || tuition.studentId,
+    courseName: course?.name || tuition.courseId,
+    className: classItem?.name || tuition.classId,
+    discountTotal: tuition.discount + tuition.scholarship + tuition.voucher,
+    payable,
+    paid,
+    remaining,
+    status,
+  }
+}
 
-export const financeModalConfigs = {
-  collectTuition: { title: 'Thu học phí', submitText: 'Ghi nhận thu học phí', intent: 'payment' },
-  createReceipt: { title: 'Tạo phiếu thu', submitText: 'Tạo phiếu thu', intent: 'receipt' },
-  editReceipt: { title: 'Chỉnh sửa phiếu thu', submitText: 'Cập nhật phiếu thu', intent: 'receipt' },
-  cancelReceipt: { title: 'Xác nhận hủy phiếu thu', submitText: 'Hủy phiếu thu', intent: 'danger' },
-  qrPayment: { title: 'Thanh toán QR', submitText: 'Tạo mã QR', intent: 'payment' },
-  cashPayment: { title: 'Thanh toán tiền mặt', submitText: 'Ghi nhận tiền mặt', intent: 'payment' },
-  transferPayment: { title: 'Thanh toán chuyển khoản', submitText: 'Ghi nhận chuyển khoản', intent: 'payment' },
-  recordDebt: { title: 'Ghi nhận công nợ', submitText: 'Ghi nhận công nợ', intent: 'debt' },
-  collectDebt: { title: 'Thu công nợ', submitText: 'Thu công nợ', intent: 'payment' },
-  extendPayment: { title: 'Gia hạn thanh toán', submitText: 'Gia hạn', intent: 'extend' },
-  applyVoucher: { title: 'Áp dụng Voucher', submitText: 'Áp dụng Voucher', intent: 'voucher' },
-  applyPromotion: { title: 'Áp dụng khuyến mãi', submitText: 'Áp dụng khuyến mãi', intent: 'promotion' },
-  applyScholarship: { title: 'Áp dụng học bổng', submitText: 'Áp dụng học bổng', intent: 'scholarship' },
-  discountTuition: { title: 'Giảm học phí', submitText: 'Giảm học phí', intent: 'discount' },
-  refundTuition: { title: 'Hoàn học phí', submitText: 'Hoàn học phí', intent: 'refund' },
-  exportExcel: { title: 'Export Excel', submitText: 'Export Excel', intent: 'export' },
-  exportPdf: { title: 'Export PDF', submitText: 'Export PDF', intent: 'export' },
-  printReceipt: { title: 'In phiếu thu', submitText: 'In phiếu thu', intent: 'confirm' },
-  emailReceipt: { title: 'Gửi biên lai qua Email', submitText: 'Gửi Email', intent: 'message' },
-  notifyPayment: { title: 'Gửi thông báo thanh toán', submitText: 'Gửi thông báo', intent: 'message' },
-  printReport: { title: 'In báo cáo', submitText: 'In báo cáo', intent: 'confirm' },
+export function enrichPayment(payment) {
+  const tuition = tuitionFees.find((item) => item.id === payment.tuitionId)
+  const student = studentMap[payment.studentId]
+  const collector = collectors.find((item) => item.id === payment.collectorId)
+  const method = paymentMethods.find((item) => item.value === payment.method)
+
+  return {
+    ...payment,
+    tuitionCode: tuition?.code || payment.tuitionId,
+    courseId: tuition?.courseId || '',
+    courseName: courseMap[tuition?.courseId]?.name || '',
+    classId: tuition?.classId || '',
+    className: classMap[tuition?.classId]?.name || '',
+    studentName: student?.name || payment.studentId,
+    methodName: method?.label || payment.method,
+    collectorName: collector?.name || payment.collectorId,
+  }
+}
+
+export function getDebtStatus(dueDate) {
+  const today = new Date('2026-08-13T00:00:00')
+  const due = new Date(`${dueDate}T00:00:00`)
+  const diffDays = Math.ceil((due - today) / 86400000)
+  if (diffDays < 0) return 'overdue'
+  if (diffDays <= 7) return 'due_soon'
+  return 'not_due'
+}
+
+export function getDebts(tuitionItems = tuitionFees, paymentItems = payments) {
+  return tuitionItems
+    .map((item) => enrichTuition(item, paymentItems))
+    .filter((item) => item.remaining > 0)
+    .map((item) => ({
+      id: `debt-${item.id}`,
+      tuitionId: item.id,
+      studentName: item.studentName,
+      courseName: item.courseName,
+      totalFee: item.totalFee,
+      paid: item.paid,
+      remaining: item.remaining,
+      dueDate: item.dueDate,
+      status: getDebtStatus(item.dueDate),
+    }))
+}
+
+export function getRevenueReports(paymentItems = payments, tuitionItems = tuitionFees) {
+  const activePayments = paymentItems.filter((item) => item.status !== 'cancelled')
+  const byDateMap = new Map()
+  const byMonthMap = new Map()
+  const byCourseMap = new Map()
+
+  activePayments.forEach((payment) => {
+    const tuition = tuitionItems.find((item) => item.id === payment.tuitionId)
+    const course = courseMap[tuition?.courseId]
+    byDateMap.set(payment.paidAt, (byDateMap.get(payment.paidAt) || 0) + payment.amount)
+    byMonthMap.set(payment.paidAt.slice(0, 7), (byMonthMap.get(payment.paidAt.slice(0, 7)) || 0) + payment.amount)
+    byCourseMap.set(course?.name || 'Khác', (byCourseMap.get(course?.name || 'Khác') || 0) + payment.amount)
+  })
+
+  return {
+    byDate: [...byDateMap.entries()].map(([date, revenue]) => ({ date, revenue })),
+    byMonth: [...byMonthMap.entries()].map(([month, revenue]) => ({ month, revenue })),
+    byCourse: [...byCourseMap.entries()].map(([course, revenue]) => ({ course, revenue })),
+  }
 }

@@ -1,7 +1,5 @@
 import {
-  BriefcaseBusiness,
   GraduationCap,
-  IdCard,
   UserCheck,
   UserX,
 } from 'lucide-react'
@@ -14,11 +12,10 @@ export const staffStatus = [
 ]
 
 export const staffStatistics = [
-  { label: 'Tổng nhân sự', value: 86, description: 'Toàn bộ giáo viên và nhân viên', icon: IdCard, color: 'border-blue-200 bg-blue-50 text-blue-700' },
-  { label: 'Giáo viên', value: 42, description: 'Giảng dạy tại các cơ sở', icon: GraduationCap, color: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-  { label: 'Nhân viên', value: 44, description: 'Vận hành, tư vấn, học vụ', icon: BriefcaseBusiness, color: 'border-amber-200 bg-amber-50 text-amber-700' },
-  { label: 'Đang làm việc', value: 78, description: 'Nhân sự đang active', icon: UserCheck, color: 'border-violet-200 bg-violet-50 text-violet-700' },
-  { label: 'Đã nghỉ việc', value: 8, description: 'Hồ sơ đã ngừng làm việc', icon: UserX, color: 'border-slate-200 bg-slate-100 text-slate-700' },
+  { label: 'Tổng giáo viên', value: 42, description: 'Giáo viên đang quản lý', icon: GraduationCap, color: 'border-blue-200 bg-blue-50 text-blue-700' },
+  { label: 'Đang giảng dạy', value: 36, description: 'Giáo viên đang active', icon: UserCheck, color: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  { label: 'Tạm nghỉ', value: 4, description: 'Giáo viên cần theo dõi lịch', icon: UserX, color: 'border-amber-200 bg-amber-50 text-amber-700' },
+  { label: 'Đã nghỉ việc', value: 2, description: 'Hồ sơ đã ngừng làm việc', icon: UserX, color: 'border-slate-200 bg-slate-100 text-slate-700' },
 ]
 
 export const staffCharts = {
@@ -301,41 +298,29 @@ export const accounts = [
 ]
 
 export const staffFilters = {
-  types: ['Giáo viên', 'Nhân viên'],
   branches: ['Cơ sở 1', 'Cơ sở 2', 'Cơ sở 3'],
-  positions: ['Giáo viên IELTS Senior', 'Giáo viên Kids', 'Giáo viên Communication', 'Cố vấn học tập', 'Tư vấn tuyển sinh', 'Kế toán', 'Marketing Executive'],
-  departments: ['Đào tạo', 'Học vụ', 'Tư vấn', 'Marketing', 'Kế toán', 'Vận hành'],
-  specialties: ['IELTS', 'Kids', 'Communication', 'Grammar', 'TOEIC', 'Academic Care', 'Sales', 'Finance', 'Digital Marketing'],
+  positions: ['Giáo viên IELTS Senior', 'Giáo viên Kids', 'Giáo viên Communication', 'Giáo viên IELTS Intensive'],
+  departments: ['Đào tạo'],
+  specialties: ['IELTS', 'Kids', 'Communication', 'Grammar', 'TOEIC'],
   statuses: staffStatus,
   dateRanges: ['Hôm nay', '7 ngày tới', 'Tháng này', 'Tùy chỉnh'],
 }
 
-export const staffTabs = ['Dashboard', 'Danh sách nhân sự', 'Hồ sơ nhân sự']
+export const staffTabs = ['Dashboard', 'Danh sách giáo viên', 'Hồ sơ giáo viên']
 
-export const staffGroups = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'teacher', label: 'Giáo viên' },
-  { key: 'staff', label: 'Nhân viên' },
-  { key: 'account', label: 'Tài khoản' },
-]
-
-export const staffDetailTabs = ['Thông tin', 'Chuyên môn', 'Lớp phụ trách', 'Lịch giảng dạy', 'Chấm công', 'KPI', 'Tài khoản']
+export const staffDetailTabs = ['Thông tin', 'Chuyên môn', 'Lớp phụ trách', 'Lịch giảng dạy', 'Chấm công', 'KPI']
 
 export const staffModalConfigs = {
-  add: { title: 'Thêm nhân sự', submitText: 'Thêm nhân sự', intent: 'form' },
-  edit: { title: 'Cập nhật nhân sự', submitText: 'Cập nhật', intent: 'form' },
+  add: { title: 'Thêm giáo viên', submitText: 'Thêm giáo viên', intent: 'form' },
+  edit: { title: 'Cập nhật giáo viên', submitText: 'Cập nhật', intent: 'form' },
   assignClass: { title: 'Phân công lớp', submitText: 'Phân công', intent: 'assign' },
   transferDepartment: { title: 'Chuyển bộ phận', submitText: 'Chuyển bộ phận', intent: 'department' },
   updateCertificate: { title: 'Cập nhật chứng chỉ', submitText: 'Cập nhật chứng chỉ', intent: 'certificate' },
-  resetPassword: { title: 'Reset mật khẩu', submitText: 'Reset mật khẩu', intent: 'confirm' },
   import: { title: 'Import Excel', submitText: 'Import dữ liệu', intent: 'import' },
-  delete: { title: 'Xác nhận xóa', submitText: 'Xóa nhân sự', intent: 'danger' },
-  lockAccount: { title: 'Khóa tài khoản', submitText: 'Khóa tài khoản', intent: 'confirm' },
-  unlockAccount: { title: 'Mở khóa tài khoản', submitText: 'Mở khóa', intent: 'confirm' },
+  delete: { title: 'Xác nhận xóa', submitText: 'Xóa giáo viên', intent: 'danger' },
   updateSpecialty: { title: 'Cập nhật chuyên môn', submitText: 'Cập nhật', intent: 'specialty' },
-  email: { title: 'Gửi Email', submitText: 'Gửi Email', intent: 'message' },
   notify: { title: 'Gửi thông báo', submitText: 'Gửi thông báo', intent: 'message' },
   exportExcel: { title: 'Export Excel', submitText: 'Export Excel', intent: 'export' },
   exportPdf: { title: 'Export PDF', submitText: 'Export PDF', intent: 'export' },
-  printProfile: { title: 'In hồ sơ nhân sự', submitText: 'In hồ sơ', intent: 'confirm' },
+  printProfile: { title: 'In hồ sơ giáo viên', submitText: 'In hồ sơ', intent: 'confirm' },
 }

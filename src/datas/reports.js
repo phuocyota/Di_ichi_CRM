@@ -1,3 +1,94 @@
+import { courseClasses, courses, students, teachers } from './courses.js'
+
+const courseMap = Object.fromEntries(courses.map((item) => [item.id, item]))
+const classMap = Object.fromEntries(courseClasses.map((item) => [item.id, item]))
+const studentMap = Object.fromEntries(students.map((item) => [item.id, item]))
+const teacherMap = Object.fromEntries(teachers.map((item) => [item.id, item]))
+
+function buildStudentReportRow({ id, studentId, classId, branch, status, averageScore, homeworkRate, attendanceRate, progress, previous, date }) {
+  const classItem = classMap[classId]
+  const course = courseMap[classItem?.courseId]
+  const teacher = teacherMap[classItem?.teacherId]
+  const student = studentMap[studentId]
+
+  return {
+    id,
+    studentId,
+    studentCode: student?.code || studentId,
+    studentName: student?.name || studentId,
+    branch,
+    courseId: course?.id || '',
+    course: course?.name || '',
+    classId,
+    className: classItem?.name || classId,
+    teacherId: teacher?.id || '',
+    teacher: teacher?.name || '',
+    status,
+    averageScore,
+    homeworkRate,
+    attendanceRate,
+    progress,
+    previous,
+    date,
+  }
+}
+
+function buildTeacherReportRow({ id, classId, branch, status, hours, classes, kpi, homeworkChecked, testsChecked, rating, completion, previous, date }) {
+  const classItem = classMap[classId]
+  const course = courseMap[classItem?.courseId]
+  const teacher = teacherMap[classItem?.teacherId]
+
+  return {
+    id,
+    branch,
+    courseId: course?.id || '',
+    course: course?.name || '',
+    classId,
+    className: classItem?.name || classId,
+    teacherId: teacher?.id || '',
+    teacher: teacher?.name || '',
+    specialty: teacher?.specialty || '',
+    status,
+    hours,
+    classes,
+    kpi,
+    homeworkChecked,
+    testsChecked,
+    rating,
+    completion,
+    previous,
+    date,
+  }
+}
+
+function buildClassReportRow({ id, classId, branch, status, totalClasses, averageSize, fillRate, absenceRate, completionRate, previous, date }) {
+  const classItem = classMap[classId]
+  const course = courseMap[classItem?.courseId]
+  const teacher = teacherMap[classItem?.teacherId]
+
+  return {
+    id,
+    branch,
+    courseId: course?.id || '',
+    course: course?.name || '',
+    classId,
+    classCode: classItem?.code || classId,
+    className: classItem?.name || classId,
+    teacherId: teacher?.id || '',
+    teacher: teacher?.name || '',
+    currentStudents: classItem?.currentStudents || 0,
+    maxStudents: classItem?.maxStudents || 0,
+    status,
+    totalClasses,
+    averageSize,
+    fillRate,
+    absenceRate,
+    completionRate,
+    previous,
+    date,
+  }
+}
+
 export const reportStatistics = [
   { key: 'revenue', label: 'Tổng doanh thu', value: 486000000, displayValue: '486M', trend: 12.4, description: 'Tăng so với kỳ trước', color: 'bg-blue-50 text-blue-700 border-blue-100' },
   { key: 'students', label: 'Tổng học viên', value: 1248, displayValue: '1.248', trend: 8.1, description: 'Đang theo học', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
@@ -85,43 +176,14 @@ export const admissionReports = {
   ],
 }
 
-export const learningReports = {
-  label: 'Báo cáo học tập',
-  summary: [
-    { label: 'Điểm trung bình', value: '8.1', trend: 3.5 },
-    { label: 'Homework hoàn thành', value: '89.4%', trend: 4.1 },
-    { label: 'Tỷ lệ chuyên cần', value: '91.2%', trend: 2.3 },
-    { label: 'Tiến bộ học tập', value: '+12.6%', trend: 6.4 },
-    { label: 'Học viên xuất sắc', value: '184', trend: 8.7 },
-    { label: 'Học viên cần hỗ trợ', value: '46', trend: -5.2 },
-  ],
-  scoreByClass: [
-    { className: 'ST-K12', score: 8.4, homework: 92 },
-    { className: 'MV-K09', score: 7.8, homework: 86 },
-    { className: 'FL-K05', score: 8.1, homework: 89 },
-    { className: 'IELTS-F07', score: 7.6, homework: 82 },
-    { className: 'IELTS-I03', score: 8.5, homework: 94 },
-  ],
-  progressTimeline: [
-    { month: 'T3', progress: 62, attendance: 88 },
-    { month: 'T4', progress: 68, attendance: 90 },
-    { month: 'T5', progress: 74, attendance: 89 },
-    { month: 'T6', progress: 79, attendance: 92 },
-    { month: 'T7', progress: 86, attendance: 91 },
-  ],
-  attendanceByMonth: [
-    { month: 'T3', attendance: 88 },
-    { month: 'T4', attendance: 90 },
-    { month: 'T5', attendance: 89 },
-    { month: 'T6', attendance: 92 },
-    { month: 'T7', attendance: 91 },
-  ],
+export const studentReports = {
+  label: 'Báo cáo học viên',
   details: [
-    { id: 'LRN-001', branch: 'Cơ sở Quận 1', course: 'IELTS Foundation', className: 'IELTS-F07', teacher: 'Ms. Linh', status: 'Đạt tiến độ', averageScore: 7.6, homeworkRate: 82, attendanceRate: 90, progress: 13.2, previous: 10.4, date: '2026-07-31' },
-    { id: 'LRN-002', branch: 'Cơ sở Bình Thạnh', course: 'Starter', className: 'ST-K12', teacher: 'Ms. Hana', status: 'Xuất sắc', averageScore: 8.4, homeworkRate: 92, attendanceRate: 94, progress: 16.8, previous: 12.6, date: '2026-07-29' },
-    { id: 'LRN-003', branch: 'Cơ sở Thủ Đức', course: 'Mover', className: 'MV-K09', teacher: 'Mr. Minh', status: 'Cần hỗ trợ', averageScore: 7.8, homeworkRate: 86, attendanceRate: 87, progress: 8.1, previous: 9.5, date: '2026-07-26' },
-    { id: 'LRN-004', branch: 'Cơ sở Quận 7', course: 'Flyer', className: 'FL-K05', teacher: 'Ms. Trang', status: 'Đạt tiến độ', averageScore: 8.1, homeworkRate: 89, attendanceRate: 91, progress: 12.4, previous: 11.1, date: '2026-07-21' },
-    { id: 'LRN-005', branch: 'Cơ sở Quận 1', course: 'IELTS Intensive', className: 'IELTS-I03', teacher: 'Mr. David', status: 'Xuất sắc', averageScore: 8.5, homeworkRate: 94, attendanceRate: 93, progress: 15.9, previous: 13.8, date: '2026-07-18' },
+    buildStudentReportRow({ id: 'STD-RPT-001', studentId: 'student-001', classId: 'class-ielts-fd-01', branch: 'Cơ sở Quận 1', status: 'Đạt tiến độ', averageScore: 8.3, homeworkRate: 92, attendanceRate: 96, progress: 16.2, previous: 12.4, date: '2026-07-31' }),
+    buildStudentReportRow({ id: 'STD-RPT-002', studentId: 'student-002', classId: 'class-ielts-fd-01', branch: 'Cơ sở Quận 1', status: 'Cần theo dõi', averageScore: 7.8, homeworkRate: 84, attendanceRate: 88, progress: 9.6, previous: 10.8, date: '2026-07-29' }),
+    buildStudentReportRow({ id: 'STD-RPT-003', studentId: 'student-003', classId: 'class-toeic-500-01', branch: 'Cơ sở Thủ Đức', status: 'Cần hỗ trợ', averageScore: 7.1, homeworkRate: 78, attendanceRate: 82, progress: 7.4, previous: 8.9, date: '2026-07-26' }),
+    buildStudentReportRow({ id: 'STD-RPT-004', studentId: 'student-004', classId: 'class-kids-starter-01', branch: 'Cơ sở Quận 7', status: 'Xuất sắc', averageScore: 8.7, homeworkRate: 95, attendanceRate: 94, progress: 18.5, previous: 14.1, date: '2026-07-22' }),
+    buildStudentReportRow({ id: 'STD-RPT-005', studentId: 'student-005', classId: 'class-toeic-500-01', branch: 'Cơ sở Thủ Đức', status: 'Đạt tiến độ', averageScore: 7.3, homeworkRate: 88, attendanceRate: 100, progress: 12.2, previous: 9.8, date: '2026-07-18' }),
   ],
 }
 
@@ -151,11 +213,11 @@ export const teacherReports = {
   ],
   rating: reportCharts.teacherPerformance,
   details: [
-    { id: 'TCH-001', branch: 'Cơ sở Quận 1', course: 'IELTS Foundation', className: 'IELTS-F07', teacher: 'Ms. Linh', status: 'Vượt KPI', hours: 126, classes: 6, kpi: 94, homeworkChecked: 384, testsChecked: 54, rating: 4.8, completion: 96, previous: 91, date: '2026-07-31' },
-    { id: 'TCH-002', branch: 'Cơ sở Thủ Đức', course: 'Mover', className: 'MV-K09', teacher: 'Mr. Minh', status: 'Đạt KPI', hours: 118, classes: 5, kpi: 91, homeworkChecked: 346, testsChecked: 48, rating: 4.7, completion: 94, previous: 89, date: '2026-07-27' },
-    { id: 'TCH-003', branch: 'Cơ sở Bình Thạnh', course: 'Starter', className: 'ST-K12', teacher: 'Ms. Hana', status: 'Đạt KPI', hours: 112, classes: 5, kpi: 88, homeworkChecked: 318, testsChecked: 45, rating: 4.6, completion: 91, previous: 87, date: '2026-07-24' },
-    { id: 'TCH-004', branch: 'Cơ sở Quận 1', course: 'IELTS Intensive', className: 'IELTS-I03', teacher: 'Mr. David', status: 'Cần theo dõi', hours: 104, classes: 4, kpi: 86, homeworkChecked: 292, testsChecked: 42, rating: 4.5, completion: 89, previous: 90, date: '2026-07-19' },
-    { id: 'TCH-005', branch: 'Cơ sở Quận 7', course: 'Flyer', className: 'FL-K05', teacher: 'Ms. Trang', status: 'Đạt KPI', hours: 109, classes: 4, kpi: 84, homeworkChecked: 301, testsChecked: 39, rating: 4.4, completion: 90, previous: 86, date: '2026-07-15' },
+    buildTeacherReportRow({ id: 'TCH-001', classId: 'class-ielts-fd-01', branch: 'Cơ sở Quận 1', status: 'Vượt KPI', hours: 126, classes: 6, kpi: 94, homeworkChecked: 384, testsChecked: 54, rating: 4.8, completion: 96, previous: 91, date: '2026-07-31' }),
+    buildTeacherReportRow({ id: 'TCH-002', classId: 'class-toeic-500-01', branch: 'Cơ sở Thủ Đức', status: 'Đạt KPI', hours: 118, classes: 5, kpi: 91, homeworkChecked: 346, testsChecked: 48, rating: 4.7, completion: 94, previous: 89, date: '2026-07-27' }),
+    buildTeacherReportRow({ id: 'TCH-003', classId: 'class-ielts-fd-02', branch: 'Cơ sở Bình Thạnh', status: 'Đạt KPI', hours: 112, classes: 5, kpi: 88, homeworkChecked: 318, testsChecked: 45, rating: 4.6, completion: 91, previous: 87, date: '2026-07-24' }),
+    buildTeacherReportRow({ id: 'TCH-004', classId: 'class-kids-starter-01', branch: 'Cơ sở Quận 7', status: 'Cần theo dõi', hours: 104, classes: 4, kpi: 86, homeworkChecked: 292, testsChecked: 42, rating: 4.5, completion: 89, previous: 90, date: '2026-07-19' }),
+    buildTeacherReportRow({ id: 'TCH-005', classId: 'class-ielts-fd-01', branch: 'Cơ sở Quận 1', status: 'Đạt KPI', hours: 109, classes: 4, kpi: 84, homeworkChecked: 301, testsChecked: 39, rating: 4.4, completion: 90, previous: 86, date: '2026-07-15' }),
   ],
 }
 
@@ -216,10 +278,10 @@ export const classReports = {
   ],
   completion: reportCharts.courseCompletion,
   details: [
-    { id: 'CLS-001', branch: 'Cơ sở Quận 1', course: 'IELTS Foundation', className: 'IELTS-F07', teacher: 'Ms. Linh', status: 'Đang học', totalClasses: 6, averageSize: 16, fillRate: 88, absenceRate: 5.8, completionRate: 83, previous: 80, date: '2026-07-31' },
-    { id: 'CLS-002', branch: 'Cơ sở Bình Thạnh', course: 'Starter', className: 'ST-K12', teacher: 'Ms. Hana', status: 'Đang học', totalClasses: 8, averageSize: 18, fillRate: 90, absenceRate: 4.9, completionRate: 88, previous: 84, date: '2026-07-27' },
-    { id: 'CLS-003', branch: 'Cơ sở Thủ Đức', course: 'Mover', className: 'MV-K09', teacher: 'Mr. Minh', status: 'Cần theo dõi', totalClasses: 7, averageSize: 15, fillRate: 75, absenceRate: 9.6, completionRate: 79, previous: 82, date: '2026-07-24' },
-    { id: 'CLS-004', branch: 'Cơ sở Quận 7', course: 'Flyer', className: 'FL-K05', teacher: 'Ms. Trang', status: 'Đang học', totalClasses: 5, averageSize: 17, fillRate: 85, absenceRate: 6.4, completionRate: 81, previous: 78, date: '2026-07-19' },
-    { id: 'CLS-005', branch: 'Cơ sở Quận 1', course: 'IELTS Intensive', className: 'IELTS-I03', teacher: 'Mr. David', status: 'Đang học', totalClasses: 4, averageSize: 19, fillRate: 95, absenceRate: 4.2, completionRate: 86, previous: 83, date: '2026-07-16' },
+    buildClassReportRow({ id: 'CLS-001', classId: 'class-ielts-fd-01', branch: 'Cơ sở Quận 1', status: 'Đang học', totalClasses: 6, averageSize: 16, fillRate: 88, absenceRate: 5.8, completionRate: 83, previous: 80, date: '2026-07-31' }),
+    buildClassReportRow({ id: 'CLS-002', classId: 'class-ielts-fd-02', branch: 'Cơ sở Bình Thạnh', status: 'Đã đủ sĩ số', totalClasses: 8, averageSize: 18, fillRate: 90, absenceRate: 4.9, completionRate: 88, previous: 84, date: '2026-07-27' }),
+    buildClassReportRow({ id: 'CLS-003', classId: 'class-toeic-500-01', branch: 'Cơ sở Thủ Đức', status: 'Sắp khai giảng', totalClasses: 7, averageSize: 15, fillRate: 75, absenceRate: 9.6, completionRate: 79, previous: 82, date: '2026-07-24' }),
+    buildClassReportRow({ id: 'CLS-004', classId: 'class-kids-starter-01', branch: 'Cơ sở Quận 7', status: 'Đang học', totalClasses: 5, averageSize: 17, fillRate: 85, absenceRate: 6.4, completionRate: 81, previous: 78, date: '2026-07-19' }),
+    buildClassReportRow({ id: 'CLS-005', classId: 'class-ielts-fd-01', branch: 'Cơ sở Quận 1', status: 'Đang học', totalClasses: 4, averageSize: 19, fillRate: 95, absenceRate: 4.2, completionRate: 86, previous: 83, date: '2026-07-16' }),
   ],
 }

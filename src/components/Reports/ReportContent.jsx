@@ -1,6 +1,4 @@
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -66,46 +64,6 @@ function ReportContent({ reportKey, report, rows, onOpenDetail }) {
                 <Tooltip />
                 <Bar dataKey="leads" name="Lead" fill="#06b6d4" radius={[8, 8, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
-          </ChartPanel>
-        </>
-      )
-    }
-
-    if (reportKey === 'learning') {
-      return (
-        <>
-          <ChartPanel title="Điểm theo lớp">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={report.scoreByClass} margin={{ left: 0, right: 12, top: 8 }}>
-                <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="className" axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 10]} axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Bar dataKey="score" name="Điểm TB" fill="#2563eb" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartPanel>
-          <ChartPanel title="Tiến bộ theo thời gian">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={report.progressTimeline} margin={{ left: 0, right: 12, top: 8 }}>
-                <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip formatter={(value) => [`${value}%`, '']} />
-                <Area type="monotone" dataKey="progress" name="Tiến bộ" stroke="#10b981" fill="#dcfce7" strokeWidth={3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartPanel>
-          <ChartPanel title="Chuyên cần theo tháng">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={report.attendanceByMonth} margin={{ left: 0, right: 12, top: 8 }}>
-                <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis domain={[70, 100]} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(value) => [`${value}%`, 'Chuyên cần']} />
-                <Line type="monotone" dataKey="attendance" stroke="#f59e0b" strokeWidth={3} />
-              </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
         </>
