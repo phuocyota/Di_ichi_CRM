@@ -1,322 +1,140 @@
-import { useMemo, useState } from 'react'
-import CourseClassTable from '../../components/Courses/CourseClassTable.jsx'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import CourseHeader from '../../components/Courses/CourseHeader.jsx'
 import CourseModal from '../../components/Courses/CourseModal.jsx'
 import CourseTable from '../../components/Courses/CourseTable.jsx'
-import LearningResultDetailModal from '../../components/Courses/LearningResultDetailModal.jsx'
+import CourseClassTable from '../../components/Courses/CourseClassTable.jsx'
 import LearningResultTable from '../../components/Courses/LearningResultTable.jsx'
-import {
-  classStatuses,
-  courseClasses,
-  courseStatuses,
-  courseTabs,
-  courses,
-  learningResults,
-  rooms,
-  students,
-  teachers,
-} from '../../datas/courses.js'
+import LearningResultDetailModal from '../../components/Courses/LearningResultDetailModal.jsx'
+import { courseStatuses, classStatuses, courseTabs } from '../../datas/courses.js'
+import { createResource, updateResource, deleteResource, indexById } from '../../services/crmApi.js'
+import { listAllCourseResource, coursePayload, classPayload } from '../../services/courseApi.js'
 
-function indexById(items) {
-  return Object.fromEntries(items.map((item) => [item.id, item]))
-}
+const normalize = (value) => String(value ?? '').toLocaleLowerCase('vi').trim()
 
-function normalize(value) {
-  return String(value || '').toLowerCase().trim()
-}
-
-function makeId(prefix) {
-  return `${prefix}-${Date.now()}`
-}
-
-function CoursePage() {
+export default function CoursePage() {
   const [activeTab, setActiveTab] = useState('courses')
   const [keyword, setKeyword] = useState('')
   const [filterValues, setFilterValues] = useState({})
-  const [courseItems, setCourseItems] = useState(courses)
-  const [classItems, setClassItems] = useState(courseClasses)
-  const [resultItems, setResultItems] = useState(learningResults)
+  const [data, setData] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [modal, setModal] = useState(null)
   const [selectedResult, setSelectedResult] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const requestRef = useRef(0)
 
-  const courseMap = useMemo(() => indexById(courseItems), [courseItems])
-  const teacherMap = useMemo(() => indexById(teachers), [])
-  const roomMap = useMemo(() => indexById(rooms), [])
-  const studentMap = useMemo(() => indexById(students), [])
-  const classMap = useMemo(() => indexById(classItems), [classItems])
-  const courseStatusMap = useMemo(() => Object.fromEntries(courseStatuses.map((item) => [item.value, item])), [])
-  const classStatusMap = useMemo(() => Object.fromEntries(classStatuses.map((item) => [item.value, item])), [])
+  const refresh = useCallback(async () => {
+    const request = ++requestRef.current
+    setLoading(true)
+    setLoadError('')
+    try {
+      const resources = activeTab === 'courses' ? ['course']
+        : activeTab === 'classes' ? ['course', 'class', 'staff', 'room', 'class-staff', 'class-room', 'class-weekly-schedule', 'enrollment']
+          : ['course', 'class', 'staff', 'student', 'score']
+      const entries = await Promise.all(resources.map(async (name) => [name, await listAllCourseResource(name)]))
+      if (request === requestRef.current) setData(Object.fromEntries(entries))
+    } catch (error) {
+      if (request === requestRef.current) setLoadError(error.message)
+      throw error
+    } finally { if (request === requestRef.current) setLoading(false) }
+  }, [activeTab])
+  useEffect(() => {
+    refresh().catch(() => {})
+    return () => { requestRef.current += 1 }
+  }, [refresh])
 
-  const activeFilters = useMemo(() => {
-    const resultClassOptions = filterValues.courseId
-      ? classItems.filter((item) => item.courseId === filterValues.courseId)
-      : classItems
-
-    if (activeTab === 'courses') {
-      return [
-        { key: 'status', label: 'Trạng thái', options: courseStatuses },
-      ]
-    }
-
-    if (activeTab === 'classes') {
-      return [
-        { key: 'courseId', label: 'Khóa học', options: courseItems.map((item) => ({ value: item.id, label: item.name })) },
-        { key: 'teacherId', label: 'Giáo viên', options: teachers.map((item) => ({ value: item.id, label: item.name })) },
-        { key: 'status', label: 'Trạng thái', options: classStatuses },
-      ]
-    }
-
-    return [
-      { key: 'courseId', label: 'Khóa học', options: courseItems.map((item) => ({ value: item.id, label: item.name })) },
-      { key: 'classId', label: 'Lớp học', options: resultClassOptions.map((item) => ({ value: item.id, label: item.name })) },
-      { key: 'teacherId', label: 'Giáo viên', options: teachers.map((item) => ({ value: item.id, label: item.name })) },
-    ]
-  }, [activeTab, classItems, courseItems, filterValues.courseId])
-
-  const handleTabChange = (tab) => {
-    setActiveTab(tab)
-    setFilterValues({})
-    setKeyword('')
+  const courses = useMemo(() => (data.course || []).map((item) => ({ ...item, tuition: Number(item.defaultTuitionFee) })), [data.course])
+  const teachers = useMemo(() => (data.staff || []).filter((item) => item.type === 'teacher'), [data.staff])
+  const rooms = data.room || []
+  const courseMap = useMemo(() => indexById(courses), [courses])
+  const teacherMap = useMemo(() => indexById(data.staff || []), [data.staff])
+  const roomMap = useMemo(() => indexById(data.room || []), [data.room])
+  const studentMap = useMemo(() => indexById(data.student || []), [data.student])
+  const classes = useMemo(() => (data.class || []).filter((item) => !item.deletedAt).map((item) => ({
+    ...item,
+    teacherIds: (data['class-staff'] || []).filter((link) => link.classId === item.id && link.role === 'teacher').map((link) => link.staffId),
+    roomIds: (data['class-room'] || []).filter((link) => link.classId === item.id).map((link) => link.roomId),
+    schedule: (data['class-weekly-schedule'] || []).filter((link) => link.classId === item.id).map((link) => (link.weekday === 0 ? 'CN' : 'T' + (link.weekday + 1)) + ' ' + link.startTime.slice(0, 5) + ' - ' + link.endTime.slice(0, 5)).join('; '),
+    currentStudents: (data.enrollment || []).filter((link) => link.classId === item.id && link.isCurrent).length,
+    maxStudents: item.maxSize,
+  })).map((item) => ({ ...item, teacherId: item.teacherIds[0] || '', roomId: item.roomIds[0] || '' })), [data])
+  const classMap = useMemo(() => indexById(classes), [classes])
+  const results = useMemo(() => (data.score || []).map((item) => ({ ...item, courseId: classMap[item.classId]?.courseId })), [data.score, classMap])
+  const courseStatusMap = Object.fromEntries(courseStatuses.map((item) => [item.value, item]))
+  const classStatusMap = Object.fromEntries(classStatuses.map((item) => [item.value, item]))
+  const options = (items) => items.map((item) => ({ value: item.id, label: item.name }))
+  const filters = activeTab === 'courses' ? [{ key: 'status', label: 'Trạng thái', options: courseStatuses }] : [
+    { key: 'courseId', label: 'Khóa học', options: options(courses) },
+    ...(activeTab === 'results' ? [{ key: 'classId', label: 'Lớp học', options: options(classes.filter((item) => !filterValues.courseId || item.courseId === filterValues.courseId)) }] : []),
+    { key: 'teacherId', label: 'Giáo viên', options: options(teachers) },
+    ...(activeTab === 'classes' ? [{ key: 'status', label: 'Trạng thái', options: classStatuses }] : []),
+  ]
+  const matches = (item, texts) => {
+    const search = normalize(keyword)
+    return (!search || texts.some((value) => normalize(value).includes(search))) && Object.entries(filterValues).every(([key, value]) => !value || (key === 'teacherId' && item.teacherIds ? item.teacherIds.includes(value) : item[key] === value))
   }
+  const filteredCourses = courses.filter((item) => matches(item, [item.code, item.name, item.level]))
+  const filteredClasses = classes.filter((item) => matches(item, [item.code, item.name, courseMap[item.courseId]?.name, ...item.teacherIds.map((id) => teacherMap[id]?.name), ...item.roomIds.map((id) => roomMap[id]?.name)]))
+  const filteredResults = results.filter((item) => matches(item, [studentMap[item.studentId]?.name, classMap[item.classId]?.name, courseMap[item.courseId]?.name, teacherMap[item.teacherId]?.name, item.title, item.subject]))
 
-  const handleFilterChange = (key, value) => {
-    setFilterValues((current) => {
-      if (activeTab === 'results' && key === 'courseId') {
-        return { ...current, courseId: value, classId: '' }
+  const handleSubmit = async (action, values) => {
+    if (savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
+    try {
+      const resource = action.entity === 'course' ? 'course' : 'class'
+      let saved
+      if (action.mode === 'delete') await deleteResource(resource, action.item.id)
+      else {
+        if (resource === 'class' && values.endDate < values.startDate) throw new Error('Ngày kết thúc phải từ ngày khai giảng trở đi')
+        const payload = resource === 'course' ? coursePayload(values) : classPayload(values)
+        if (!payload.code || !payload.name) throw new Error('Vui lòng nhập mã và tên hợp lệ')
+        saved = action.mode === 'edit' ? await updateResource(resource, action.item.id, payload) : await createResource(resource, payload)
       }
-      return { ...current, [key]: value }
-    })
-  }
-
-  const openCreate = () => {
-    if (activeTab === 'classes') {
-      setModal({ entity: 'class', mode: 'create' })
-      return
-    }
-    setModal({ entity: 'course', mode: 'create' })
-  }
-
-  const handleCourseSubmit = (action, values) => {
-    if (action.mode === 'delete') {
-      const deletedCourseId = action.item.id
-      setCourseItems((current) => current.filter((item) => item.id !== deletedCourseId))
-      setClassItems((current) => current.filter((item) => item.courseId !== deletedCourseId))
-      setResultItems((current) => current.filter((item) => item.courseId !== deletedCourseId))
       setModal(null)
-      return
-    }
-
-    const payload = {
-      ...values,
-      sessions: Number(values.sessions),
-      tuition: Number(values.tuition),
-    }
-
-    if (action.mode === 'edit') {
-      setCourseItems((current) => current.map((item) => (item.id === action.item.id ? { ...item, ...payload } : item)))
-      setModal(null)
-      return
-    }
-
-    const createdCourse = {
-      ...payload,
-      id: makeId('course'),
-    }
-
-    setCourseItems((current) => [createdCourse, ...current])
-    setActiveTab('classes')
-    setKeyword('')
-    setFilterValues({ courseId: createdCourse.id })
-    setModal({ entity: 'class', mode: 'create', courseId: createdCourse.id })
+      toast.success(action.mode === 'delete' ? 'Đã xóa thành công' : 'Đã lưu thành công')
+      try {
+        await refresh()
+        if (resource === 'course' && action.mode === 'create' && saved?.id) {
+          setActiveTab('classes')
+          setKeyword('')
+          setFilterValues({ courseId: saved.id })
+          setModal({ entity: 'class', mode: 'create', courseId: saved.id })
+        }
+      } catch (error) { toast.error('Đã lưu nhưng chưa tải lại được danh sách: ' + error.message) }
+    } catch (error) { toast.error(error.message) }
+    finally { savingRef.current = false; setSaving(false) }
   }
-
-  const handleClassSubmit = (action, values) => {
-    if (action.mode === 'delete') {
-      const deletedClassId = action.item.id
-      setClassItems((current) => current.filter((item) => item.id !== deletedClassId))
-      setResultItems((current) => current.filter((item) => item.classId !== deletedClassId))
-      setModal(null)
-      return
-    }
-
-    const payload = {
-      ...values,
-      currentStudents: Number(values.currentStudents),
-      maxStudents: Number(values.maxStudents),
-      studentIds: action.item?.studentIds || [],
-    }
-
-    if (action.mode === 'edit') {
-      setClassItems((current) => current.map((item) => (item.id === action.item.id ? { ...item, ...payload } : item)))
-      setModal(null)
-      return
-    }
-
-    setClassItems((current) => [{ ...payload, id: makeId('class') }, ...current])
-    setActiveTab('classes')
-    setFilterValues(values.courseId ? { courseId: values.courseId } : {})
-    setModal(null)
+  const exportResults = async () => {
+    try {
+      const XLSX = await import('xlsx')
+      const rows = filteredResults.map((item) => ({
+        'Học viên': studentMap[item.studentId]?.name || item.studentId,
+        'Lớp học': classMap[item.classId]?.name || item.classId,
+        'Khóa học': courseMap[item.courseId]?.name || '',
+        'Giáo viên': teacherMap[item.teacherId]?.name || item.teacherId,
+        'Bài kiểm tra': item.title, 'Môn': item.subject, 'Ngày': item.scoreDate,
+        'Điểm': item.score, 'Điểm tối đa': item.maxScore, 'Thứ hạng': item.rank ?? '', 'Nhận xét': item.note || '',
+      }))
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), 'Bang diem')
+      XLSX.writeFile(workbook, 'bang-diem-' + new Date().toISOString().slice(0, 10) + '.xlsx')
+    } catch (error) { toast.error('Không xuất được bảng điểm: ' + error.message) }
   }
-
-  const handleModalSubmit = (action, values) => {
-    if (action.entity === 'course') {
-      handleCourseSubmit(action, values)
-      return
-    }
-    handleClassSubmit(action, values)
-  }
-
-  const exportResults = async (items) => {
-    const XLSX = await import('xlsx')
-    const rows = items.map((item) => ({
-      'Học viên': studentMap[item.studentId]?.name,
-      'Lớp học': classMap[item.classId]?.name,
-      'Khóa học': courseMap[item.courseId]?.name,
-      'Giáo viên': teacherMap[item.teacherId]?.name,
-      'Số buổi': item.attendance.totalSessions,
-      'Có mặt': item.attendance.present,
-      'Nghỉ phép': item.attendance.excusedAbsent,
-      'Nghỉ không phép': item.attendance.unexcusedAbsent,
-      'Giữa kỳ': item.scores.midterm,
-      'Cuối kỳ': item.scores.final,
-      'Trung bình': item.scores.average,
-      'Xếp loại': item.scores.rank,
-      Listening: item.skills.listening,
-      Speaking: item.skills.speaking,
-      Reading: item.skills.reading,
-      Writing: item.skills.writing,
-      'Tiến bộ': item.progress,
-      'Điểm mạnh': item.strength,
-      'Cần cải thiện': item.improvement,
-      'Đề xuất': item.recommendation,
-    }))
-
-    const worksheet = XLSX.utils.json_to_sheet(rows)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Bang diem')
-    XLSX.writeFile(workbook, `bang-diem-hoc-vien-${new Date().toISOString().slice(0, 10)}.xlsx`)
-  }
-
-  const filteredCourses = useMemo(() => {
-    const search = normalize(keyword)
-    return courseItems.filter((item) => {
-      const matchesSearch = !search || [item.code, item.name, item.level].some((value) => normalize(value).includes(search))
-      const matchesStatus = !filterValues.status || item.status === filterValues.status
-      return matchesSearch && matchesStatus
-    })
-  }, [courseItems, filterValues.status, keyword])
-
-  const filteredClasses = useMemo(() => {
-    const search = normalize(keyword)
-    return classItems.filter((item) => {
-      const matchesSearch = !search || [
-        item.code,
-        item.name,
-        courseMap[item.courseId]?.name,
-        teacherMap[item.teacherId]?.name,
-        roomMap[item.roomId]?.name,
-      ].some((value) => normalize(value).includes(search))
-      const matchesCourse = !filterValues.courseId || item.courseId === filterValues.courseId
-      const matchesTeacher = !filterValues.teacherId || item.teacherId === filterValues.teacherId
-      const matchesStatus = !filterValues.status || item.status === filterValues.status
-      return matchesSearch && matchesCourse && matchesTeacher && matchesStatus
-    })
-  }, [classItems, courseMap, filterValues.courseId, filterValues.status, filterValues.teacherId, keyword, roomMap, teacherMap])
-
-  const filteredResults = useMemo(() => {
-    const search = normalize(keyword)
-    return resultItems.filter((item) => {
-      const matchesSearch = !search || [
-        studentMap[item.studentId]?.name,
-        classMap[item.classId]?.name,
-        courseMap[item.courseId]?.name,
-        teacherMap[item.teacherId]?.name,
-      ].some((value) => normalize(value).includes(search))
-      const matchesCourse = !filterValues.courseId || item.courseId === filterValues.courseId
-      const matchesClass = !filterValues.classId || item.classId === filterValues.classId
-      const matchesTeacher = !filterValues.teacherId || item.teacherId === filterValues.teacherId
-      return matchesSearch && matchesCourse && matchesClass && matchesTeacher
-    })
-  }, [classMap, courseMap, filterValues.classId, filterValues.courseId, filterValues.teacherId, keyword, resultItems, studentMap, teacherMap])
-
-  return (
-    <div className="space-y-5">
-      <CourseHeader
-        activeTab={activeTab}
-        tabs={courseTabs}
-        keyword={keyword}
-        filters={activeFilters}
-        filterValues={filterValues}
-        onTabChange={handleTabChange}
-        onKeywordChange={setKeyword}
-        onFilterChange={handleFilterChange}
-        onAdd={openCreate}
-        showAdd={activeTab !== 'results'}
-      />
-
-      {activeTab === 'courses' ? (
-        <CourseTable
-          courses={filteredCourses}
-          statusMap={courseStatusMap}
-          onView={(item) => setModal({ entity: 'course', mode: 'view', item })}
-          onEdit={(item) => setModal({ entity: 'course', mode: 'edit', item })}
-          onDelete={(item) => setModal({ entity: 'course', mode: 'delete', item })}
-          onAddClass={(item) => {
-            setActiveTab('classes')
-            setFilterValues({ courseId: item.id })
-            setModal({ entity: 'class', mode: 'create', courseId: item.id })
-          }}
-        />
-      ) : null}
-
-      {activeTab === 'classes' ? (
-        <CourseClassTable
-          classes={filteredClasses}
-          courseMap={courseMap}
-          teacherMap={teacherMap}
-          roomMap={roomMap}
-          statusMap={classStatusMap}
-          onView={(item) => setModal({ entity: 'class', mode: 'view', item })}
-          onEdit={(item) => setModal({ entity: 'class', mode: 'edit', item })}
-          onDelete={(item) => setModal({ entity: 'class', mode: 'delete', item })}
-        />
-      ) : null}
-
-      {activeTab === 'results' ? (
-        <LearningResultTable
-          results={filteredResults}
-          studentMap={studentMap}
-          classMap={classMap}
-          courseMap={courseMap}
-          teacherMap={teacherMap}
-          onView={setSelectedResult}
-          onExport={() => exportResults(filteredResults)}
-        />
-      ) : null}
-
-      <CourseModal
-        modal={modal}
-        courseStatuses={courseStatuses}
-        classStatuses={classStatuses}
-        courses={courseItems}
-        teachers={teachers}
-        rooms={rooms}
-        courseMap={courseMap}
-        teacherMap={teacherMap}
-        roomMap={roomMap}
-        onClose={() => setModal(null)}
-        onSubmit={handleModalSubmit}
-      />
-      <LearningResultDetailModal
-        result={selectedResult}
-        studentMap={studentMap}
-        classMap={classMap}
-        courseMap={courseMap}
-        teacherMap={teacherMap}
-        onClose={() => setSelectedResult(null)}
-      />
-    </div>
-  )
+  const actions = (entity) => Object.fromEntries(['view', 'edit', 'delete'].map((mode) => ['on' + mode[0].toUpperCase() + mode.slice(1), (item) => setModal({ entity, mode, item })]))
+  return <div className="space-y-5">
+    <CourseHeader activeTab={activeTab} tabs={courseTabs} keyword={keyword} filters={filters} filterValues={filterValues}
+      onTabChange={(tab) => { setActiveTab(tab); setFilterValues({}); setKeyword('') }}
+      onKeywordChange={setKeyword} onFilterChange={(key, value) => setFilterValues((current) => ({ ...current, [key]: value, ...(key === 'courseId' ? { classId: '' } : {}) }))}
+      showAdd={activeTab !== 'results' && !loading && !loadError} onAdd={() => setModal({ entity: activeTab === 'classes' ? 'class' : 'course', mode: 'create', courseId: filterValues.courseId })} />
+    {loading ? <p role="status">Đang tải dữ liệu khóa học...</p> : loadError ? <div role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">{loadError}<button className="ml-4 underline" onClick={() => refresh().catch(() => {})}>Thử lại</button></div> : <>
+      {activeTab === 'courses' ? <CourseTable courses={filteredCourses} statusMap={courseStatusMap} {...actions('course')} onAddClass={(item) => { setActiveTab('classes'); setKeyword(''); setFilterValues({ courseId: item.id }); setModal({ entity: 'class', mode: 'create', courseId: item.id }) }} /> : null}
+      {activeTab === 'classes' ? <CourseClassTable classes={filteredClasses} courseMap={courseMap} teacherMap={teacherMap} roomMap={roomMap} statusMap={classStatusMap} {...actions('class')} /> : null}
+      {activeTab === 'results' ? <LearningResultTable results={filteredResults} studentMap={studentMap} classMap={classMap} courseMap={courseMap} teacherMap={teacherMap} onView={setSelectedResult} onExport={exportResults} /> : null}
+    </>}
+    <CourseModal modal={modal} saving={saving} courseStatuses={courseStatuses} classStatuses={classStatuses} courses={courses} teachers={teachers} rooms={rooms} courseMap={courseMap} teacherMap={teacherMap} roomMap={roomMap} onClose={() => { if (!savingRef.current) setModal(null) }} onSubmit={handleSubmit} />
+    <LearningResultDetailModal result={selectedResult} studentMap={studentMap} classMap={classMap} courseMap={courseMap} teacherMap={teacherMap} onClose={() => setSelectedResult(null)} />
+  </div>
 }
-
-export default CoursePage

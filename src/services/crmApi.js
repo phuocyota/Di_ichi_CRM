@@ -7,7 +7,11 @@ export async function listResource(resource, params = {}) {
     // Backend hiện lỗi transform query number cho page/size; bỏ pagination để dùng mặc định.
     params,
   })
-  return Array.isArray(result) ? result : result?.data || []
+  if (Array.isArray(result)) return result
+  if (Array.isArray(result?.data)) return result.data
+  if (Array.isArray(result?.items)) return result.items
+  if (Array.isArray(result?.data?.items)) return result.data.items
+  return []
 }
 
 export function getResource(resource, id, params) {

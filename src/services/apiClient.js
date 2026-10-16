@@ -54,7 +54,7 @@ apiClient.interceptors.request.use((config) => {
 })
 
 apiClient.interceptors.response.use(
-  (response) => response.data?.data ?? response.data,
+  (response) => response.config.preserveResponse ? response.data : (response.data?.data ?? response.data),
   (error) => {
     const isLoginRequest = error.config?.url?.includes('/auth/login')
     if (error.response?.status === 401 && !isLoginRequest) {
