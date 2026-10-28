@@ -15,11 +15,17 @@ import {
 
 const formatCurrency = (value) => `${Math.round(value / 1000000)}M`
 
-function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
+function FinanceDashboard({ statistics = [], reports = {}, transactions = [], onOpenModal }) {
+  const dailyRevenueData = reports?.dailyRevenue || []
+  const paymentRatioData = reports?.paymentRatio || []
+  const byCourseData = reports?.byCourse || []
+  const byBranchData = reports?.byBranch || []
+  const debtStatusData = reports?.debtStatus || []
+
   return (
     <div className="space-y-5">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statistics.map((item) => {
+        {(statistics || []).map((item) => {
           const Icon = item.icon
 
           return (
@@ -30,7 +36,7 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
                   <p className="mt-2 text-3xl font-black">{item.value}</p>
                 </div>
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/75 shadow-sm">
-                  <Icon size={23} aria-hidden="true" />
+                  {Icon ? <Icon size={23} aria-hidden="true" /> : null}
                 </span>
               </div>
               <p className="mt-4 text-sm font-semibold opacity-75">{item.description}</p>
@@ -45,7 +51,7 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
           <p className="mt-1 text-sm font-medium text-slate-500">Theo dõi doanh thu trong 7 ngày gần nhất.</p>
           <div className="mt-5 h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={reports.dailyRevenue} margin={{ left: 0, right: 16, top: 8 }}>
+              <LineChart data={dailyRevenueData} margin={{ left: 0, right: 16, top: 8 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={formatCurrency} axisLine={false} tickLine={false} />
@@ -63,14 +69,14 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Tooltip formatter={(value) => [`${value}%`, 'Tỷ lệ']} />
-                <Pie data={reports.paymentRatio} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
-                  {reports.paymentRatio.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
+                <Pie data={paymentRatioData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
+                  {paymentRatioData.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className="space-y-2">
-            {reports.paymentRatio.map((item) => (
+            {paymentRatioData.map((item) => (
               <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
                 <span className="flex items-center gap-2 font-semibold text-slate-600">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
@@ -88,7 +94,7 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
           <h2 className="text-lg font-black text-slate-950">Doanh thu theo khóa học</h2>
           <div className="mt-5 h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={reports.byCourse} margin={{ left: 0, right: 12, top: 8 }}>
+              <BarChart data={byCourseData} margin={{ left: 0, right: 12, top: 8 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} hide />
                 <YAxis tickFormatter={formatCurrency} axisLine={false} tickLine={false} />
@@ -103,7 +109,7 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
           <h2 className="text-lg font-black text-slate-950">Doanh thu theo cơ sở</h2>
           <div className="mt-5 h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={reports.byBranch} margin={{ left: 0, right: 12, top: 8 }}>
+              <BarChart data={byBranchData} margin={{ left: 0, right: 12, top: 8 }}>
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={formatCurrency} axisLine={false} tickLine={false} />
@@ -117,7 +123,7 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
         <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">Công nợ theo trạng thái</h2>
           <div className="mt-4 space-y-3">
-            {reports.debtStatus.map((item) => (
+            {debtStatusData.map((item) => (
               <div key={item.name} className="rounded-xl border border-gray-300 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-black text-slate-700">{item.name}</span>
@@ -155,7 +161,7 @@ function FinanceDashboard({ statistics, reports, transactions, onOpenModal }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {transactions.slice(0, 5).map((item) => (
+              {(transactions || []).slice(0, 5).map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3 font-bold text-blue-700">{item.code}</td>
                   <td className="px-4 py-3 font-black text-slate-950">{item.student}</td>

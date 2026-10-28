@@ -54,7 +54,7 @@ apiClient.interceptors.request.use((config) => {
 })
 
 apiClient.interceptors.response.use(
-  (response) => response.data?.data ?? response.data,
+  (response) => response.config.preserveResponse ? response.data : (response.data?.data ?? response.data),
   (error) => {
     const isLoginRequest = error.config?.url?.includes('/auth/login')
     if (error.response?.status === 401 && !isLoginRequest) {
@@ -62,14 +62,21 @@ apiClient.interceptors.response.use(
       window.dispatchEvent(new Event('auth:unauthorized'))
     }
 
-    const body = error.response?.data?.error || error.response?.data
+    const responseBody = error.response?.data
+    const body = responseBody?.error && typeof responseBody.error === 'object'
+      ? responseBody.error
+      : responseBody
     const fieldMessages = body?.fields
       ? Object.values(body.fields).flat().filter(Boolean)
       : []
     const rawMessage = fieldMessages.length ? fieldMessages : body?.message
     const message = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage
 
-    const apiError = new Error(message || (error.code === 'ECONNABORTED'
+    const statusMessage = {
+      401: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
+      403: 'Bạn không có quyền truy cập chức năng này',
+    }[error.response?.status]
+    const apiError = new Error(message || statusMessage || (error.code === 'ECONNABORTED'
       ? 'Máy chủ phản hồi quá lâu'
       : 'Không thể kết nối đến máy chủ'))
     apiError.code = body?.code || error.code

@@ -26,9 +26,11 @@ Dự án frontend cho hệ thống quản trị trung tâm Anh ngữ theo hướ
 
 ## Kết Nối API
 
-Sao chép `.env.example` thành `.env.local`, sau đó cấu hình `VITE_API_BASE_URL`
-và `VITE_API_PROXY_TARGET`. Mặc định frontend gọi `/api` và Vite chuyển tiếp
-request đến `http://localhost:3004` trong môi trường phát triển.
+Sao chép `.env.example` thành `.env`, sau đó cấu hình `VITE_API_BASE_URL`.
+Frontend gọi trực tiếp URL này khi chạy local và khi build production.
+Sau khi sửa biến môi trường cần khởi động lại Vite; production cần build lại.
+Nếu đặt `VITE_API_BASE_URL=/api`, Vite sẽ chuyển tiếp request đến
+`VITE_API_PROXY_TARGET`, mặc định là `http://localhost:3004`.
 
 Đăng nhập và các màn học viên, phụ huynh, nhân sự, lớp học, lịch học, tài chính
 gọi API theo Swagger của backend. Dashboard tổng hợp vẫn dùng dữ liệu cục bộ do

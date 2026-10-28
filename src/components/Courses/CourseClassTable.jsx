@@ -32,6 +32,7 @@ function CourseClassTable({ classes, courseMap, teacherMap, roomMap, statusMap, 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
+            {!classes.length ? <tr><td colSpan={11} className="p-6 text-center text-slate-500">Không có dữ liệu phù hợp.</td></tr> : null}
             {classes.map((item) => {
               const status = statusMap[item.status]
               return (
@@ -39,15 +40,15 @@ function CourseClassTable({ classes, courseMap, teacherMap, roomMap, statusMap, 
                   <td className="px-6 py-4 font-black text-slate-900">{item.code}</td>
                   <td className="px-4 py-4 font-bold text-slate-800">{item.name}</td>
                   <td className="px-4 py-4 font-semibold text-slate-700">{courseMap[item.courseId]?.name}</td>
-                  <td className="px-4 py-4 font-semibold text-slate-700">{teacherMap[item.teacherId]?.name}</td>
-                  <td className="px-4 py-4 font-semibold text-slate-700">{roomMap[item.roomId]?.name}</td>
+                  <td className="px-4 py-4 font-semibold text-slate-700">{item.teacherIds?.map((id) => teacherMap[id]?.name || id).join(', ') || '—'}</td>
+                  <td className="px-4 py-4 font-semibold text-slate-700">{item.roomIds?.map((id) => roomMap[id]?.name || id).join(', ') || '—'}</td>
                   <td className="px-4 py-4 font-semibold text-slate-700">{formatDate(item.startDate)}</td>
                   <td className="px-4 py-4 font-semibold text-slate-700">{formatDate(item.endDate)}</td>
                   <td className="px-4 py-4 font-semibold text-slate-700">{item.schedule}</td>
                   <td className="px-4 py-4 font-black text-slate-900">{item.currentStudents}/{item.maxStudents}</td>
                   <td className="px-4 py-4">
                     <span className={`rounded-full border px-3 py-1 text-xs font-black ${status?.badgeClass || ''}`}>
-                      {status?.label}
+                      {status?.label || item.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">

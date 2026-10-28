@@ -19,15 +19,13 @@ function CourseTable({ courses, statusMap, onView, onEdit, onDelete, onAddClass 
               <th className="px-6 py-4">Mã khóa học</th>
               <th className="px-4 py-4">Tên khóa học</th>
               <th className="px-4 py-4">Cấp độ</th>
-              <th className="px-4 py-4">Thời lượng</th>
-              <th className="px-4 py-4">Số buổi</th>
               <th className="px-4 py-4">Học phí</th>
-              <th className="px-4 py-4">Mô tả</th>
               <th className="px-4 py-4">Trạng thái</th>
               <th className="px-6 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
+            {!courses.length ? <tr><td colSpan={6} className="p-6 text-center text-slate-500">Không có dữ liệu phù hợp.</td></tr> : null}
             {courses.map((item) => {
               const status = statusMap[item.status]
               return (
@@ -35,13 +33,10 @@ function CourseTable({ courses, statusMap, onView, onEdit, onDelete, onAddClass 
                   <td className="px-6 py-4 font-black text-slate-900">{item.code}</td>
                   <td className="px-4 py-4 font-bold text-slate-800">{item.name}</td>
                   <td className="px-4 py-4 font-semibold text-slate-700">{item.level}</td>
-                  <td className="px-4 py-4 font-semibold text-slate-700">{item.duration}</td>
-                  <td className="px-4 py-4 font-semibold text-slate-700">{item.sessions}</td>
                   <td className="px-4 py-4 font-black text-slate-900">{formatCurrency(item.tuition)}</td>
-                  <td className="max-w-[280px] px-4 py-4 font-semibold text-slate-600">{item.description}</td>
                   <td className="px-4 py-4">
                     <span className={`rounded-full border px-3 py-1 text-xs font-black ${status?.badgeClass || ''}`}>
-                      {status?.label}
+                      {status?.label || item.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">

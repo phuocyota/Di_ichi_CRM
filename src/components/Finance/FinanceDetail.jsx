@@ -4,10 +4,19 @@ import { Mail, Printer, ReceiptText, Send, TicketPercent } from 'lucide-react'
 
 const formatCurrency = (value) => `${new Intl.NumberFormat('vi-VN').format(value || 0)} đ`
 
-function FinanceDetail({ transaction, tabs, receipts, debts, promotions, vouchers, scholarships, onOpenModal }) {
-  const [activeTab, setActiveTab] = useState(tabs[0])
-  const transactionReceipts = receipts.filter((item) => item.transactionId === transaction.id)
-  const transactionDebt = debts.find((item) => item.transactionId === transaction.id)
+function FinanceDetail({ transaction, tabs = [], receipts = [], debts = [], promotions = [], vouchers = [], scholarships = [], onOpenModal }) {
+  const [activeTab, setActiveTab] = useState(tabs[0] || 'Thông tin học phí')
+
+  if (!transaction) {
+    return (
+      <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
+        <p className="py-8 text-center text-sm font-semibold text-slate-500">Chưa có giao dịch nào được chọn hoặc danh sách trống.</p>
+      </section>
+    )
+  }
+
+  const transactionReceipts = (receipts || []).filter((item) => item.transactionId === transaction.id)
+  const transactionDebt = (debts || []).find((item) => item.transactionId === transaction.id)
 
   const renderCards = (rows) => (
     <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
