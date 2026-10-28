@@ -34,6 +34,10 @@ export function getAdminDashboard() {
   return apiClient.get('/dashboard/admin')
 }
 
+export function getCrmDashboard(params = {}) {
+  return apiClient.get('/dashboard/crm', { params })
+}
+
 export function getStudentSummary() {
   return apiClient.get('/student/summary')
 }
