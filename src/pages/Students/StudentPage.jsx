@@ -8,27 +8,20 @@ import StudentTable from '../../components/Students/StudentTable.jsx'
 import {
   modalConfigs,
   profileTabs,
-  studentAttendanceSessions,
-  studentCertificateItems,
   studentFilters,
-  studentHistoryItems,
-  studentHomeworkItems,
-  studentScoreItems,
   studentStatistics,
-  studentTuitionItems,
-  students,
 } from '../../datas/students.js'
-import { createResource, deleteResource, getStudentSummary, indexById, initials, loadResources, updateResource } from '../../services/crmApi.js'
+import { createResource, deleteResource, getStudentSummary, indexById, initials, listAllResource, updateResource } from '../../services/crmApi.js'
 import { USER_KEY } from '../../services/apiClient.js'
 
 const statusColors = {
   active: '#10b981',
   reserved: '#f59e0b',
   stopped: '#ef4444',
-  completed: '#8b5cf6',
+  trial: '#2563eb',
+  potential: '#8b5cf6',
 }
 
-const emptyStatistics = studentStatistics.map((item) => ({ ...item, value: 0 }))
 const emptyCharts = { monthly: [], status: [], courses: [], branches: [] }
 let summaryRequest
 
@@ -56,77 +49,99 @@ function StudentPage() {
   })
   const [activeTab, setActiveTab] = useState('dashboard')
   const [keyword, setKeyword] = useState('')
-  const [studentItems, setStudentItems] = useState(students)
-  const [selectedStudent, setSelectedStudent] = useState(students[0])
-  const [summaryStatistics, setSummaryStatistics] = useState(emptyStatistics)
+  const [studentItems, setStudentItems] = useState([])
+  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [summaryStatistics, setSummaryStatistics] = useState([])
   const [summaryCharts, setSummaryCharts] = useState(emptyCharts)
   const [directories, setDirectories] = useState({ branches: [], courses: [], classes: [], teachers: [] })
   const [studentDataLoaded, setStudentDataLoaded] = useState(false)
+  const [summaryLoading, setSummaryLoading] = useState(true)
+  const [summaryError, setSummaryError] = useState('')
+  const [studentsLoading, setStudentsLoading] = useState(false)
+  const [studentsError, setStudentsError] = useState('')
   const [modal, setModal] = useState(null)
   const studentDataRequest = useRef(null)
 
-  const mapStudent = (student, branchItems) => {
+  const mapStudent = (student, resources) => {
     const status = studentFilters.statuses.find((item) => item.value === student.status)
-    const branch = indexById(branchItems)[student.branchId]
+    const branch = indexById(resources.branch)[student.branchId]
+    const current = resources.enrollment.filter((item) => item.studentId === student.id && item.isCurrent)
+    const classMap = indexById(resources.class)
+    const courseMap = indexById(resources.course)
+    const staffMap = indexById(resources.staff)
+    const classroomIds = new Set(current.map((item) => item.classId))
+    const parent = resources['student-guardian'].find((item) => item.studentId === student.id && item.isPrimary)
+      || resources['student-guardian'].find((item) => item.studentId === student.id)
+    const join = (values) => [...new Set(values.filter(Boolean))].join(' · ') || '—'
     return {
       ...student,
       avatar: initials(student.name),
       gender: { male: 'Nam', female: 'Nữ' }[student.gender] || student.gender,
-      branch: branch?.name || student.branchId,
+      branch: branch?.name || '—',
+      parent: parent?.name || '—',
+      parentPhone: parent?.phone || '',
+      course: join(current.map((item) => courseMap[classMap[item.classId]?.courseId]?.name)),
+      className: join(current.map((item) => classMap[item.classId]?.name)),
+      teacher: join(resources['class-staff'].filter((item) => classroomIds.has(item.classId)).map((item) => staffMap[item.staffId]?.name)),
       status: status?.label || student.status,
       statusValue: student.status,
-      attendance: '—',
-      score: '—',
-      homework: '—',
-      tuition: '—',
-      certificate: '—',
     }
   }
 
   const refreshStudents = () => {
     if (studentDataRequest.current) return studentDataRequest.current
-
-    studentDataRequest.current = loadResources(['student', 'branch', 'course', 'class', 'staff'])
-      .then((result) => {
-        const mapped = result.student.map((item) => mapStudent(item, result.branch))
-        setDirectories({
-          branches: result.branch,
-          courses: result.course,
-          classes: result.class,
-          teachers: result.staff.filter((item) => item.type === 'teacher'),
-        })
+    setStudentsLoading(true)
+    setStudentsError('')
+    const resources = ['student', 'branch', 'course', 'class', 'staff', 'student-guardian', 'enrollment', 'class-staff']
+    studentDataRequest.current = Promise.all(resources.map(async (name) => [name, await listAllResource(name)]))
+      .then((entries) => {
+        const result = Object.fromEntries(entries)
+        const mapped = result.student.filter((item) => !item.deletedAt).map((item) => mapStudent(item, result))
+        setDirectories({ branches: result.branch, courses: result.course, classes: result.class, teachers: result.staff.filter((item) => item.type?.toLowerCase() === 'teacher') })
         setStudentItems(mapped)
         setSelectedStudent((current) => mapped.find((item) => item.id === current?.id) || mapped[0] || null)
         setStudentDataLoaded(true)
+        return mapped
+      })
+      .catch((error) => {
+        setStudentItems([])
+        setSelectedStudent(null)
+        setStudentDataLoaded(false)
+        setStudentsError(error.message)
+        throw error
       })
       .finally(() => {
+        setStudentsLoading(false)
         studentDataRequest.current = null
       })
-
     return studentDataRequest.current
   }
 
   const refreshSummary = async () => {
-    const result = await requestStudentSummary()
-    const statistics = result?.statistics || {}
-    const charts = result?.charts || {}
-    const statisticFields = ['totalStudents', 'activeStudents', 'reservedStudents', 'stoppedStudents', 'completedStudents']
-    const statusTotal = (charts.statusDistribution || []).reduce((sum, item) => sum + Number(item.value || 0), 0)
-
-    setSummaryStatistics(studentStatistics.map((item, index) => ({
-      ...item,
-      value: Number(statistics[statisticFields[index]] || 0).toLocaleString('vi-VN'),
-    })))
-    setSummaryCharts({
-      monthly: (charts.monthlyEnrollment || []).map((item) => ({ month: item.label, students: Number(item.value || 0) })),
-      status: (charts.statusDistribution || []).map((item) => ({
-        name: item.label,
-        value: statusTotal ? Math.round((Number(item.value || 0) / statusTotal) * 100) : 0,
-        fill: statusColors[item.status] || '#64748b',
-      })),
-      courses: (charts.courseDistribution || []).map((item) => ({ name: item.name, value: Number(item.value || 0) })),
-      branches: (charts.branchDistribution || []).map((item) => ({ name: item.name, value: Number(item.value || 0) })),
-    })
+    setSummaryLoading(true)
+    setSummaryError('')
+    try {
+      const result = await requestStudentSummary()
+      if (!result?.statistics || !result?.charts) throw new Error('Dữ liệu tổng quan không đúng định dạng')
+      const statistics = result.statistics
+      const charts = result.charts
+      const count = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value).toLocaleString('vi-VN') : '—'
+      const rows = (items) => Array.isArray(items) ? items.filter((item) => item.value !== null && item.value !== undefined && Number.isFinite(Number(item.value))) : []
+      const distribution = rows(charts.statusDistribution)
+      const statusTotal = distribution.reduce((sum, item) => sum + Number(item.value), 0)
+      setSummaryStatistics(studentStatistics.map((item) => ({ ...item, value: count(statistics[item.field]) })))
+      setSummaryCharts({
+        monthly: rows(charts.monthlyEnrollment).map((item) => ({ month: item.label, students: Number(item.value) })),
+        status: distribution.map((item) => ({ name: item.label, value: statusTotal ? Math.round(Number(item.value) / statusTotal * 100) : 0, fill: statusColors[item.status] || '#64748b' })),
+        courses: rows(charts.courseDistribution).map((item) => ({ name: item.name, value: Number(item.value) })),
+        branches: rows(charts.branchDistribution).map((item) => ({ name: item.name, value: Number(item.value) })),
+      })
+    } catch (error) {
+      setSummaryStatistics([])
+      setSummaryCharts(emptyCharts)
+      setSummaryError(error.message)
+      throw error
+    } finally { setSummaryLoading(false) }
   }
 
   useEffect(() => {
@@ -172,7 +187,7 @@ function StudentPage() {
           await createResource('enrollment', { studentId: saved.id, classId: values.classId, enrolledAt: normalizeDate(values.enrollmentDate, 'Ngày nhập học'), status: 'active', isCurrent: true })
         }
       } else {
-        toast.info('Backend hiện chưa có endpoint nghiệp vụ tương ứng')
+        toast.info('Thao tác này chưa được nối vào giao diện')
         setModal(null)
         return
       }
@@ -186,16 +201,11 @@ function StudentPage() {
   }
 
   const handleOpenModal = async (type, student = selectedStudent) => {
-    if (!studentDataLoaded) {
-      try {
-        await refreshStudents()
-      } catch (error) {
-        toast.error(`Không tải được dữ liệu biểu mẫu: ${error.message}`)
-        return
-      }
-    }
-    setSelectedStudent(student || studentItems[0])
-    setModal(type)
+    try {
+      const loaded = studentDataLoaded ? studentItems : await refreshStudents()
+      setSelectedStudent(loaded.find((item) => item.id === student?.id) || loaded[0] || null)
+      setModal(type)
+    } catch (error) { toast.error(`Không tải được dữ liệu biểu mẫu: ${error.message}`) }
   }
 
   const handleSelectStudent = (student) => {
@@ -221,9 +231,13 @@ function StudentPage() {
         onOpenModal={handleOpenModal}
       />
       {activeTab === 'dashboard' ? (
-        <StudentDashboard statistics={summaryStatistics} charts={summaryCharts} />
+        summaryLoading ? <p role="status" className="rounded-xl bg-white p-5">Đang tải tổng quan học viên…</p> : summaryError ? (
+          <div role="alert" className="rounded-xl bg-red-50 p-5 text-red-700">{summaryError} <button type="button" className="ml-3 underline" onClick={() => refreshSummary().catch(() => {})}>Thử lại</button></div>
+        ) : <StudentDashboard statistics={summaryStatistics} charts={summaryCharts} />
       ) : null}
-      {activeTab === 'list' ? (
+      {activeTab !== 'dashboard' && studentsLoading ? <p role="status" className="rounded-xl bg-white p-5">Đang tải danh sách học viên…</p> : null}
+      {activeTab !== 'dashboard' && studentsError ? <div role="alert" className="rounded-xl bg-red-50 p-5 text-red-700">{studentsError} <button type="button" className="ml-3 underline" onClick={() => refreshStudents().catch(() => {})}>Thử lại</button></div> : null}
+      {activeTab === 'list' && !studentsLoading && !studentsError ? (
         <StudentTable
           students={studentItems}
           filters={effectiveFilters}
@@ -233,17 +247,8 @@ function StudentPage() {
           onOpenModal={handleOpenModal}
         />
       ) : null}
-      {activeTab === 'profile' ? (
-        <StudentProfile
-          student={selectedStudent}
-          tabs={profileTabs}
-          attendanceSessions={studentAttendanceSessions}
-          scoreItems={studentScoreItems}
-          homeworkItems={studentHomeworkItems}
-          tuitionItems={studentTuitionItems}
-          historyItems={studentHistoryItems}
-          certificateItems={studentCertificateItems}
-        />
+      {activeTab === 'profile' && !studentsLoading && !studentsError ? (
+        <StudentProfile key={selectedStudent?.id || 'empty'} student={selectedStudent} tabs={profileTabs} />
       ) : null}
       <StudentModal
         modal={modal}

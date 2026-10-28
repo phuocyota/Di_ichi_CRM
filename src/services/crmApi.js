@@ -50,6 +50,42 @@ export function getStudentSummary() {
   return apiClient.get('/student/summary')
 }
 
+export async function getStudentProfile(studentId, params = {}) {
+  const result = await apiClient.get(`/student/${studentId}/profile`, { params })
+  const sections = {
+    overview: ['guardians', 'enrollments'], attendance: ['attendance'], scores: ['scores'],
+    homework: ['submissions'], tuition: ['transactions', 'payments', 'debtSchedules'],
+    history: ['statusHistory', 'activities'], certificates: ['certificates'],
+  }
+  const keys = sections[params.section || 'overview']
+  if (result?.student?.id !== studentId || !keys || keys.some((key) => !Array.isArray(result[key]?.items) || !Number.isInteger(result[key]?.total))) {
+    throw new Error('Dữ liệu hồ sơ học viên không đúng định dạng')
+  }
+  if ((params.section || 'overview') === 'overview' && !Array.isArray(result.classStaff)) throw new Error('Dữ liệu lớp học không đúng định dạng')
+  return result
+}
+
+// Used by tables that currently filter and paginate locally. Keep the server's
+// metadata so the default first page cannot be mistaken for the complete list.
+export async function listAllResource(resource) {
+  const items = []
+  const seen = new Set()
+  for (let page = 1; ; page += 1) {
+    const response = await apiClient.get(`/${resource}`, { params: { page, size: 100 }, preserveResponse: true })
+    const result = response?.success === true ? response.data : response
+    if (!Array.isArray(result?.data) || !Number.isInteger(result.total) || result.total < 0) {
+      throw new Error('Danh sách trả về không đúng định dạng')
+    }
+    for (const item of result.data) {
+      if (!item.id || seen.has(item.id)) throw new Error('Danh sách thay đổi trong khi tải. Vui lòng thử lại.')
+      seen.add(item.id)
+      items.push(item)
+    }
+    if (items.length >= result.total) return items
+    if (!result.data.length) throw new Error('Chưa tải đủ danh sách. Vui lòng thử lại.')
+  }
+}
+
 export function getParentSummary() {
   return apiClient.get('/student-guardian/summary')
 }

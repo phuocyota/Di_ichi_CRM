@@ -17,6 +17,7 @@ function DistributionChart({ title, description, data, color }) {
     <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black text-slate-950">{title}</h2>
       <p className="mt-1 text-sm font-medium text-slate-500">{description}</p>
+      {!data.length ? <p className="py-10 text-center text-sm text-slate-500">Chưa có dữ liệu.</p> : (
       <div className="mt-5 h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ left: 0, right: 16, top: 8 }}>
@@ -28,6 +29,7 @@ function DistributionChart({ title, description, data, color }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
     </div>
   )
 }
@@ -60,6 +62,7 @@ function StudentDashboard({ statistics, charts }) {
         <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">Học viên theo tháng</h2>
           <p className="mt-1 text-sm font-medium text-slate-500">Số lượng học viên mới theo từng tháng.</p>
+          {!charts.monthly.length ? <p className="py-10 text-center text-sm text-slate-500">Chưa có dữ liệu.</p> : (
           <div className="mt-5 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={charts.monthly} margin={{ left: 0, right: 16, top: 8 }}>
@@ -77,11 +80,13 @@ function StudentDashboard({ statistics, charts }) {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">Trạng thái học viên</h2>
           <p className="mt-1 text-sm font-medium text-slate-500">Tỷ lệ trạng thái hiện tại.</p>
+          {!charts.status.some((item) => item.value > 0) ? <p className="py-10 text-center text-sm text-slate-500">Chưa có dữ liệu phân bố.</p> : (
           <div className="mt-5 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -90,6 +95,7 @@ function StudentDashboard({ statistics, charts }) {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          )}
           <div className="space-y-2">
             {charts.status.map((item) => (
               <div key={item.name} className="flex items-center justify-between gap-3 text-sm">

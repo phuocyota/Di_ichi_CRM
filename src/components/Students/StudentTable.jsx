@@ -227,6 +227,7 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
             ))}
           </thead>
           <tbody className="divide-y divide-gray-200">
+            {!table.getRowModel().rows.length ? <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500">Không có học viên phù hợp.</td></tr> : null}
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="hover:bg-slate-50">
                 {row.getVisibleCells().map((cell) => (
@@ -242,7 +243,7 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-500">
-          Trang {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+          Trang {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
         </p>
         <div className="flex items-center gap-2">
           <button
