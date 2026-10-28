@@ -19,6 +19,7 @@ import {
   students,
 } from '../../datas/students.js'
 import { createResource, deleteResource, getStudentSummary, indexById, initials, loadResources, updateResource } from '../../services/crmApi.js'
+import { USER_KEY } from '../../services/apiClient.js'
 
 const statusColors = {
   active: '#10b981',
@@ -50,6 +51,9 @@ function requestStudentSummary() {
 }
 
 function StudentPage() {
+  const [canAssignSale] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(USER_KEY))?.role === 'ADMIN' } catch { return false }
+  })
   const [activeTab, setActiveTab] = useState('dashboard')
   const [keyword, setKeyword] = useState('')
   const [studentItems, setStudentItems] = useState(students)
@@ -155,6 +159,9 @@ function StudentPage() {
           enrollmentDate: normalizeDate(values.enrollmentDate, 'Ngày nhập học'),
           note: values.reason || null,
         }
+        if (canAssignSale && (type === 'add' || (values.assignedSaleUserId || null) !== (student?.assignedSaleUserId || null))) {
+          payload.assignedSaleUserId = values.assignedSaleUserId || null
+        }
         const saved = type === 'add'
           ? await createResource('student', payload)
           : await updateResource('student', student.id, payload)
@@ -244,6 +251,7 @@ function StudentPage() {
         selectedStudent={modal === 'add' ? null : selectedStudent}
         filters={effectiveFilters}
         directories={directories}
+        canAssignSale={canAssignSale}
         onClose={() => setModal(null)}
         onSubmit={handleModalSubmit}
       />

@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { X } from 'lucide-react'
+import { getStudentSaleOptions } from '../../services/crmApi.js'
 
 function toDateInputValue(value) {
   if (!value) return ''
@@ -19,10 +20,15 @@ function StudentModal({
   selectedStudent,
   filters,
   directories,
+  canAssignSale = false,
   onClose,
   onSubmit: submitModal,
 }) {
   const isOpen = Boolean(modal)
+  const [saleOptions, setSaleOptions] = useState([])
+  const [salesLoading, setSalesLoading] = useState(false)
+  const [salesError, setSalesError] = useState('')
+  const [salesVersion, setSalesVersion] = useState(0)
 
   const config = configs[modal] || {
     title: 'Thao tác học viên',
@@ -33,7 +39,9 @@ function StudentModal({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    control,
+    setValue,
+    formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
       code: '',
@@ -47,6 +55,7 @@ function StudentModal({
       classId: '',
       teacherId: '',
       branchId: '',
+      assignedSaleUserId: '',
       statusValue: '',
       enrollmentDate: '',
       reason: '',
@@ -55,31 +64,52 @@ function StudentModal({
   })
 
   useEffect(() => {
+    const source = modal === 'add' ? null : selectedStudent
     reset({
-      code: selectedStudent?.code || '',
-      name: selectedStudent?.name || '',
-      gender: selectedStudent?.gender || '',
-      birthDate: toDateInputValue(selectedStudent?.birthDate),
-      phone: selectedStudent?.phone || '',
-      parent: selectedStudent?.parent || '',
-      parentPhone: selectedStudent?.parentPhone || '',
-      courseId: selectedStudent?.courseId || '',
-      classId: selectedStudent?.classId || '',
-      teacherId: selectedStudent?.teacherId || '',
-      branchId: selectedStudent?.branchId || '',
-      statusValue: selectedStudent?.statusValue || '',
-      enrollmentDate: toDateInputValue(selectedStudent?.enrollmentDate),
+      code: source?.code || '',
+      name: source?.name || '',
+      gender: source?.gender || '',
+      birthDate: toDateInputValue(source?.birthDate),
+      phone: source?.phone || '',
+      parent: source?.parent || '',
+      parentPhone: source?.parentPhone || '',
+      courseId: source?.courseId || '',
+      classId: source?.classId || '',
+      teacherId: source?.teacherId || '',
+      branchId: source?.branchId || '',
+      assignedSaleUserId: source?.assignedSaleUserId || '',
+      statusValue: source?.statusValue || '',
+      enrollmentDate: toDateInputValue(source?.enrollmentDate),
       reason: '',
       file: '',
     })
   }, [reset, selectedStudent, modal])
+
+  const branchId = useWatch({ control, name: 'branchId' })
+  const assignedSaleUserId = useWatch({ control, name: 'assignedSaleUserId' })
+  useEffect(() => {
+    let cancelled = false
+    setSaleOptions([])
+    setSalesError('')
+    setSalesLoading(false)
+    if (!canAssignSale || !branchId || (modal !== 'add' && modal !== 'edit')) return
+    setSalesLoading(true)
+    getStudentSaleOptions(branchId)
+      .then((items) => {
+        if (!Array.isArray(items)) throw new Error('Danh sách Sale không đúng định dạng')
+        if (!cancelled) setSaleOptions(items)
+      })
+      .catch((error) => { if (!cancelled) setSalesError(error.message) })
+      .finally(() => { if (!cancelled) setSalesLoading(false) })
+    return () => { cancelled = true }
+  }, [branchId, canAssignSale, modal, salesVersion])
 
   if (!isOpen) {
     return null
   }
 
   const onSubmit = (values) => {
-    submitModal?.(modal, values, selectedStudent)
+    return submitModal?.(modal, { ...values, assignedSaleUserId }, selectedStudent)
   }
 
   const isDelete = modal === 'delete'
@@ -118,7 +148,7 @@ function StudentModal({
             </h2>
 
             <p className="mt-1 text-sm font-medium text-slate-500">
-              {selectedStudent
+              {selectedStudent && modal !== 'add'
                 ? selectedStudent.name
                 : 'Nhập thông tin theo biểu mẫu bên dưới.'}
             </p>
@@ -402,7 +432,7 @@ function StudentModal({
                         className={inputClass}
                         {...register(
                           'branchId',
-                          requiredRule('Vui lòng chọn cơ sở'),
+                          { ...requiredRule('Vui lòng chọn cơ sở'), onChange: () => { setValue('assignedSaleUserId', ''); setSaleOptions([]) } },
                         )}
                       >
                         <option value="">Chọn cơ sở</option>
@@ -416,6 +446,21 @@ function StudentModal({
 
                       {renderError('branchId')}
                     </label>
+
+                    {canAssignSale ? (
+                      <div>
+                        <label className="block">
+                          <span className={labelClass}>Sale phụ trách</span>
+                          <select className={inputClass} disabled={!branchId || salesLoading || Boolean(salesError)} {...register('assignedSaleUserId')}>
+                            <option value="">Chưa có Sale</option>
+                            {assignedSaleUserId && !saleOptions.some((sale) => sale.userId === assignedSaleUserId) ? <option value={assignedSaleUserId}>Sale hiện tại</option> : null}
+                            {saleOptions.map((sale) => <option key={sale.userId} value={sale.userId}>{sale.name}</option>)}
+                          </select>
+                        </label>
+                        <p className="mt-1 text-xs text-slate-500">{!branchId ? 'Chọn cơ sở để xem danh sách Sale.' : salesLoading ? 'Đang tải danh sách Sale…' : 'Có thể để trống và gán Sale sau.'}</p>
+                        {salesError ? <div role="alert" className="mt-1 text-xs text-red-600">{salesError} <button type="button" className="underline" onClick={() => setSalesVersion((value) => value + 1)}>Thử lại</button></div> : null}
+                      </div>
+                    ) : null}
 
                     {/* Status */}
                     <label className="block">
@@ -478,6 +523,7 @@ function StudentModal({
 
             <button
               type="submit"
+              disabled={isSubmitting || salesLoading}
               className={`h-11 rounded-xl px-4 text-sm font-bold text-white ${
                 isDelete
                   ? 'bg-red-600 hover:bg-red-700'

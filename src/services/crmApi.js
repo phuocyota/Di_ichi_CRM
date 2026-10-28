@@ -38,6 +38,14 @@ export function getCrmDashboard(params = {}) {
   return apiClient.get('/dashboard/crm', { params })
 }
 
+export function getStudentSaleOptions(branchId) {
+  return apiClient.get('/student/sale-options', { params: { branchId } })
+}
+
+export function assignStudentSale(studentId, saleUserId) {
+  return apiClient.patch(`/student/${studentId}/sale`, { saleUserId })
+}
+
 export function getStudentSummary() {
   return apiClient.get('/student/summary')
 }

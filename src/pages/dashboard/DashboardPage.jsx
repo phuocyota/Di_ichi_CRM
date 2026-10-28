@@ -32,7 +32,7 @@ function LeadList({ leads, page, onPageChange }) {
             {leads.items.map((lead) => (
               <tr key={lead.id} className="border-b border-slate-100">
                 <td className="p-3 font-semibold">{lead.name}</td>
-                <td className="p-3">{lead.sale.name}</td>
+                <td className="p-3">{lead.sale?.name || 'Chưa có Sale'}</td>
                 <td className="p-3">{lead.status}</td>
                 <td className="p-3">{lead.source || '—'}</td>
                 <td className="p-3">{formatDate(lead.createdAt)}</td>

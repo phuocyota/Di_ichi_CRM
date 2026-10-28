@@ -1,39 +1,55 @@
-﻿# Dashboard CRM theo Sale
+﻿# Dashboard CRM và Sale phụ trách
 
-## API
+## Quy tắc
 
-`GET /dashboard/crm?page=1&size=20&saleUserId=<user-id>&branchId=<branch-id>`
+- `student.createdBy` chỉ lưu người tạo, không dùng để suy ra Sale phụ trách.
+- `student.assignedSaleUserId` là User ID của Sale phụ trách. Có thể null.
+- Admin tạo hồ sơ mà không chọn Sale: chưa có Sale. Có thể gán/chuyển/bỏ gán sau.
+- Sale tạo hồ sơ: tự gán cho chính Sale đó. Sale không được tự chuyển/bỏ gán.
+- Khi chọn Sale, tài khoản phải ACTIVE, nhân sự KINH_DOANH đang hoạt động, chưa xóa và cùng cơ sở với hồ sơ.
+- Tạo/cập nhật học viên qua API chung và tạo/cập nhật ứng viên đều dùng cùng kiểm tra Sale. Không thay đổi người tạo khi chuyển Sale.
 
-- Quyền: `student.read`.
-- `saleUserId`, `branchId` không bắt buộc. `size` tối đa 100.
-- Sale (tài khoản không phải ADMIN) luôn được giới hạn bằng `student.created_by = JWT.userId`; chọn Sale khác trả 403.
-- ADMIN xem tổng hoặc chọn Sale. Sale được nhận diện bằng **user ID**, không phải staff ID.
-- Quan hệ hiện có: `student.created_by -> user.id -> user.staff_id -> staff.id`.
-- Source hiện chưa có trường chuyển giao Sale riêng. Quy tắc này bám theo module `potential-candidates`, không suy ra từ lịch hẹn hoặc `updatedBy`.
-- Chỉ tính hồ sơ `student.status = trial`, chưa xóa và có liên kết tài khoản/nhân sự hợp lệ. Hồ sơ mất liên kết cần xử lý dữ liệu riêng, không tự gán Sale.
+## API gán Sale
 
-## Response
+`PATCH /student/:id/sale` — ADMIN, quyền `student.update`.
 
-- `summary.totalLeads`: tổng ứng viên tiềm năng hiện thuộc phạm vi được xem.
-- `summary.newLeadsToday`, `newLeadsThisWeek`: ứng viên trong tập trên, tính theo ngày tạo; tuần bắt đầu thứ Hai.
-- `leadChartPeriods`: 7 ngày, 4 tuần, 6 tháng đến hiện tại, bổ sung các mốc không có phát sinh bằng 0.
-- `leadStatusData`: số lượng và phần trăm từ `candidateStatus` trong JSON note. Note trống/hỏng hoặc thiếu trạng thái được báo `Chưa cập nhật trạng thái`, không tự tạo trạng thái nghiệp vụ.
-- `sales`: các Sale có ứng viên trong phạm vi đang chọn, kèm tổng ứng viên.
-- `leads`: danh sách phân trang, mới nhất trước; mỗi ứng viên có `sale.userId`, `sale.staffId`, `sale.name`.
-- `scope.ownership = createdBy` mô tả quy tắc sở hữu đang dùng.
-- Toàn bộ thống kê dùng múi giờ `Asia/Bangkok`, không phụ thuộc múi giờ trình duyệt. Các số tổng không bị ảnh hưởng bởi phân trang.
+```json
+{ "saleUserId": "<uuid tài khoản Sale>" }
+```
 
-Các biểu đồ đếm ngày tạo của **ứng viên hiện còn trong tập Lead**; đây chưa phải báo cáo lịch sử toàn bộ Lead đã chuyển thành học viên.
+Gửi `{ "saleUserId": null }` để bỏ gán. Thiếu trường, sai UUID hoặc Sale không hợp lệ sẽ bị từ chối. Response là hồ sơ học viên có `assignedSaleUserId`.
 
-## Frontend
+`GET /student/sale-options?branchId=<uuid>` — ADMIN, quyền `student.read`. Trả mảng `{ userId, staffId, name, branchId }` để chọn Sale cùng cơ sở.
 
-Dashboard gọi API CRM mới thay cho `/dashboard/admin`. Có bộ lọc Sale, danh sách ứng viên chỉ đọc và phân trang. Bỏ chỉ số “Lead chưa phân Sale”, không dùng lại dữ liệu mẫu.
+`POST /student`, `PATCH /student/:id`, `POST /potential-candidates`, `PATCH /potential-candidates/:id` nhận thêm `assignedSaleUserId` (UUID hoặc null). Chỉ admin được thay đổi Sale của hồ sơ hiện có.
 
-Các tab Khách hàng và Lịch chăm sóc vẫn báo chưa có dữ liệu; API CRM mới này chưa tổng hợp hai nghiệp vụ đó. Không đổi số học viên thành số khách hàng, không đổi lịch hẹn thành lịch chăm sóc.
+## Dashboard
 
-## Kiểm tra
+`GET /dashboard/crm?page=1&size=20&saleUserId=<uuid>&branchId=<uuid>` — quyền `student.read`, size tối đa 100.
 
-- FE: `npm run build`, `npm run lint`.
-- BE: `tsc --project tsconfig.build.json --noEmit --incremental false`.
-- BE: Jest `crm-dashboard.service.spec` và `dashboard.service.spec`.
-- Chưa chạy migration, sửa dữ liệu DB hoặc triển khai production; chưa kiểm tra API với DB/phiên đăng nhập thực tế.
+- ADMIN xem tất cả, gồm hồ sơ chưa có Sale; hoặc lọc theo Sale.
+- Sale chỉ xem hồ sơ được gán bằng `assignedSaleUserId = JWT.userId`. Chọn Sale khác trả 403.
+- Danh sách/summary/dropdown ứng viên và số liệu Lead trong `/dashboard/overview` cũng theo Sale được gán, thay cho người tạo.
+- Chỉ tính hồ sơ `status = trial`, chưa xóa. Biểu đồ là ngày tạo của tập ứng viên hiện tại, chưa phải toàn bộ lịch sử Lead đã chuyển đổi.
+- `summary`: totalLeads, leadsWithoutSale, newLeadsToday, newLeadsThisWeek.
+- `leadChartPeriods`: 7 ngày, 4 tuần bắt đầu thứ Hai, 6 tháng; múi giờ Asia/Bangkok.
+- `leadStatusData`: số lượng/phần trăm theo candidateStatus trong JSON note; không có trạng thái thì hiện Chưa cập nhật trạng thái.
+- `leads`: danh sách phân trang; `sale` có userId/staffId/name hoặc null.
+- `sales`: các Sale có Lead trong phạm vi đang xem; không coi admin tạo hồ sơ là Sale.
+- `scope.ownership = assignedSaleUserId`.
+
+## Giao diện
+
+Form tạo/sửa học viên cho admin chọn Sale theo cơ sở, có lựa chọn Chưa có Sale. Đổi cơ sở sẽ bỏ lựa chọn Sale cũ; tải lỗi có nút thử lại. Sửa thông tin khác giữ nguyên Sale nếu không đổi lựa chọn.
+
+Dashboard gọi API CRM, hiện Chưa có Sale cho hồ sơ chưa được gán. Các tab Khách hàng và Lịch chăm sóc vẫn chưa được tổng hợp trong API này.
+
+## Migration và triển khai
+
+File BE: `src/database/migrations/1793145600000-AddStudentAssignedSale.ts`.
+
+1. Chạy migration trước khi khởi động bản BE mới (repo đang bật synchronize khi khởi động ứng dụng).
+2. Migration thêm cột/FK/index và backfill hồ sơ cũ từ người tạo chỉ khi người tạo là nhân sự KINH_DOANH, cùng cơ sở, chưa xóa. Không backfill admin thành Sale. Không ghi đè Sale đã có.
+3. Triển khai BE rồi FE; xác minh gán Sale, đọc lại hồ sơ và phạm vi thấy Lead của tài khoản Sale được chọn.
+
+Chưa chạy migration, sửa DB hay triển khai production trong phiên này. Schema tự đồng bộ chỉ thêm cột, không thay thế bước backfill của migration.
