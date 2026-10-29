@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-table'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Eye, Pencil, Search, Trash2 } from 'lucide-react'
 
-function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStudent, onOpenModal }) {
+function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStudent, onOpenModal, canManage, onExportRowsChange }) {
   const [sorting, setSorting] = useState([])
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState([])
@@ -111,16 +111,25 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
             >
               <Trash2 size={17} aria-hidden="true" />
             </button>
+            {canManage ? <select aria-label={`Nghiệp vụ cho ${row.original.name}`} className="h-9 max-w-36 rounded-lg border border-slate-300 px-2 text-xs" defaultValue="" onChange={(event) => { const type = event.target.value; event.target.value = ''; if (type) onOpenModal(type, row.original) }}>
+              <option value="">Nghiệp vụ</option>
+              <option value="transfer" disabled={row.original.statusValue !== 'active' || !row.original.enrollments?.some((item) => item.status === 'active')}>Chuyển lớp</option>
+              <option value="reserve" disabled={row.original.statusValue !== 'active'}>Bảo lưu</option>
+              <option value="stop" disabled={!['active', 'reserved'].includes(row.original.statusValue)}>Nghỉ học</option>
+              <option value="extend" disabled={!['active', 'reserved'].includes(row.original.statusValue) || !row.original.enrollments?.length}>Gia hạn</option>
+            </select> : null}
           </div>
         ),
       },
     ],
-    [filters.statuses, onOpenModal, onSelectStudent],
+    [filters.statuses, onOpenModal, onSelectStudent, canManage],
   )
 
   const table = useReactTable({
     data: students,
     columns,
+    getRowId: (row) => row.id,
+    defaultColumn: { cell: ({ getValue }) => getValue() ?? '—' },
     state: {
       sorting,
       rowSelection,
@@ -139,6 +148,12 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
       pagination: { pageSize: 5 },
     },
   })
+
+  useEffect(() => {
+    const visible = table.getPrePaginationRowModel().rows
+    const selected = table.getSelectedRowModel().rows
+    onExportRowsChange?.((selected.length ? selected : visible).map((row) => row.original))
+  }, [students, sorting, columnFilters, keyword, rowSelection, onExportRowsChange, table])
 
   return (
     <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">

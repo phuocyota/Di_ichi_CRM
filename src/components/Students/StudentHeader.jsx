@@ -1,6 +1,6 @@
 import { FileDown, FileSpreadsheet, Search, Upload, UserPlus } from 'lucide-react'
 
-function StudentHeader({ activeTab, onTabChange, keyword, onKeywordChange, onOpenModal }) {
+function StudentHeader({ activeTab, onTabChange, keyword, onKeywordChange, onOpenModal, canManage, canExport, exportBusy, onExport }) {
   const tabs = [
     { key: 'dashboard', label: 'Dashboard học viên' },
     { key: 'list', label: 'Danh sách học viên' },
@@ -46,6 +46,7 @@ function StudentHeader({ activeTab, onTabChange, keyword, onKeywordChange, onOpe
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:text-emerald-700"
               onClick={() => onOpenModal('import')}
+              disabled={!canManage}
             >
               <Upload size={17} aria-hidden="true" />
               Import Excel
@@ -53,6 +54,8 @@ function StudentHeader({ activeTab, onTabChange, keyword, onKeywordChange, onOpe
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:text-emerald-700"
+              disabled={!canExport || exportBusy}
+              onClick={() => onExport('excel')}
             >
               <FileSpreadsheet size={17} aria-hidden="true" />
               Export Excel
@@ -60,11 +63,14 @@ function StudentHeader({ activeTab, onTabChange, keyword, onKeywordChange, onOpe
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:text-red-700"
+              disabled={!canExport || exportBusy}
+              onClick={() => onExport('pdf')}
             >
               <FileDown size={17} aria-hidden="true" />
               Export PDF
             </button>
           </div>
+          <p className="text-xs text-slate-500">{activeTab === 'list' ? 'Xuất các dòng đã chọn; nếu không chọn, xuất toàn bộ danh sách đang lọc.' : 'Mở Danh sách học viên để xuất Excel hoặc PDF.'}</p>
         </div>
       </div>
 

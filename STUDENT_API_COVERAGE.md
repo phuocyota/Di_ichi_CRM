@@ -106,15 +106,18 @@ PaginationRequestDto dùng Type(() => Number), IsInt và size tối đa 100. Que
 
 Migration mới: `src/database/migrations/1793232000000-AddEnrollmentExpiry.ts`, thêm cột enrollment.expires_at. Chạy các migration còn thiếu trước khi khởi động BE mới; migration Sale ở lượt trước vẫn cần thực hiện nếu chưa chạy.
 
-Chưa chạy migration, không sửa DB thật và chưa deploy trong phiên này.
+Người dùng đã xác nhận deploy BE. Lượt ghép FE không chạy migration, không sửa dữ liệu thật và chưa deploy FE.
 
 ## FE đã nối và phần còn lại
 
 Đã xóa dữ liệu mẫu ở màn Học viên, tải đủ các trang API cho danh sách/bộ lọc và tải hồ sơ theo studentId/section. Có trạng thái tải, trống, báo lỗi và thử lại; không dùng dữ liệu mẫu khi API lỗi. Thẻ completedStudents được thay bằng trialStudents (Học thử), điểm danh chỉ hiển thị dữ liệu thực tế đã lưu.
 
-Phần còn lại:
+Đã ghép tiếp:
 
-1. Triển khai BE có các endpoint mới và migration trước khi triển khai FE mới.
-2. Nối Import vào endpoint đã có, hiển thị kết quả tạo/bỏ qua/lỗi.
-3. Nối các modal nghiệp vụ vào endpoint mới; thêm enrollmentId và ngày có hiệu lực/hạn gia hạn đúng DTO.
-4. Nối export bằng xlsx/jspdf từ tập dữ liệu API cần xuất.
+1. Import `.xlsx` tối đa 10 MB qua multipart; hiển thị kết quả tạo/bỏ qua/lỗi theo từng dòng.
+2. Menu Nghiệp vụ trong danh sách và nút trên hồ sơ gọi chuyển lớp, bảo lưu, nghỉ học, gia hạn. Người dùng chọn ghi danh cụ thể khi có nhiều lớp; gửi đúng ngày hiệu lực/hạn gia hạn và lý do.
+3. Sau khi lưu, tải lại danh sách, tổng quan và hồ sơ. Nếu chỉ bước tải lại lỗi, thông báo thao tác đã lưu và không giữ form để gửi lại.
+4. Form tạo/sửa lưu thông tin phụ huynh; ghi chú cũ được giữ để sửa. Giáo viên lấy từ lớp, chuyển trạng thái/lớp qua nghiệp vụ tương ứng. Các bước học viên/phụ huynh/ghi danh dùng các API riêng: nếu bước phụ lỗi sau khi học viên đã lưu, hiện cảnh báo chi tiết và không tạo lại học viên.
+5. Xuất Excel bằng xlsx; PDF dùng hộp thoại In/Lưu PDF của trình duyệt để giữ tiếng Việt. Xuất các dòng đã chọn, hoặc toàn bộ danh sách đang lọc nếu không chọn dòng.
+
+Kiểm tra FE: `npm run build`, `npm run lint`, `node scripts/verify-student-workflows.mjs`. Script dùng adapter giả lập và render form, không gửi giao dịch vào API thật.

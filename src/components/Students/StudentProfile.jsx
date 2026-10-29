@@ -39,7 +39,7 @@ function profileGroups(tab, data) {
   }
 }
 
-function StudentProfile({ student, tabs }) {
+function StudentProfile({ student, tabs, canManage, onOpenModal }) {
   const [activeTab, setActiveTab] = useState(tabs[0])
   const [page, setPage] = useState(1)
   const [result, setResult] = useState(null)
@@ -80,6 +80,9 @@ function StudentProfile({ student, tabs }) {
       <div className="flex gap-2 overflow-x-auto pb-2">
         {tabs.map((tab) => <button key={tab} type="button" onClick={() => { setActiveTab(tab); setPage(1) }} className={`shrink-0 rounded-xl px-4 py-2 text-sm font-bold ${activeTab === tab ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{tab}</button>)}
       </div>
+      {canManage ? <div className="flex flex-wrap gap-2">
+        {[['transfer', 'Chuyển lớp'], ['reserve', 'Bảo lưu'], ['stop', 'Nghỉ học'], ['extend', 'Gia hạn']].map(([type, name]) => <button type="button" key={type} onClick={() => onOpenModal(type, student)} disabled={type === 'reserve' ? student.statusValue !== 'active' : type === 'transfer' ? student.statusValue !== 'active' || !student.enrollments?.some((item) => item.status === 'active') : !['active', 'reserved'].includes(student.statusValue) || (type === 'extend' && !student.enrollments?.length)} className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">{name}</button>)}
+      </div> : null}
       {loading || (!data && !error) ? <p role="status" className="py-5 text-sm text-slate-500">Đang tải hồ sơ…</p> : null}
       {error ? <div role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error} <button type="button" className="ml-3 underline" onClick={() => setVersion((value) => value + 1)}>Thử lại</button></div> : null}
       {data && !loading && !error ? <>
