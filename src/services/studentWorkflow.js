@@ -61,6 +61,8 @@ export async function saveStudent(type, values, student, { canAssignSale, classe
   const creating = type === 'add'
   if (!creating && !student?.id) throw new Error('Vui lòng chọn học viên')
   if (!values.name?.trim()) throw new Error('Vui lòng nhập họ tên')
+  const email = values.email?.trim().toLowerCase()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Vui lòng nhập email đăng nhập hợp lệ')
   const branchId = values.branchId || student?.branchId
   if (!branchId) throw new Error('Vui lòng chọn cơ sở')
   const parent = values.parent?.trim() || ''
@@ -77,7 +79,7 @@ export async function saveStudent(type, values, student, { canAssignSale, classe
     branchId, name: values.name.trim(),
     gender: { Nam: 'male', Nữ: 'female' }[values.gender] || values.gender || null,
     birthDate: inputDate(values.birthDate), phone: values.phone?.trim() || null,
-    email: values.email?.trim() || null,
+    email,
     enrollmentDate: inputDate(values.enrollmentDate), note: values.reason?.trim() || null,
     ...(creating ? { status: values.statusValue || 'active' } : {}),
   }

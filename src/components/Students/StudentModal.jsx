@@ -56,14 +56,14 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, c
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
     <section role="dialog" aria-modal="true" aria-labelledby="student-modal-title" className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl">
-      <header className="flex items-start justify-between border-b border-slate-200 p-5"><div><h2 id="student-modal-title" className="text-lg font-black">{config.title}</h2><p className="mt-1 text-sm text-slate-500">{creating ? 'Nhập thông tin học viên mới.' : selectedStudent?.name}</p></div><button type="button" aria-label="Đóng modal" disabled={isSubmitting} onClick={onClose} className="rounded-lg border p-2 disabled:opacity-40"><X size={18} /></button></header>
+      <header className="flex items-start justify-between border-b border-slate-200 p-5"><div><h2 id="student-modal-title" className="text-lg font-black">{config.title}</h2><p className="mt-1 text-sm text-slate-500">{creating ? 'Nhập thông tin học viên mới. Tài khoản học sinh được tạo kèm với email này, mật khẩu ban đầu: 123456.' : selectedStudent?.name}</p></div><button type="button" aria-label="Đóng modal" disabled={isSubmitting} onClick={onClose} className="rounded-lg border p-2 disabled:opacity-40"><X size={18} /></button></header>
       <form onSubmit={submit} className="space-y-5 p-5">
         {deleting ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">Bạn có chắc chắn muốn xóa vĩnh viễn học viên {selectedStudent?.name} và các dữ liệu liên quan?</p> : <fieldset disabled={isSubmitting} className="space-y-5">
           <h3 className="font-bold text-blue-700">Thông tin học viên</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {textField('code', 'Mã học viên')}{textField('name', 'Họ tên', 'text', true)}
             <label className="block text-sm font-bold">Giới tính<select className={fieldClass} {...register('gender')}><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label>
-            {textField('birthDate', 'Ngày sinh', 'date')}{textField('phone', 'Số điện thoại', 'tel', creating)}{textField('email', 'Email', 'email')}{textField('enrollmentDate', 'Ngày nhập học', 'date', creating)}
+            {textField('birthDate', 'Ngày sinh', 'date')}{textField('phone', 'Số điện thoại', 'tel', creating)}<div>{textField('email', 'Email đăng nhập', 'email', true)}{creating ? <p className="mt-1 text-xs font-normal text-slate-500">Nhập email để tạo tài khoản đăng nhập cho học viên.</p> : null}</div>{textField('enrollmentDate', 'Ngày nhập học', 'date', creating)}
             <label className="block text-sm font-bold">Cơ sở *<select className={fieldClass} {...register('branchId', { required: 'Vui lòng chọn cơ sở', onChange: () => { setValue('assignedSaleUserId', ''); setSaleOptions([]) } })}><option value="">Chọn cơ sở</option>{directories.branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{error('branchId')}</label>
           </div>
           <h3 className="font-bold text-blue-700">Phụ huynh và liên hệ</h3>
