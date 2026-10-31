@@ -54,11 +54,11 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
 
   if (!isOpen) return null
 
-  const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+  const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
   const textareaClass = 'mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
-  const labelClass = 'text-sm font-black text-slate-700'
+  const labelClass = 'text-sm font-semibold text-slate-700'
   const required = (message) => ({ required: message })
-  const renderError = (field) => errors[field] ? <p className="mt-1 text-xs font-bold text-red-600">{errors[field].message}</p> : null
+  const renderError = (field) => errors[field] ? <p className="mt-1 text-xs font-semibold text-red-600">{errors[field].message}</p> : null
 
   const renderStaffForm = () => (
     <div className="space-y-4">
@@ -173,7 +173,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
       return (
         <label className="block">
           <span className={labelClass}>Lớp phân công</span>
-          <input className={inputClass} placeholder="Nhập tên lớp cần phân công" {...register('className', required('Vui lòng nhập lớp phân công'))} />
+          <select className={inputClass} {...register('className', required('Vui lòng chọn lớp phân công'))}><option value="">Chọn lớp học</option>{(filters.classes || []).map(name => <option key={name} value={name}>{name}</option>)}</select>
           {renderError('className')}
         </label>
       )
@@ -254,9 +254,9 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
     if (config.intent === 'danger') {
       return (
         <div className="space-y-4">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-            <p className="flex items-center gap-2 text-base font-black"><AlertTriangle size={18} /> Xác nhận xóa</p>
-            <p className="mt-2">Bạn có chắc chắn muốn xóa giáo viên {staff?.name || 'đã chọn'}? Thao tác này chỉ cập nhật dữ liệu mẫu.</p>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <p className="flex items-center gap-2 text-base font-semibold"><AlertTriangle size={18} /> Xác nhận xóa</p>
+            <p className="mt-2">Bạn có chắc chắn muốn xóa giáo viên {staff?.name || 'đã chọn'}?</p>
           </div>
           <label className="block">
             <span className={labelClass}>Lý do</span>
@@ -268,14 +268,14 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
 
     if (config.intent === 'export') {
       return (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-          Xuất dữ liệu giáo viên theo bộ lọc hiện tại. Khi tích hợp API, thao tác này sẽ tải file thật.
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-800">
+          Xuất dữ liệu giáo viên theo bộ lọc hiện tại. File xuất lấy từ dữ liệu đã tải từ máy chủ.
         </div>
       )
     }
 
     return (
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-800">
         Xác nhận thao tác cho {staff?.name || 'giáo viên đã chọn'}.
       </div>
     )
@@ -286,7 +286,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
       <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-xl border border-gray-300 bg-white shadow-2xl">
         <div className="flex items-center justify-between gap-4 border-b border-gray-300 bg-white px-5 py-4">
           <div>
-            <h2 className="text-lg font-black text-slate-950">{config.title}</h2>
+            <h2 className="text-lg font-semibold text-slate-950">{config.title}</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
               {staff?.name || 'Nhập thông tin giáo viên theo biểu mẫu.'}
             </p>
@@ -296,7 +296,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           </button>
         </div>
 
-        <form className="max-h-[calc(92vh-88px)] space-y-5 overflow-y-auto bg-slate-50 p-5" onSubmit={handleSubmit((values) => onSubmit(modal, values, staff))}>
+        <form className="max-h-[calc(92vh-88px)] space-y-5 overflow-y-auto bg-slate-50 p-6" onSubmit={handleSubmit((values) => onSubmit(modal, values, staff))}>
           {renderBody()}
 
           {config.intent !== 'danger' && config.intent !== 'form' ? (
@@ -307,10 +307,10 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
           ) : null}
 
           <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-100" onClick={onClose}>
+            <button type="button" className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100" onClick={onClose}>
               Hủy
             </button>
-            <button type="submit" className={`h-11 rounded-xl px-4 text-sm font-bold text-white ${config.intent === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+            <button type="submit" className={`h-11 rounded-xl px-4 text-sm font-semibold text-white ${config.intent === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
               {config.submitText}
             </button>
           </div>

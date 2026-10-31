@@ -12,6 +12,7 @@ function ScheduleModal({
   classes,
   teachers,
   classrooms,
+  branches,
   onClose,
   onSubmit,
 }) {
@@ -27,17 +28,16 @@ function ScheduleModal({
   } = useForm()
 
   const selectedClassName = watch('className')
-  const selectedClass = classes.find((item) => item.name === selectedClassName)
 
   useEffect(() => {
     const isEditing = Boolean(event?.id)
 
     reset({
-      className: isEditing ? event?.className || '' : '',
+      className: isEditing ? event?.classId || '' : '',
       course: isEditing ? event?.course || '' : '',
-      teacher: isEditing ? event?.teacher || '' : '',
-      room: isEditing ? event?.room || '' : '',
-      branch: isEditing ? event?.branch || '' : '',
+      teacher: isEditing ? event?.teacherId || '' : '',
+      room: isEditing ? event?.roomId || '' : '',
+      branch: isEditing ? event?.branchId || '' : '',
       date: event?.start ? dayjs(event.start).format('YYYY-MM-DD') : '',
       startTime: event?.start ? dayjs(event.start).format('HH:mm') : '',
       endTime: event?.end ? dayjs(event.end).format('HH:mm') : '',
@@ -56,22 +56,22 @@ function ScheduleModal({
   useEffect(() => {
     if (!selectedClassName || !['create', 'edit', 'makeup', 'recurring'].includes(modal)) return
 
-    const selectedClass = classes.find((item) => item.name === selectedClassName)
+    const selectedClass = classes.find((item) => item.id === selectedClassName)
     if (!selectedClass) return
 
     setValue('course', selectedClass.course || '')
-    setValue('teacher', selectedClass.teacher || '')
-    setValue('room', selectedClass.room || '')
-    setValue('branch', selectedClass.branch || '')
+    setValue('teacher', selectedClass.teacherId || '')
+    setValue('room', selectedClass.roomId || '')
+    setValue('branch', selectedClass.branchId || '')
   }, [classes, modal, selectedClassName, setValue])
 
   if (!isOpen) return null
 
-  const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+  const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
   const textareaClass = 'mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
-  const labelClass = 'text-sm font-black text-slate-700'
+  const labelClass = 'text-sm font-semibold text-slate-700'
   const required = (message) => ({ required: message })
-  const renderError = (field) => errors[field] ? <p className="mt-1 text-xs font-bold text-red-600">{errors[field].message}</p> : null
+  const renderError = (field) => errors[field] ? <p className="mt-1 text-xs font-semibold text-red-600">{errors[field].message}</p> : null
 
   const submitForm = (values) => {
     onSubmit(modal, values, event)
@@ -103,39 +103,36 @@ function ScheduleModal({
         <span className={labelClass}>Lớp học</span>
         <select className={inputClass} {...register('className', required('Vui lòng chọn lớp học'))}>
           <option value="">Chọn lớp học</option>
-          {classes.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+          {classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
         {renderError('className')}
       </label>
       <label className="block">
         <span className={labelClass}>Khóa học</span>
-        <select className={inputClass} {...register('course', required('Vui lòng chọn khóa học'))}>
-          <option value="">Chọn khóa học</option>
-          {filters.courses.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
+        <input className={inputClass} readOnly {...register('course')} />
       </label>
-      <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
+      <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
         Chọn lớp học để tự đồng bộ khóa học, giáo viên, phòng học và cơ sở từ module Khóa học.
       </div>
       <label className="block">
         <span className={labelClass}>Giáo viên</span>
         <select className={inputClass} {...register('teacher', required('Vui lòng chọn giáo viên'))}>
           <option value="">Chọn giáo viên</option>
-          {teachers.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+          {teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </label>
       <label className="block">
         <span className={labelClass}>Phòng học</span>
         <select className={inputClass} {...register('room', required('Vui lòng chọn phòng học'))}>
           <option value="">Chọn phòng học</option>
-          {classrooms.map((item) => <option key={item.id} value={item.name}>{item.name} · {item.branch}</option>)}
+          {classrooms.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.branch}</option>)}
         </select>
       </label>
       <label className="block">
         <span className={labelClass}>Cơ sở</span>
         <select className={inputClass} {...register('branch')}>
           <option value="">Chọn cơ sở</option>
-          {filters.branches.map((item) => <option key={item} value={item}>{item}</option>)}
+          {branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </label>
       <label className="block">
@@ -146,6 +143,8 @@ function ScheduleModal({
         </select>
       </label>
       {renderTimeFields()}
+      {watch('repeatFullCourse') && <label className="block text-sm font-semibold">Số buổi toàn khóa<input type="number" min="1" max="104" className={inputClass} {...register('totalSessions', { required: 'Nhập số buổi', min: 1, max: 104 })} />{renderError('totalSessions')}</label>}
+      {watch('repeatFullCourse') && <label className="block text-sm font-semibold">Số buổi toàn khóa<input type="number" min="1" max="104" className={inputClass} {...register('totalSessions', { required: 'Nhập số buổi', min: 1, max: 104 })} />{renderError('totalSessions')}</label>}
       {modal === 'create' ? (
         <label className="md:col-span-2 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <input
@@ -154,11 +153,9 @@ function ScheduleModal({
             {...register('repeatFullCourse')}
           />
           <span>
-            <span className="block text-sm font-black text-emerald-800">Lặp lại toàn khóa</span>
-            <span className="mt-1 block text-xs font-bold text-emerald-700">
-              {selectedClass?.sessions
-                ? `Tạo ${selectedClass.sessions} buổi theo tuần cho lớp ${selectedClass.name}.`
-                : 'Chọn lớp học để hệ thống lấy số buổi từ khóa học.'}
+            <span className="block text-sm font-semibold text-emerald-800">Lặp lại toàn khóa</span>
+            <span className="mt-1 block text-xs font-semibold text-emerald-700">
+              Nhập số buổi cần tạo. Lịch lặp mỗi tuần theo giờ đã chọn.
             </span>
           </span>
         </label>
@@ -170,9 +167,9 @@ function ScheduleModal({
     if (config.intent === 'danger') {
       return (
         <div className="space-y-4">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-            <p className="flex items-center gap-2 text-base font-black"><AlertTriangle size={18} /> {config.title}</p>
-            <p className="mt-2">Thao tác áp dụng cho {event?.className || 'lịch học đã chọn'} và chỉ cập nhật trên dữ liệu mẫu.</p>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <p className="flex items-center gap-2 text-base font-semibold"><AlertTriangle size={18} /> {config.title}</p>
+            <p className="mt-2">Thao tác áp dụng cho {event?.className || 'lịch học đã chọn'}.</p>
           </div>
           <label className="block">
             <span className={labelClass}>Lý do</span>
@@ -192,7 +189,7 @@ function ScheduleModal({
         <label className="block">
           <span className={labelClass}>Phòng học mới</span>
           <select className={inputClass} {...register('room', required('Vui lòng chọn phòng học'))}>
-            {classrooms.map((item) => <option key={item.id} value={item.name}>{item.name} · {item.branch} · {item.capacity} chỗ</option>)}
+            {classrooms.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.branch} · {item.capacity} chỗ</option>)}
           </select>
         </label>
       )
@@ -203,7 +200,7 @@ function ScheduleModal({
         <label className="block">
           <span className={labelClass}>Giáo viên mới</span>
           <select className={inputClass} {...register('teacher', required('Vui lòng chọn giáo viên'))}>
-            {teachers.map((item) => <option key={item.id} value={item.name}>{item.name} · {item.branch}</option>)}
+            {teachers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.branch}</option>)}
           </select>
         </label>
       )
@@ -254,7 +251,7 @@ function ScheduleModal({
           </label>
           <label className="block">
             <span className={labelClass}>Nội dung thông báo</span>
-            <textarea rows={5} className={textareaClass} placeholder="Nhập nội dung gửi cho học viên và phụ huynh" {...register('notifyContent')} />
+            <textarea rows={5} className={textareaClass} placeholder="Nhập thông báo trong tài khoản học viên" {...register('notifyContent')} />
           </label>
         </div>
       )
@@ -267,8 +264,7 @@ function ScheduleModal({
             <span className={labelClass}>Định dạng</span>
             <select className={inputClass} {...register('exportFormat')}>
               <option>Excel</option>
-              <option>PDF</option>
-              <option>CSV</option>
+
             </select>
           </label>
           <label className="block">
@@ -283,9 +279,9 @@ function ScheduleModal({
 
     if (config.intent === 'confirm') {
       return (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-          <p className="flex items-center gap-2 text-base font-black"><CalendarClock size={18} /> {event?.className || 'Lịch học'}</p>
-          <p className="mt-2">Xác nhận áp dụng thay đổi lịch học trên dữ liệu mẫu. Khi tích hợp API, bước này có thể gửi thông báo cho giáo viên, học viên và phụ huynh.</p>
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-800">
+          <p className="flex items-center gap-2 text-base font-semibold"><CalendarClock size={18} /> {event?.className || 'Lịch học'}</p>
+          <p className="mt-2">Xác nhận lưu thay đổi lịch học vào hệ thống.</p>
         </div>
       )
     }
@@ -305,7 +301,7 @@ function ScheduleModal({
         >
           <div className="flex items-center justify-between gap-4 border-b border-gray-300 bg-white px-5 py-4">
             <div>
-              <h2 className="text-lg font-black text-slate-950">{config.title}</h2>
+              <h2 className="text-lg font-semibold text-slate-950">{config.title}</h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
                 {event?.className || 'Nhập thông tin lịch học theo biểu mẫu.'}
               </p>
@@ -315,7 +311,7 @@ function ScheduleModal({
             </button>
           </div>
 
-          <form className="max-h-[calc(92vh-88px)] space-y-5 overflow-y-auto bg-slate-50 p-5" onSubmit={handleSubmit(submitForm)}>
+          <form className="max-h-[calc(92vh-88px)] space-y-5 overflow-y-auto bg-slate-50 p-6" onSubmit={handleSubmit(submitForm)}>
             {renderBody()}
 
             {config.intent !== 'danger' && config.intent !== 'confirm' && config.intent !== 'export' ? (
@@ -326,10 +322,10 @@ function ScheduleModal({
             ) : null}
 
             <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
-              <button type="button" className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-100" onClick={onClose}>
+              <button type="button" className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100" onClick={onClose}>
                 Hủy
               </button>
-              <button type="submit" className={`h-11 rounded-xl px-4 text-sm font-bold text-white ${config.intent === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+              <button type="submit" className={`h-11 rounded-xl px-4 text-sm font-semibold text-white ${config.intent === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
                 {config.submitText}
               </button>
             </div>

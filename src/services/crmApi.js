@@ -108,7 +108,7 @@ export async function getMetadata() {
     branches: result.branch,
     courses: result.course,
     classes: result.class,
-    teachers: result.staff.filter((item) => item.type === 'teacher'),
+    teachers: result.staff.filter((item) => item.type?.toLowerCase() === 'teacher'),
     rooms: result.room,
     departments: result.department,
     positions: result.position,
@@ -117,7 +117,7 @@ export async function getMetadata() {
 }
 
 export async function loadResources(resources) {
-  const entries = await Promise.all(resources.map(async (resource) => [resource, await listResource(resource)]))
+  const entries = await Promise.all(resources.map(async (resource) => [resource, await listAllResource(resource)]))
   return Object.fromEntries(entries)
 }
 

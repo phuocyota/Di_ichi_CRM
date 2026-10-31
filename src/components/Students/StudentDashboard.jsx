@@ -1,7 +1,10 @@
+import { chartPalette, chartStyle } from '../common/presentation.js'
+import React from 'react'
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   Pie,
@@ -9,123 +12,166 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
+  YAxis
 } from 'recharts'
+import StatCard from '../common/StatCard.jsx'
+import { ChartCard, EmptyState } from '../common/ui.jsx'
 
-function DistributionChart({ title, description, data, color }) {
+function DistributionChart({ title, description, data, color = chartPalette[2] }) {
   return (
-    <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-black text-slate-950">{title}</h2>
-      <p className="mt-1 text-sm font-medium text-slate-500">{description}</p>
-      {!data.length ? <p className="py-10 text-center text-sm text-slate-500">Chưa có dữ liệu.</p> : (
-      <div className="mt-5 h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ left: 0, right: 16, top: 8 }}>
-            <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
-            <Tooltip formatter={(value) => [`${value} học viên`, 'Số lượng']} />
-            <Bar dataKey="value" fill={color} radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+    <ChartCard title={title} description={description}>
+      {!data.length ? (
+        <EmptyState compact />
+      ) : (
+        <div className={`ui-chart-area ${data.length <= 3 ? 'is-small' : ''}`}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ right: 8, top: 8 }}>
+              <CartesianGrid
+                stroke={chartStyle.grid}
+                strokeDasharray="3 3"
+                vertical={false}
+              />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={chartStyle.tooltip}
+                formatter={(v) => [`${v} học viên`, 'Số lượng']}
+              />
+              <Bar
+                dataKey="value"
+                fill={color}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={48}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
-    </div>
+    </ChartCard>
   )
 }
-
-function StudentDashboard({ statistics, charts }) {
+export default function StudentDashboard({
+  statistics,
+  charts,
+  onOpenStudents
+}) {
   return (
-    <div className="space-y-5">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {statistics.map((item) => {
-          const Icon = item.icon
-
-          return (
-            <article key={item.label} className={`rounded-xl border p-5 shadow-sm ${item.color}`}>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-bold opacity-80">{item.label}</p>
-                  <p className="mt-2 text-3xl font-black">{item.value}</p>
-                </div>
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/75 shadow-sm">
-                  <Icon size={23} aria-hidden="true" />
-                </span>
-              </div>
-              <p className="mt-4 text-sm font-semibold opacity-75">{item.description}</p>
-            </article>
-          )
-        })}
+    <div className="space-y-6">
+      <section
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
+        aria-label="Thống kê học viên"
+      >
+        {statistics.map((item, index) => (
+          <StatCard
+            key={item.field || item.label}
+            {...item}
+            color={['info', 'success', 'warning', 'danger', 'purple'][index % 5]}
+            onClick={
+              item.field === 'totalStudents' ? onOpenStudents : undefined
+            }
+          />
+        ))}
       </section>
-
-      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">Học viên theo tháng</h2>
-          <p className="mt-1 text-sm font-medium text-slate-500">Số lượng học viên mới theo từng tháng.</p>
-          {!charts.monthly.length ? <p className="py-10 text-center text-sm text-slate-500">Chưa có dữ liệu.</p> : (
-          <div className="mt-5 h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={charts.monthly} margin={{ left: 0, right: 16, top: 8 }}>
-                <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip formatter={(value) => [`${value} học viên`, 'Học viên mới']} />
-                <Line
-                  type="monotone"
-                  dataKey="students"
-                  stroke="#2563eb"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <ChartCard
+          title="Học viên theo tháng"
+          description="Hồ sơ học viên mới được ghi nhận theo tháng."
+        >
+          {!charts.monthly.length ? (
+            <EmptyState compact />
+          ) : (
+            <div className="ui-chart-area">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={charts.monthly} margin={{ top: 8, right: 8 }}>
+                  <CartesianGrid
+                    stroke={chartStyle.grid}
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                  <YAxis
+                    allowDecimals={false}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={chartStyle.tooltip}
+                    formatter={(v) => [`${v} học viên`, 'Học viên mới']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="students"
+                    stroke={chartPalette[0]}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           )}
-        </div>
-
-        <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">Trạng thái học viên</h2>
-          <p className="mt-1 text-sm font-medium text-slate-500">Tỷ lệ trạng thái hiện tại.</p>
-          {!charts.status.some((item) => item.value > 0) ? <p className="py-10 text-center text-sm text-slate-500">Chưa có dữ liệu phân bố.</p> : (
-          <div className="mt-5 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip formatter={(value) => [`${value}%`, 'Tỷ lệ']} />
-                <Pie data={charts.status} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          )}
-          <div className="space-y-2">
-            {charts.status.map((item) => (
-              <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex items-center gap-2 font-semibold text-slate-600">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
-                  {item.name}
-                </span>
-                <span className="font-black text-slate-950">{item.value}%</span>
+        </ChartCard>
+        <ChartCard
+          title="Trạng thái học viên"
+          description="Phân bố trạng thái hiện tại."
+        >
+          {!charts.status.some((s) => s.value > 0) ? (
+            <EmptyState compact />
+          ) : (
+            <>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                      contentStyle={chartStyle.tooltip}
+                      formatter={(v) => [`${v}%`, 'Tỷ lệ']}
+                    />
+                    <Pie
+                      data={charts.status}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={52}
+                      outerRadius={76}
+                      paddingAngle={2}
+                    >
+                      {charts.status.map(item => <Cell key={item.name} fill={item.fill} />)}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {charts.status.map((s) => (
+                  <div
+                    className="flex items-center justify-between gap-2 text-xs"
+                    key={s.name}
+                  >
+                    <span className="flex items-center gap-2 text-slate-500">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: s.fill }}
+                      />
+                      {s.name}
+                    </span>
+                    <span className="font-semibold">{s.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </ChartCard>
       </section>
-
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-2">
         <DistributionChart
-          title="Phân bổ theo khóa học"
-          description="Học viên thuộc các khóa học hiện hành."
-          data={charts.courses || []}
-          color="#2563eb"
+          title="Học viên theo khóa học"
+          description="Số lượng học viên trong các chương trình đào tạo."
+          data={charts.courses}
         />
         <DistributionChart
-          title="Phân bổ theo cơ sở"
-          description="Số lượng học viên tại từng cơ sở."
-          data={charts.branches || []}
-          color="#10b981"
+          title="Học viên theo cơ sở"
+          description="Phân bố hồ sơ tại các cơ sở đang quản lý."
+          color={chartPalette[4]}
+          data={charts.branches}
         />
       </section>
     </div>
   )
 }
-
-export default StudentDashboard

@@ -57,6 +57,7 @@ export const navigationItems = [
   {
     label: 'Tài chính',
     path: '/finance',
+    enabled: false,
     icon: ReceiptText,
     color: 'bg-rose-50 text-rose-700 ring-rose-100',
     activeColor: 'bg-rose-600 text-white shadow-rose-200',
@@ -64,6 +65,7 @@ export const navigationItems = [
   {
     label: 'Marketing & Sale',
     path: '/marketing-sales',
+    enabled: false,
     icon: Megaphone,
     color: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-100',
     activeColor: 'bg-fuchsia-600 text-white shadow-fuchsia-200',
@@ -71,6 +73,7 @@ export const navigationItems = [
   {
     label: 'Báo cáo',
     path: '/reports',
+    enabled: false,
     icon: BarChart3,
     color: 'bg-orange-50 text-orange-700 ring-orange-100',
     activeColor: 'bg-orange-500 text-white shadow-orange-200',
@@ -82,4 +85,4 @@ export const navigationItems = [
     color: 'bg-slate-100 text-slate-700 ring-slate-200',
     activeColor: 'bg-slate-700 text-white shadow-slate-200',
   },
-]
+].filter((item) => item.enabled !== false)

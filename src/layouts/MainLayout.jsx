@@ -1,179 +1,265 @@
-import { useEffect, useMemo, useState } from 'react'
-import { LogOut, Menu, Search, X } from 'lucide-react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  X
+} from 'lucide-react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/common/BrandLogo.jsx'
 import NotificationPopover from '../components/common/NotificationPopover.jsx'
 import { navigationItems } from '../datas/navigation.js'
 import { removeStoredSession } from '../services/apiClient.js'
 
-function MainLayout() {
-  const navigate = useNavigate()
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
-
+export default function MainLayout() {
+  const location = useLocation()
+  const module = location.pathname.split('/')[1] || 'dashboard'
+  const navigate = useNavigate(),
+    drawer = useRef(null),
+    mobileTrigger = useRef(null)
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false),
+    [search, setSearch] = useState('')
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('diichi-ui-sidebar') === 'collapsed'
+    } catch {
+      return false
+    }
+  })
   useEffect(() => {
-    const handleUnauthorized = () => navigate('/login', { replace: true })
-    window.addEventListener('auth:unauthorized', handleUnauthorized)
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
+    const unauthorized = () => navigate('/login', { replace: true })
+    window.addEventListener('auth:unauthorized', unauthorized)
+    return () => window.removeEventListener('auth:unauthorized', unauthorized)
   }, [navigate])
-
-  const currentUser = useMemo(() => {
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'diichi-ui-sidebar',
+        collapsed ? 'collapsed' : 'expanded'
+      )
+    } catch {}
+  }, [collapsed])
+  useEffect(() => {
+    if (!isMobileNavOpen) return
+    const returnTo = mobileTrigger.current
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    drawer.current?.querySelector('button')?.focus()
+    return () => {
+      document.body.style.overflow = previous
+      returnTo?.focus()
+    }
+  }, [isMobileNavOpen])
+  const user = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('ec_admin_user')) || null
     } catch {
       return null
     }
   }, [])
-
-  const handleLogout = () => {
+  const logout = () => {
     removeStoredSession()
     navigate('/login', { replace: true })
   }
-
-  const renderBrandPanel = (showCloseButton = false) => (
-    <div className="border-b border-red-100 bg-[linear-gradient(180deg,#fff7f2_0%,#ffffff_100%)] px-5 py-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-1 flex-col items-center text-center">
-          <div className="rounded-md bg-white p-2 shadow-enterprise ring-1 ring-red-100">
-            <BrandLogo compact />
-          </div>
-          <p className="mt-3 text-sm font-semibold text-red-700">Cổng quản trị trung tâm</p>
-          <p className="mt-1 text-xs text-ink-500">Di-Ichi CRM</p>
-        </div>
-        {showCloseButton ? (
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded border border-red-100 bg-white text-red-700 shadow-sm"
-            aria-label="Đóng menu"
-            onClick={() => setIsMobileNavOpen(false)}
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
-
-  const renderNavigation = (onNavigate) => (
-    <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-4">
+  const initials = (user?.name || 'Quản trị viên')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+  const navigation = (mobile = false) => (
+    <nav
+      aria-label="Điều hướng chính"
+      className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3"
+    >
       {navigationItems.map((item) => {
         const Icon = item.icon
-
         return (
           <NavLink
             key={item.path}
             to={item.path}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              [
-                'group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition',
-                isActive
-                  ? `${item.activeColor} shadow-md`
-                  : 'text-ink-600 hover:bg-slate-50 hover:text-ink-900',
-              ].join(' ')
+            title={item.label}
+            data-module={item.path.slice(1)}
+            onClick={mobile ? () => setIsMobileNavOpen(false) : undefined}
+            className={() =>
+              `ui-nav-item group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition ${collapsed && !mobile ? 'justify-center !px-2' : ''}`
             }
           >
-            {({ isActive }) => (
-              <>
-                <span
-                  className={[
-                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 transition',
-                    isActive ? 'bg-white/20 text-white ring-white/30' : item.color,
-                  ].join(' ')}
-                >
-                  <Icon size={18} aria-hidden="true" />
-                </span>
-                <span>{item.label}</span>
-              </>
-            )}
+            <Icon size={19} className="ui-nav-icon shrink-0" aria-hidden="true" />
+            <span className={collapsed && !mobile ? 'sr-only' : ''}>
+              {item.label}
+            </span>
           </NavLink>
         )
       })}
     </nav>
   )
-
-  const renderLogout = () => (
-    <div className="border-t border-red-100 bg-red-50/50 p-3">
+  const brand = (mobile = false) => (
+    <div
+      className={`flex min-h-[88px] items-center justify-center border-b border-slate-100 ${collapsed && !mobile ? 'px-2' : 'px-5'}`}
+    >
+      <div className="min-w-0">
+        <BrandLogo compact />
+        {(!collapsed || mobile) && (
+          <p className="mt-2 text-center text-[11px] text-slate-400">
+            Cổng quản trị trung tâm
+          </p>
+        )}
+      </div>
+      {mobile && (
+        <button
+          type="button"
+          className="ui-button ui-icon-button ml-4"
+          aria-label="Đóng menu"
+          onClick={() => setIsMobileNavOpen(false)}
+        >
+          <X size={18} />
+        </button>
+      )}
+    </div>
+  )
+  const logoutButton = (mobile = false) => (
+    <div className="border-t border-slate-100 p-3">
       <button
         type="button"
-        onClick={handleLogout}
-        className="flex w-full items-center gap-3 rounded-md border border-red-100 bg-white px-3 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-600 hover:text-white"
+        onClick={logout}
+        title="Đăng xuất"
+        className={`flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-red-50 hover:text-red-700 ${collapsed && !mobile ? 'justify-center' : ''}`}
       >
-        <LogOut size={18} aria-hidden="true" />
-        <span>Đăng xuất</span>
+        <LogOut size={18} />
+        <span className={collapsed && !mobile ? 'sr-only' : ''}>Đăng xuất</span>
       </button>
     </div>
   )
-
+  function drawerKey(event) {
+    if (event.key === 'Escape') setIsMobileNavOpen(false)
+    if (event.key === 'Tab') {
+      const nodes = [...drawer.current.querySelectorAll('a,button')],
+        first = nodes[0],
+        last = nodes[nodes.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+  }
   return (
-    <div className="min-h-screen bg-muted text-ink-900">
-      <aside className="fixed inset-y-0 left-0 hidden h-dvh w-64 border-r border-red-100 bg-white lg:flex lg:flex-col">
-        {renderBrandPanel()}
-        {renderNavigation()}
-        {renderLogout()}
+    <div className="crm-shell min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:p-3"
+      >
+        Đến nội dung chính
+      </a>
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 hidden h-dvh flex-col border-r border-slate-200 bg-white lg:flex ${collapsed ? 'w-[76px]' : 'w-60'}`}
+      >
+        {brand()}
+        {navigation()}
+        {logoutButton()}
       </aside>
-
-      {isMobileNavOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
+      {isMobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button
-            type="button"
-            className="absolute inset-0 bg-ink-900/40"
+            className="absolute inset-0 bg-slate-900/40"
             aria-label="Đóng menu"
             onClick={() => setIsMobileNavOpen(false)}
           />
-          <aside className="relative flex h-dvh w-[min(20rem,86vw)] flex-col border-r border-red-100 bg-white shadow-2xl">
-            {renderBrandPanel(true)}
-            {renderNavigation(() => setIsMobileNavOpen(false))}
-            {renderLogout()}
+          <aside
+            ref={drawer}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu điều hướng"
+            onKeyDown={drawerKey}
+            className="relative flex h-dvh w-[min(280px,86vw)] flex-col bg-white shadow-xl"
+          >
+            {brand(true)}
+            {navigation(true)}
+            {logoutButton(true)}
           </aside>
         </div>
-      ) : null}
-
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-red-100 bg-white/95 px-4 py-3 shadow-sm backdrop-blur lg:px-6">
+      )}
+      <div className={collapsed ? 'lg:pl-[76px]' : 'lg:pl-60'}>
+        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
+              ref={mobileTrigger}
               type="button"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-red-100 bg-red-50 text-red-700 lg:hidden"
+              className="ui-button ui-icon-button lg:hidden"
               aria-label="Mở menu"
               onClick={() => setIsMobileNavOpen(true)}
             >
-              <Menu size={20} aria-hidden="true" />
+              <Menu size={18} />
             </button>
-            <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-red-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#eff6ff_100%)] px-3 shadow-sm md:max-w-md">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-red-100 text-red-700">
-                <Search size={16} aria-hidden="true" />
-              </span>
+            <button
+              type="button"
+              className="ui-button ui-icon-button hidden lg:inline-flex"
+              aria-label={
+                collapsed
+                  ? 'Mở rộng thanh điều hướng'
+                  : 'Thu gọn thanh điều hướng'
+              }
+              title={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+              onClick={() => setCollapsed((v) => !v)}
+            >
+              {collapsed ? (
+                <PanelLeftOpen size={18} />
+              ) : (
+                <PanelLeftClose size={18} />
+              )}
+            </button>
+            <form
+              className="ui-search sm:max-w-80"
+              role="search"
+              onSubmit={(event) => {
+                event.preventDefault()
+                if (search.trim()) {
+                  navigate(
+                    `/students?search=${encodeURIComponent(search.trim())}`
+                  )
+                  setSearch('')
+                }
+              }}
+            >
+              <Search size={16} aria-hidden="true" />
               <input
-                className="w-full min-w-0 bg-transparent text-sm font-medium outline-none placeholder:text-ink-500"
-                placeholder="Tìm học viên, lớp học, hóa đơn"
+                aria-label="Tìm học viên nhanh"
+                placeholder="Tìm học viên nhanh…"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
               />
-            </div>
+            </form>
           </div>
-
           <div className="flex shrink-0 items-center gap-3">
             <NotificationPopover />
-            <div className="hidden items-center gap-3 rounded-md border border-red-100 bg-[linear-gradient(135deg,#fff1f2_0%,#ffffff_52%,#eff6ff_100%)] px-3 py-2 shadow-sm sm:flex">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-600 text-sm font-bold text-white shadow-md shadow-red-100">
-                QV
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-ink-900">
-                  {currentUser?.name || 'Quản trị viên'}
+            <div className="hidden min-w-0 items-center gap-3 border-l border-slate-200 pl-4 sm:flex">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-xs font-semibold text-red-700">
+                {initials}
+              </span>
+              <div className="max-w-40">
+                <p
+                  className="truncate text-[13px] font-semibold text-slate-800"
+                  title={user?.name}
+                >
+                  {user?.name || 'Quản trị viên'}
                 </p>
-                <p className="text-xs font-semibold text-red-700">
-                  {currentUser?.position || 'Quản lý trung tâm'}
+                <p className="truncate text-[11px] text-slate-400">
+                  {user?.position || 'Quản lý trung tâm'}
                 </p>
               </div>
             </div>
           </div>
         </header>
-
-        <main className="px-4 py-5 sm:py-6 lg:px-6">
+        <main id="main-content" tabIndex={-1} className="crm-content" data-module={module}>
           <Outlet />
         </main>
       </div>
     </div>
   )
 }
-
-export default MainLayout

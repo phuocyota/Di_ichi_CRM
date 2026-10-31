@@ -1,3 +1,5 @@
+import dayjs from 'dayjs'
+import { EmptyState, FilterBar, Pagination, StatusBadge } from '../common/ui.jsx'
 import { useMemo, useState } from 'react'
 import {
   flexRender,
@@ -5,18 +7,32 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  useReactTable,
+  useReactTable
 } from '@tanstack/react-table'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Eye, Pencil, Search, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  Eye,
+  Pencil,
+  Search,
+  Trash2
+} from 'lucide-react'
 
-function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, onOpenModal }) {
+function StaffTable({
+  staffs,
+  filters,
+  keyword,
+  onKeywordChange,
+  onSelectStaff,
+  onOpenModal
+}) {
   const safeFilters = {
     positions: [],
     departments: [],
     specialties: [],
     statuses: [],
     dateRanges: [],
-    ...(filters || {}),
+    ...(filters || {})
   }
   const [sorting, setSorting] = useState([])
   const [rowSelection, setRowSelection] = useState({})
@@ -26,7 +42,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
     department: '',
     specialty: '',
     statusValue: '',
-    dateRange: '',
+    dateRange: ''
   })
 
   const updateFilter = (id, value) => {
@@ -56,22 +72,48 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
             onChange={row.getToggleSelectedHandler()}
             aria-label={`Chọn ${row.original.name}`}
           />
-        ),
+        )
       },
       {
         accessorKey: 'avatar',
         header: 'Ảnh đại diện',
         cell: ({ row }) => (
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-xs font-black text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
             {row.original.avatar}
           </span>
-        ),
+        )
       },
       { accessorKey: 'code', header: 'Mã giáo viên' },
-      { accessorKey: 'name', header: 'Họ tên' },
+      {
+        accessorKey: 'name',
+        header: 'Giáo viên',
+        cell: ({ row }) => (
+          <div className="ui-identity">
+            <span className="ui-identity-avatar">{row.original.avatar}</span>
+            <div>
+              <button
+                type="button"
+                className="ui-identity-name hover:underline"
+                onClick={() => onSelectStaff(row.original)}
+              >
+                {row.original.name}
+              </button>
+              <button type="button" className="ui-record-link block" onClick={() => onSelectStaff(row.original)}>{row.original.code}</button>
+            </div>
+          </div>
+        )
+      },
       { accessorKey: 'position', header: 'Chức vụ', filterFn: 'equalsString' },
-      { accessorKey: 'specialty', header: 'Chuyên môn', filterFn: 'equalsString' },
-      { accessorKey: 'department', header: 'Bộ phận', filterFn: 'equalsString' },
+      {
+        accessorKey: 'specialty',
+        header: 'Chuyên môn',
+        filterFn: 'equalsString'
+      },
+      {
+        accessorKey: 'department',
+        header: 'Bộ phận',
+        filterFn: 'equalsString'
+      },
       { accessorKey: 'phone', header: 'Số điện thoại' },
       { accessorKey: 'email', header: 'Email' },
       {
@@ -79,16 +121,29 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
         header: 'Trạng thái',
         filterFn: 'equalsString',
         cell: ({ row }) => {
-          const status = safeFilters.statuses.find((item) => item.value === row.original.statusValue)
-
           return (
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${status?.badgeClass || ''}`}>
-              {row.original.status}
-            </span>
+            <StatusBadge value={row.original.statusValue} context="staff" />
           )
-        },
+        }
       },
-      { accessorKey: 'startDate', header: 'Ngày vào làm' },
+      {
+        accessorKey: 'startDate',
+        header: 'Ngày vào làm',
+        cell: ({ getValue }) =>
+          getValue() ? dayjs(getValue()).format('DD/MM/YYYY') : '—',
+        filterFn: (row, id, value) => {
+          const date = dayjs(row.getValue(id)),
+            today = dayjs()
+          if (!value) return true
+          if (!date.isValid()) return false
+          return value === 'Hôm nay'
+            ? date.isSame(today, 'day')
+            : value === '7 ngày tới'
+              ? date.isAfter(today.startOf('day').subtract(1, 'millisecond')) &&
+                date.isBefore(today.add(8, 'day').startOf('day'))
+              : date.isSame(today, 'month')
+        }
+      },
       {
         id: 'actions',
         header: 'Thao tác',
@@ -122,10 +177,10 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
               <Trash2 size={17} aria-hidden="true" />
             </button>
           </div>
-        ),
-      },
+        )
+      }
     ],
-    [safeFilters.statuses, onOpenModal, onSelectStaff],
+    [onOpenModal, onSelectStaff]
   )
 
   const table = useReactTable({
@@ -135,7 +190,7 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
       sorting,
       rowSelection,
       globalFilter: keyword,
-      columnFilters,
+      columnFilters
     },
     enableRowSelection: true,
     onSortingChange: setSorting,
@@ -146,16 +201,19 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
-      pagination: { pageSize: 6 },
-    },
+      pagination: { pageSize: 10 },
+      columnVisibility: { avatar: false, code: false }
+    }
   })
 
   return (
-    <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
+    <section className="ui-card">
       <div className="mb-5 flex flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-lg font-black text-slate-950">Danh sách giáo viên</h2>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Danh sách giáo viên
+            </h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
               Đã chọn {Object.keys(rowSelection).length} dòng.
             </p>
@@ -171,14 +229,16 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <FilterBar active={!!keyword || Object.values(filterValues).some(Boolean)} onClear={() => { setFilterValues({ position: '', department: '', specialty: '', statusValue: '', dateRange: '' }); setColumnFilters([]); onKeywordChange('') }}>
           {[
             ['position', 'Chức vụ', safeFilters.positions],
             ['department', 'Bộ phận', safeFilters.departments],
-            ['specialty', 'Chuyên môn', safeFilters.specialties],
+            ['specialty', 'Chuyên môn', safeFilters.specialties]
           ].map(([id, label, options]) => (
             <label key={id} className="block">
-              <span className="text-xs font-bold text-slate-500">{label}</span>
+              <span className="text-xs font-semibold text-slate-500">
+                {label}
+              </span>
               <select
                 className="mt-1 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold outline-none"
                 value={filterValues[id]}
@@ -194,11 +254,15 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
             </label>
           ))}
           <label className="block">
-            <span className="text-xs font-bold text-slate-500">Trạng thái</span>
+            <span className="text-xs font-semibold text-slate-500">
+              Trạng thái
+            </span>
             <select
               className="mt-1 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold outline-none"
               value={filterValues.statusValue}
-              onChange={(event) => updateFilter('statusValue', event.target.value)}
+              onChange={(event) =>
+                updateFilter('statusValue', event.target.value)
+              }
             >
               <option value="">Tất cả</option>
               {safeFilters.statuses.map((item) => (
@@ -209,39 +273,66 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
             </select>
           </label>
           <label className="block">
-            <span className="text-xs font-bold text-slate-500">Khoảng thời gian</span>
+            <span className="text-xs font-semibold text-slate-500">
+              Ngày vào làm
+            </span>
             <select
               className="mt-1 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold outline-none"
               value={filterValues.dateRange}
-              onChange={(event) => setFilterValues((current) => ({ ...current, dateRange: event.target.value }))}
+              onChange={(event) => {
+                setFilterValues((current) => ({
+                  ...current,
+                  dateRange: event.target.value
+                }))
+                setColumnFilters((current) => [
+                  ...current.filter((item) => item.id !== 'startDate'),
+                  ...(event.target.value
+                    ? [{ id: 'startDate', value: event.target.value }]
+                    : [])
+                ])
+              }}
             >
               <option value="">Tất cả</option>
               {safeFilters.dateRanges.map((item) => (
-                <option key={item} value={item}>{item}</option>
+                <option key={item} value={item}>
+                  {item}
+                </option>
               ))}
             </select>
           </label>
-        </div>
+        </FilterBar>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-300">
-        <table className="min-w-[1320px] w-full border-collapse text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-black uppercase text-slate-500">
+        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th key={header.id} className="px-4 py-3">
-                    {header.isPlaceholder ? null : (
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <button
                         type="button"
                         className="inline-flex items-center gap-1"
                         onClick={header.column.getToggleSortingHandler()}
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                         {header.column.getCanSort() ? (
-                          header.column.getIsSorted() ? <ChevronDown size={14} /> : <ChevronsUpDown size={14} />
+                          header.column.getIsSorted() ? (
+                            <ChevronDown size={14} />
+                          ) : (
+                            <ChevronsUpDown size={14} />
+                          )
                         ) : null}
                       </button>
+                    ) : (
+                      flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )
                     )}
                   </th>
                 ))}
@@ -249,10 +340,24 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
             ))}
           </thead>
           <tbody className="divide-y divide-gray-200">
+            {!table.getRowModel().rows.length && (
+              <tr>
+                <td colSpan={columns.length}>
+                  <EmptyState
+                    compact
+                    title="Không có giáo viên phù hợp"
+                    description="Thử thay đổi từ khóa hoặc bộ lọc."
+                  />
+                </td>
+              </tr>
+            )}
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-slate-50">
+              <tr key={row.id} data-state={row.getIsSelected() ? 'selected' : undefined}>
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3 font-medium text-slate-700">
+                  <td
+                    key={cell.id}
+                    className="px-4 py-3 font-medium text-slate-700"
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -262,31 +367,15 @@ function StaffTable({ staffs, filters, keyword, onKeywordChange, onSelectStaff, 
         </table>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-slate-500">
-          Trang {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 text-sm font-bold text-slate-600 disabled:opacity-50"
-            disabled={!table.getCanPreviousPage()}
-            onClick={() => table.previousPage()}
-          >
-            <ChevronLeft size={16} aria-hidden="true" />
-            Trước
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 text-sm font-bold text-slate-600 disabled:opacity-50"
-            disabled={!table.getCanNextPage()}
-            onClick={() => table.nextPage()}
-          >
-            Sau
-            <ChevronRight size={16} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <Pagination
+        page={table.getState().pagination.pageIndex + 1}
+        pages={table.getPageCount()}
+        total={table.getFilteredRowModel().rows.length}
+        size={table.getState().pagination.pageSize}
+        onPageChange={(page) => table.setPageIndex(page - 1)}
+        onSizeChange={(size) => table.setPageSize(size)}
+        label="giáo viên"
+      />
     </section>
   )
 }

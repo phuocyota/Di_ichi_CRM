@@ -1,13 +1,30 @@
-function PageHeader({ title, description, actions }) {
+import React from 'react'
+import { Breadcrumb, PageTabs } from './ui.jsx'
+
+export default function PageHeader({
+  title,
+  description = null,
+  actions = null,
+  tabs = null,
+  activeTab = null,
+  onTabChange = null,
+  children = null,
+  breadcrumb = title
+}) {
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-ink-500">{description}</p> : null}
+    <header className="ui-page-header">
+      <Breadcrumb current={breadcrumb} />
+      <div className="ui-page-heading">
+        <div className="min-w-0">
+          <h1 className="ui-page-title">{title}</h1>
+          {description && <p className="ui-page-description">{description}</p>}
+        </div>
+        {actions && <div className="ui-page-actions">{actions}</div>}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-    </div>
+      {tabs && (
+        <PageTabs tabs={tabs} value={activeTab} onChange={onTabChange} />
+      )}
+      {children}
+    </header>
   )
 }
-
-export default PageHeader

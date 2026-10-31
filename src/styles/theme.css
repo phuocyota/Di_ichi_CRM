@@ -1,13 +1,14 @@
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #2563eb;
-  --color-brand-600: #1d4ed8;
-  --color-brand-700: #1e40af;
+  --color-brand-50: #fff1f2;
+  --color-brand-100: #ffe4e8;
+  --color-brand-500: #e60023;
+  --color-brand-600: #c4001e;
+  --color-brand-700: #a80024;
   --color-ink-900: #172033;
   --color-ink-700: #384152;
   --color-ink-500: #667085;
   --color-surface: #ffffff;
-  --color-muted: #f5f7fb;
-  --shadow-enterprise: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.1);
+  --color-muted: #f4f7fb;
+  --shadow-enterprise:
+    0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.1);
 }

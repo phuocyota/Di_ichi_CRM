@@ -1,260 +1,393 @@
-import { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { toast } from 'sonner'
-import FinanceHeader from '../../components/Finance/FinanceHeader.jsx'
-import FinanceModal from '../../components/Finance/FinanceModal.jsx'
-import FinanceRevenue from '../../components/Finance/FinanceRevenue.jsx'
-import FinanceTable from '../../components/Finance/FinanceTable.jsx'
-import FinanceTuitionDetailModal from '../../components/Finance/FinanceTuitionDetailModal.jsx'
-import { courseClasses, courses } from '../../datas/courses.js'
+import apiClient from '../../services/apiClient.js'
+import { createResource, updateResource } from '../../services/crmApi.js'
 import {
-  collectors,
-  debtStatuses,
-  enrichPayment,
-  enrichTuition,
-  financeTabs,
-  getDebts,
-  getRevenueReports,
-  paymentMethods,
-  payments,
-  tuitionFees,
-  tuitionStatuses,
-  tuitionTimeFilters,
-} from '../../datas/finances.js'
+  useWorkspace,
+  money,
+  date,
+  nameOf,
+  exportRows
+} from '../../services/workspaceApi.js'
+import {
+  WorkspaceChart,
+  WorkspaceHeader,
+  WorkspaceState,
+  WorkspaceStats,
+  WorkspaceTable,
+  input,
+  button
+} from '../../components/common/WorkspaceView.jsx'
 
-const TODAY = new Date('2026-08-13T00:00:00')
-
-function isMatchedTimeFilter(dueDate, filter) {
-  if (!filter) return true
-
-  const due = new Date(`${dueDate}T00:00:00`)
-  const diffDays = Math.ceil((due - TODAY) / 86400000)
-
-  if (filter === 'overdue') return diffDays < 0
-  if (filter === 'due_7_days') return diffDays >= 0 && diffDays <= 7
-  if (filter === 'due_this_month') {
-    return due.getFullYear() === TODAY.getFullYear() && due.getMonth() === TODAY.getMonth()
-  }
-
-  return true
-}
-
-function FinancePage() {
-  const [activeTab, setActiveTab] = useState(financeTabs[0])
-  const [tuitionItems] = useState(tuitionFees)
-  const [paymentItems, setPaymentItems] = useState(payments)
-  const [modal, setModal] = useState(null)
-  const [selectedTuition, setSelectedTuition] = useState(null)
-  const [tuitionFilters, setTuitionFilters] = useState({ status: '', courseId: '', classId: '', time: '' })
-
-  const enrichedTuitions = useMemo(
-    () => tuitionItems.map((item) => enrichTuition(item, paymentItems)),
-    [paymentItems, tuitionItems],
+const methods = [
+  ['cash', 'Tiền mặt'],
+  ['transfer', 'Chuyển khoản'],
+  ['card', 'Thẻ'],
+  ['qr', 'QR']
+]
+export default function FinancePage() {
+  const workspace = useWorkspace('finance')
+  const [tab, setTab] = useState('tuition'),
+    [keyword, setKeyword] = useState(''),
+    [selectedId, setSelectedId] = useState(''),
+    [collecting, setCollecting] = useState(null),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('')
+  const d = workspace.data?.data
+  const transactions = (d?.financeTransaction || []).map((t) => ({
+    ...t,
+    name: nameOf(d.student, t.studentId),
+    className: nameOf(d.class, t.classId),
+    branch: nameOf(d.branch, t.branchId)
+  }))
+  const payments = (d?.payment || []).map((p) => {
+    const t = transactions.find((t) => t.id === p.transactionId)
+    return {
+      ...p,
+      name: t?.name || '—',
+      className: t?.className || '—',
+      receipt:
+        d.receipt.find((r) => r.paymentId === p.id)?.code || 'Chưa phát hành',
+      collector: nameOf(d.staff, p.collectorId)
+    }
+  })
+  const selected = transactions.find((t) => t.id === selectedId)
+  const rows = (
+    tab === 'payments'
+      ? payments
+      : tab === 'debt'
+        ? transactions.filter(
+            (t) => t.status !== 'cancelled' && Number(t.debtAmount) > 0
+          )
+        : transactions
+  ).filter(
+    (r) =>
+      !keyword ||
+      `${r.code || ''} ${r.name} ${r.className} ${r.branch || ''}`
+        .toLowerCase()
+        .includes(keyword.toLowerCase())
   )
-
-  const enrichedPayments = useMemo(() => paymentItems.map(enrichPayment), [paymentItems])
-  const debts = useMemo(() => getDebts(tuitionItems, paymentItems), [paymentItems, tuitionItems])
-  const revenueReports = useMemo(() => getRevenueReports(paymentItems, tuitionItems), [paymentItems, tuitionItems])
-
-  const classOptions = useMemo(() => {
-    if (!tuitionFilters.courseId) return courseClasses
-    return courseClasses.filter((item) => item.courseId === tuitionFilters.courseId)
-  }, [tuitionFilters.courseId])
-
-  const selectedPayments = useMemo(() => {
-    if (!selectedTuition) return []
-    return enrichedPayments
-      .filter((item) => item.tuitionId === selectedTuition.id && item.status !== 'cancelled')
-      .sort((a, b) => b.paidAt.localeCompare(a.paidAt))
-  }, [enrichedPayments, selectedTuition])
-
-  const tuitionStats = useMemo(() => {
-    return enrichedTuitions.reduce((stats, item) => {
-      stats.totalPayable += item.payable
-      stats.totalPaid += item.paid
-      stats.totalRemaining += item.remaining
-      if (item.status === 'overdue') stats.totalOverdue += item.remaining
-      return stats
-    }, {
-      totalPayable: 0,
-      totalPaid: 0,
-      totalRemaining: 0,
-      totalOverdue: 0,
-    })
-  }, [enrichedTuitions])
-
-  const filteredData = useMemo(() => {
-    const search = ''
-    const includes = (values) => !search || values.some((value) => String(value || '').toLowerCase().includes(search))
-
-    if (activeTab === 'Lịch sử thu tiền') {
-      return enrichedPayments.filter((item) => includes([item.receiptNo, item.studentName, item.methodName, item.collectorName, item.payer, item.transactionCode]))
+  async function refreshAfterSave() {
+    try {
+      await workspace.reload()
+    } catch {
+      toast.warning('Đã lưu thay đổi. Vui lòng tải lại dữ liệu.')
     }
-
-    if (activeTab === 'Công nợ') {
-      return debts.filter((item) => includes([item.studentName, item.courseName, item.dueDate]))
+  }
+  async function collect(event) {
+    event.preventDefault()
+    setError('')
+    setBusy(true)
+    try {
+      const form = Object.fromEntries(new FormData(event.currentTarget)),
+        amount = Number(form.amount)
+      if (!(amount > 0) || amount > Number(collecting.debtAmount))
+        throw new Error('Số tiền phải lớn hơn 0 và không vượt công nợ')
+      await createResource('payment', {
+        transactionId: collecting.id,
+        amount,
+        method: form.method,
+        paidAt: form.paidAt,
+        status: 'successful',
+        ...(form.collectorId ? { collectorId: form.collectorId } : {}),
+        ...(form.reference ? { externalReference: form.reference } : {}),
+        note: form.note || ''
+      })
+      setCollecting(null)
+      toast.success('Đã ghi nhận thanh toán')
+      await refreshAfterSave()
+    } catch (cause) {
+      setError(cause.message)
+    } finally {
+      setBusy(false)
     }
-
-    return enrichedTuitions.filter((item) => {
-      const matchesSearch = includes([item.code, item.studentName, item.courseName, item.className])
-      const matchesStatus = !tuitionFilters.status || item.status === tuitionFilters.status
-      const matchesCourse = !tuitionFilters.courseId || item.courseId === tuitionFilters.courseId
-      const matchesClass = !tuitionFilters.classId || item.classId === tuitionFilters.classId
-      const matchesTime = isMatchedTimeFilter(item.dueDate, tuitionFilters.time)
-      return matchesSearch && matchesStatus && matchesCourse && matchesClass && matchesTime
-    })
-  }, [activeTab, debts, enrichedPayments, enrichedTuitions, tuitionFilters])
-
-  const findTuition = (tuition) => {
-    if (!tuition) return null
-    return tuition?.tuitionId ? enrichedTuitions.find((item) => item.id === tuition.tuitionId) : enrichedTuitions.find((item) => item.id === tuition.id) || tuition
   }
-
-  const openPaymentModal = (tuition = selectedTuition || enrichedTuitions.find((item) => item.remaining > 0) || enrichedTuitions[0]) => {
-    const tuitionItem = findTuition(tuition)
-    setSelectedTuition(tuitionItem)
-    setModal('collectPayment')
-  }
-
-  const openTuitionDetail = (tuition) => {
-    setSelectedTuition(findTuition(tuition))
-    setModal('tuitionDetail')
-  }
-
-  const openPaymentHistory = (tuition) => {
-    setSelectedTuition(findTuition(tuition))
-    setModal('paymentHistory')
-  }
-
-  const closeModal = () => {
-    setModal(null)
-    setSelectedTuition(null)
-  }
-
-  const handleTuitionFilterChange = (field, value) => {
-    setTuitionFilters((filters) => ({
-      ...filters,
-      [field]: value,
-      ...(field === 'courseId' ? { classId: '' } : {}),
-    }))
-  }
-
-  const printPayment = (payment) => {
-    if (!payment) {
-      toast.error('Khoản học phí này chưa có phiếu thu')
+  async function cancel(row) {
+    if (!window.confirm(`Hủy thanh toán ${money(row.amount)} của ${row.name}?`))
       return
+    setBusy(true)
+    try {
+      await updateResource('payment', row.id, { status: 'cancelled' })
+      toast.success('Đã hủy thanh toán')
+      await refreshAfterSave()
+    } catch (cause) {
+      toast.error(cause.message)
+    } finally {
+      setBusy(false)
     }
-    toast.success(`Đã gửi phiếu ${payment.receiptNo} sang hàng đợi in`)
   }
-
-  const printLatestTuitionReceipt = (tuition) => {
-    const tuitionItem = findTuition(tuition)
-    const latestPayment = enrichedPayments
-      .filter((item) => item.tuitionId === tuitionItem?.id && item.status !== 'cancelled')
-      .sort((a, b) => b.paidAt.localeCompare(a.paidAt))[0]
-
-    printPayment(latestPayment)
+  async function remind(row) {
+    setBusy(true)
+    try {
+      await apiClient.post('/workspace/notify', {
+        studentId: row.studentId,
+        title: 'Nhắc thanh toán học phí',
+        content: `Khoản học phí ${row.code}: còn ${money(row.debtAmount)}, hạn thanh toán ${date(row.dueDate)}.`
+      })
+      toast.success('Đã tạo thông báo trong tài khoản học viên')
+    } catch (cause) {
+      toast.error(cause.message)
+    } finally {
+      setBusy(false)
+    }
   }
-
-  const handlePaymentSubmit = (values) => {
-    const tuition = selectedTuition
-    if (!tuition) return
-
-    const amount = Number(values.amount || 0)
-    if (amount <= 0) {
-      toast.error('Số tiền thu phải lớn hơn 0')
-      return
-    }
-
-    if (tuition.remaining > 0 && amount > tuition.remaining) {
-      toast.error('Số tiền thu không được vượt quá khoản còn lại')
-      return
-    }
-
-    const payment = {
-      id: `payment-${Date.now()}`,
-      receiptNo: `PT${String(paymentItems.length + 1).padStart(4, '0')}`,
-      tuitionId: tuition.id,
-      studentId: tuition.studentId,
-      amount,
-      method: values.method,
-      paidAt: values.paidAt,
-      collectorId: values.collectorId,
-      payer: values.payer,
-      transactionCode: values.transactionCode,
-      proofName: values.proof?.[0]?.name || '',
-      note: values.note,
-      status: 'active',
-    }
-
-    setPaymentItems((items) => [payment, ...items])
-    setActiveTab('Học phí')
-    toast.success('Đã ghi nhận phiếu thu')
-    closeModal()
-  }
-
+  const columns =
+    tab === 'payments'
+      ? [
+          ['name', 'Học viên'],
+          ['receipt', 'Phiếu thu'],
+          ['amount', 'Số tiền', (r) => money(r.amount)],
+          [
+            'method',
+            'Phương thức',
+            (r) => methods.find(([v]) => v === r.method)?.[1] || r.method
+          ],
+          ['paidAt', 'Ngày thu', (r) => date(r.paidAt)],
+          ['collector', 'Người thu'],
+          ['status', 'Trạng thái'],
+          [
+            'action',
+            'Thao tác',
+            (r) => (
+              <button
+                className={button}
+                disabled={busy || r.status !== 'successful'}
+                onClick={() => cancel(r)}
+              >
+                Hủy thanh toán
+              </button>
+            )
+          ]
+        ]
+      : [
+          ['code', 'Mã khoản thu'],
+          ['name', 'Học viên'],
+          ['className', 'Lớp học'],
+          ['payableAmount', 'Phải thu', (r) => money(r.payableAmount)],
+          ['paidAmount', 'Đã thu', (r) => money(r.paidAmount)],
+          ['refundedAmount', 'Đã hoàn', (r) => money(r.refundedAmount)],
+          ['debtAmount', 'Còn nợ', (r) => money(r.debtAmount)],
+          ['dueDate', 'Hạn thanh toán', (r) => date(r.dueDate)],
+          ['status', 'Trạng thái'],
+          [
+            'action',
+            'Thao tác',
+            (r) => (
+              <div className="flex gap-2">
+                <button className={button} onClick={() => setSelectedId(r.id)}>
+                  Chi tiết
+                </button>
+                <button
+                  className={button}
+                  disabled={
+                    busy ||
+                    Number(r.debtAmount) <= 0 ||
+                    r.status === 'cancelled'
+                  }
+                  onClick={() => {
+                    setError('')
+                    setCollecting(r)
+                  }}
+                >
+                  Thu tiền
+                </button>
+                {tab === 'debt' && (
+                  <button
+                    className={button}
+                    disabled={busy}
+                    onClick={() => remind(r)}
+                  >
+                    Nhắc học phí
+                  </button>
+                )}
+              </div>
+            )
+          ]
+        ]
+  const s = workspace.data?.statistics,
+    charts = workspace.data?.charts
   return (
-    <div className="space-y-5">
-      <FinanceHeader
-        activeTab={activeTab}
-        tabs={financeTabs}
-        onTabChange={setActiveTab}
-      />
-
-      {activeTab === 'Doanh thu' ? (
-        <FinanceRevenue
-          tuitions={enrichedTuitions}
-          payments={enrichedPayments}
-          debts={debts}
-          reports={revenueReports}
-          paymentMethods={paymentMethods}
-        />
-      ) : (
-        <FinanceTable
-          activeTab={activeTab}
-          items={filteredData}
-          tuitionStatuses={tuitionStatuses}
-          debtStatuses={debtStatuses}
-          paymentMethods={paymentMethods}
-          tuitionStats={tuitionStats}
-          tuitionFilters={tuitionFilters}
-          courseOptions={courses}
-          classOptions={classOptions}
-          timeFilters={tuitionTimeFilters}
-          onTuitionFilterChange={handleTuitionFilterChange}
-          onCollectPayment={openPaymentModal}
-          onShowTuitionDetail={openTuitionDetail}
-          onShowPaymentHistory={openPaymentHistory}
-          onPrintTuitionReceipt={printLatestTuitionReceipt}
-          onPrintReceipt={printPayment}
-          onExportInvoice={(item) => toast.success(`Đã xuất hóa đơn cho phiếu ${item.receiptNo}`)}
-          onCancelPayment={(item) => {
-            setPaymentItems((payments) => payments.map((payment) => payment.id === item.id ? { ...payment, status: 'cancelled' } : payment))
-            toast.success('Đã hủy phiếu thu')
-          }}
-          onRemindDebt={(item) => toast.success(`Đã tạo nhắc đóng học phí cho ${item.studentName}`)}
-        />
+    <div className="min-w-0 space-y-5">
+      <WorkspaceHeader
+        title="Quản lý tài chính"
+        tabs={[
+          ['tuition', 'Học phí'],
+          ['payments', 'Lịch sử thu tiền'],
+          ['debt', 'Công nợ'],
+          ['revenue', 'Doanh thu']
+        ]}
+        activeTab={tab}
+        onTabChange={setTab}
+        reload={workspace.reload}
+      >
+        <button
+          className={button}
+          disabled={!d}
+          onClick={() =>
+            exportRows(
+              tab === 'revenue' ? charts.monthlyRevenue : rows,
+              'tai-chinh'
+            )
+          }
+        >
+          Xuất Excel
+        </button>
+        <button className={button} onClick={() => window.print()}>
+          In / lưu PDF
+        </button>
+      </WorkspaceHeader>
+      <WorkspaceState {...workspace} />
+      {d && (
+        <>
+          <WorkspaceStats
+            items={[
+              ['Tổng phải thu', money(s.payable)],
+              ['Thanh toán thành công', money(s.revenue)],
+              ['Công nợ hiện tại', money(s.debt)],
+              ['Số giao dịch thành công', s.payments]
+            ]}
+          />
+          {tab === 'revenue' ? (
+            <div className="grid gap-5 xl:grid-cols-2">
+              <WorkspaceChart
+                title="Tiền thu thành công theo tháng"
+                rows={charts.monthlyRevenue}
+                currency
+              />
+              <WorkspaceChart
+                title="Tiền thu theo cơ sở"
+                rows={charts.branchRevenue}
+                currency
+              />
+              <WorkspaceChart
+                title="Phương thức thanh toán"
+                rows={charts.paymentMethods}
+                currency
+              />
+            </div>
+          ) : (
+            <>
+              <input
+                className={input}
+                placeholder="Tìm mã khoản thu, học viên, lớp học…"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+              <WorkspaceTable rows={rows} columns={columns} />
+            </>
+          )}
+        </>
       )}
-
-      <FinanceModal
-        modal={modal}
-        tuition={selectedTuition}
-        paymentMethods={paymentMethods}
-        collectors={collectors}
-        onClose={closeModal}
-        onSubmit={handlePaymentSubmit}
-      />
-
-      <FinanceTuitionDetailModal
-        modal={modal === 'tuitionDetail' || modal === 'paymentHistory' ? modal : null}
-        tuition={selectedTuition}
-        payments={selectedPayments}
-        tuitionStatuses={tuitionStatuses}
-        onClose={closeModal}
-        onCollectPayment={openPaymentModal}
-        onPrintReceipt={printPayment}
-      />
+      {selected && (
+        <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold">
+              Lịch sử thanh toán · {selected.name} · {selected.code}
+            </h2>
+            <button className={button} onClick={() => setSelectedId('')}>
+              Đóng
+            </button>
+          </div>
+          <WorkspaceTable
+            rows={payments.filter((p) => p.transactionId === selected.id)}
+            columns={[
+              ['receipt', 'Phiếu thu'],
+              ['amount', 'Số tiền', (r) => money(r.amount)],
+              ['paidAt', 'Ngày thu', (r) => date(r.paidAt)],
+              ['status', 'Trạng thái'],
+              ['externalReference', 'Mã tham chiếu'],
+              ['note', 'Ghi chú']
+            ]}
+          />
+        </section>
+      )}
+      {collecting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <form
+            onSubmit={collect}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ghi nhận thanh toán"
+            className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl bg-white p-6"
+          >
+            <h2 className="text-xl font-black">
+              Thu học phí · {collecting.name}
+            </h2>
+            <p className="text-sm text-slate-500">
+              Còn phải thu: {money(collecting.debtAmount)}
+            </p>
+            <label className="block text-sm font-semibold">
+              Số tiền
+              <input
+                name="amount"
+                type="number"
+                min="1"
+                max={Number(collecting.debtAmount)}
+                required
+                className={input}
+                defaultValue={Number(collecting.debtAmount)}
+              />
+            </label>
+            <label className="block text-sm font-semibold">
+              Phương thức
+              <select name="method" required className={input}>
+                {methods.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              Ngày thu
+              <input
+                name="paidAt"
+                type="date"
+                required
+                className={input}
+                defaultValue={new Date().toLocaleDateString('en-CA')}
+              />
+            </label>
+            <label className="block text-sm font-semibold">
+              Người thu
+              <select name="collectorId" className={input}>
+                <option value="">Chưa chọn</option>
+                {d.staff.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              Mã tham chiếu
+              <input name="reference" className={input} />
+            </label>
+            <label className="block text-sm font-semibold">
+              Ghi chú
+              <textarea name="note" className={input} />
+            </label>
+            {error && (
+              <p role="alert" className="text-sm text-red-600">
+                {error}
+              </p>
+            )}
+            <footer className="flex justify-end gap-2">
+              <button
+                className={button}
+                type="button"
+                disabled={busy}
+                onClick={() => setCollecting(null)}
+              >
+                Hủy
+              </button>
+              <button className={button} disabled={busy}>
+                {busy ? 'Đang lưu…' : 'Ghi nhận thanh toán'}
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
-
-export default FinancePage

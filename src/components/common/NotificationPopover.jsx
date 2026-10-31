@@ -1,177 +1,191 @@
-import { useEffect, useRef, useState } from 'react'
-import { Bell, CheckCheck } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Bell, CheckCheck, RefreshCcw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
-  notificationFilters,
-  notificationToneStyles,
-  notifications,
-} from '../../datas/notifications.js'
-import NotificationDetailModal from './NotificationDetailModal.jsx'
+  getNotifications,
+  readNotifications
+} from '../../services/workspaceApi.js'
 
-function NotificationPopover() {
-  const notificationRef = useRef(null)
-  const [isOpen, setIsOpen] = useState(false)
-  const [activeFilter, setActiveFilter] = useState('all')
-  const [selectedNotification, setSelectedNotification] = useState(null)
-
+export default function NotificationPopover() {
+  const ref = useRef(null)
+  const [open, setOpen] = useState(false),
+    [rows, setRows] = useState([]),
+    [error, setError] = useState(''),
+    [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [filter, setFilter] = useState('all')
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await getNotifications()
+      if (!Array.isArray(data))
+        throw new Error('Dữ liệu thông báo không hợp lệ')
+      setRows(data)
+    } catch (cause) {
+      setError(cause.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
   useEffect(() => {
-    if (!isOpen) return undefined
-
-    const handlePointerDown = (event) => {
-      if (!notificationRef.current?.contains(event.target)) {
-        setIsOpen(false)
-      }
+    load()
+  }, [load])
+  useEffect(() => {
+    if (!open) return
+    load()
+    const outside = (event) => {
+      if (!ref.current?.contains(event.target)) setOpen(false)
     }
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        if (selectedNotification) {
-          setSelectedNotification(null)
-        } else {
-          setIsOpen(false)
-        }
-      }
+    const escape = (event) => {
+      if (event.key === 'Escape') setOpen(false)
     }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape)
     }
-  }, [isOpen, selectedNotification])
-
-  const unreadCount = notifications.filter((item) => item.status === 'unread').length
-  const urgentCount = notifications.filter((item) => item.priority === 'urgent').length
-  const visibleNotifications = notifications.filter((item) => {
-    if (activeFilter === 'unread') return item.status === 'unread'
-    if (activeFilter === 'urgent') return item.priority === 'urgent'
-    return true
-  })
-
+  }, [open, load])
+  async function mark(id) {
+    setBusy(true)
+    setError('')
+    try {
+      await readNotifications(id)
+      await load()
+    } catch (cause) {
+      setError(cause.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const unread = rows.filter((r) => !r.readAt).length
   return (
-    <div className="relative" ref={notificationRef}>
+    <div ref={ref} className="relative">
       <button
         type="button"
-        className={[
-          'relative inline-flex h-11 w-11 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-700 shadow-sm transition hover:bg-amber-100',
-          isOpen ? 'ring-2 ring-amber-200' : '',
-        ].join(' ')}
         aria-label="Thông báo"
-        aria-expanded={isOpen}
+        aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => setOpen((v) => !v)}
+        className="ui-button ui-icon-button relative"
       >
-        <Bell size={19} aria-hidden="true" />
-        {unreadCount ? (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
-            {unreadCount}
+        <Bell size={19} />
+        {unread > 0 && (
+          <span className="absolute -right-1 -top-1 rounded-full border-2 border-white bg-red-600 px-1.5 text-[10px] font-bold text-white">
+            {unread}
           </span>
-        ) : null}
+        )}
       </button>
-
-      {isOpen ? (
-        <div
-          className="absolute right-0 top-14 z-50 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-red-100 bg-white shadow-2xl"
+      {open && (
+        <section
           role="dialog"
           aria-label="Danh sách thông báo"
+          className="absolute right-0 top-14 z-50 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
         >
-          <div className="border-b border-red-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#eff6ff_100%)] p-4">
-            <div className="flex items-start justify-between gap-3">
+          <header className="border-b border-slate-100 p-4">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-black text-ink-900">Thông báo</p>
-                <p className="mt-1 text-xs font-semibold text-ink-500">
-                  {unreadCount} chưa đọc · {urgentCount} khẩn cấp
-                </p>
+                <h2 className="font-bold">Thông báo</h2>
+                <p className="mt-1 text-xs text-slate-500">{unread} chưa đọc</p>
               </div>
-              <button
-                type="button"
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-emerald-100 bg-white px-3 text-xs font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-50"
-              >
-                <CheckCheck size={15} aria-hidden="true" />
-                Đã đọc
-              </button>
-            </div>
-
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              {notificationFilters.map((filter) => (
+              <div className="flex gap-2">
                 <button
-                  key={filter.value}
-                  type="button"
-                  className={[
-                    'shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition',
-                    activeFilter === filter.value
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'border border-slate-200 bg-white text-ink-600 hover:bg-slate-50',
-                  ].join(' ')}
-                  onClick={() => setActiveFilter(filter.value)}
+                  aria-label="Tải lại thông báo"
+                  disabled={loading}
+                  onClick={load}
+                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-50"
                 >
-                  {filter.label}
+                  <RefreshCcw size={16} />
+                </button>
+                <button
+                  disabled={busy || !unread}
+                  onClick={() => mark()}
+                  className="inline-flex items-center gap-1 rounded-lg bg-blue-50 p-2 text-xs font-bold text-blue-700 disabled:opacity-40"
+                >
+                  <CheckCheck size={16} />
+                  Đọc tất cả
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              {[
+                ['all', 'Tất cả'],
+                ['unread', 'Chưa đọc']
+              ].map(([v, l]) => (
+                <button
+                  key={v}
+                  onClick={() => setFilter(v)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${filter === v ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                >
+                  {l}
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="max-h-[min(32rem,calc(100dvh-9rem))] overflow-y-auto p-2">
-            {visibleNotifications.map((item) => {
-              const Icon = item.icon
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={[
-                    'flex w-full gap-3 rounded-md p-3 text-left transition hover:bg-slate-50',
-                    item.status === 'unread' ? 'bg-blue-50/50' : 'bg-white',
-                  ].join(' ')}
-                  onClick={() => setSelectedNotification(item)}
+          </header>
+          <div className="max-h-[min(30rem,65vh)] overflow-y-auto p-2">
+            {error && (
+              <p role="alert" className="p-3 text-sm text-red-600">
+                {error}
+              </p>
+            )}
+            {loading && (
+              <p role="status" className="p-3 text-sm text-slate-500">
+                Đang tải thông báo…
+              </p>
+            )}
+            {rows
+              .filter((r) => filter !== 'unread' || !r.readAt)
+              .map((r) => (
+                <article
+                  key={r.id}
+                  className={`mb-1 rounded-xl p-3 ${r.readAt ? 'bg-white' : 'bg-blue-50'}`}
                 >
-                  <span
-                    className={[
-                      'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md ring-1',
-                      notificationToneStyles[item.tone],
-                    ].join(' ')}
-                  >
-                    <Icon size={18} aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-start justify-between gap-3">
-                      <span className="min-w-0 text-sm font-black text-ink-900">
-                        {item.title}
-                      </span>
-                      {item.status === 'unread' ? (
-                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
-                      ) : null}
-                    </span>
-                    <span className="mt-1 block text-xs font-medium leading-5 text-ink-600">
-                      {item.message}
-                    </span>
-                    <span className="mt-2 flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-ink-500">{item.time}</span>
-                      <span className="shrink-0 rounded bg-white px-2 py-1 text-xs font-bold text-blue-700 ring-1 ring-blue-100">
-                        {item.actionLabel}
-                      </span>
-                    </span>
-                  </span>
-                </button>
-              )
-            })}
-
-            {!visibleNotifications.length ? (
-              <div className="px-4 py-8 text-center text-sm font-bold text-ink-500">
-                Không có thông báo phù hợp.
-              </div>
-            ) : null}
+                  <h3 className="text-sm font-bold text-slate-800">
+                    {r.title}
+                  </h3>
+                  <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-slate-600">
+                    {r.content}
+                  </p>
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    {new Date(r.createdAt).toLocaleString('vi-VN')}
+                  </p>
+                  <div className="mt-2 flex gap-3">
+                    {!r.readAt && (
+                      <button
+                        className="text-xs font-semibold text-blue-600"
+                        disabled={busy}
+                        onClick={() => mark(r.id)}
+                      >
+                        Đánh dấu đã đọc
+                      </button>
+                    )}
+                    {r.targetPath?.startsWith('/') &&
+                      !r.targetPath.startsWith('//') && (
+                        <Link
+                          className="text-xs font-semibold text-blue-600"
+                          to={r.targetPath}
+                          onClick={() => {
+                            setOpen(false)
+                            if (!r.readAt) mark(r.id)
+                          }}
+                        >
+                          Xem chi tiết
+                        </Link>
+                      )}
+                  </div>
+                </article>
+              ))}
+            {!loading &&
+              !error &&
+              !rows.some((r) => filter !== 'unread' || !r.readAt) && (
+                <p className="p-8 text-center text-sm text-slate-400">
+                  Chưa có thông báo.
+                </p>
+              )}
           </div>
-        </div>
-      ) : null}
-
-      <NotificationDetailModal
-        notification={selectedNotification}
-        onClose={() => setSelectedNotification(null)}
-      />
+        </section>
+      )}
     </div>
   )
 }
-
-export default NotificationPopover

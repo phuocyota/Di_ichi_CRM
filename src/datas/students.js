@@ -4,7 +4,7 @@ export const studentStatus = [
   { label: 'Đang học', value: 'active', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   { label: 'Bảo lưu', value: 'reserved', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' },
   { label: 'Nghỉ học', value: 'stopped', badgeClass: 'bg-rose-50 text-rose-700 border-rose-200' },
-  { label: 'Học thử', value: 'trial', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { label: 'Học thử', value: 'trial', badgeClass: 'ui-badge-purple' },
   { label: 'Tiềm năng', value: 'potential', badgeClass: 'bg-violet-50 text-violet-700 border-violet-200' },
 ]
 

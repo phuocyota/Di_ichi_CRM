@@ -105,3 +105,11 @@ export async function saveStudent(type, values, student, { canAssignSale, classe
   }
   return { saved, warnings }
 }
+
+export function createStudentAccount(student, value) {
+  if (!student?.id) throw new Error('Vui lòng chọn học viên')
+  if (student.hasAccount === true) throw new Error('Học viên đã có tài khoản đăng nhập')
+  const email = value?.trim().toLowerCase()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Vui lòng nhập email đăng nhập hợp lệ')
+  return apiClient.post(`/student/${encodeURIComponent(student.id)}/account`, { email })
+}

@@ -1,3 +1,4 @@
+import { FilterBar } from '../common/ui.jsx'
 import dayjs from 'dayjs'
 import { AlertTriangle, CalendarCheck2, Clock3, Filter, UserRoundX } from 'lucide-react'
 
@@ -12,8 +13,8 @@ function ScheduleSidebar({
   onClearFilters,
   onSelectEvent,
 }) {
-  const inputClass = 'mt-2 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
-  const labelClass = 'text-xs font-black uppercase tracking-wide text-slate-500'
+  const inputClass = 'ui-input mt-2'
+  const labelClass = 'text-xs font-semibold uppercase tracking-wide text-slate-500'
 
   const renderSelect = (key, label, options) => (
     <label className="block" key={key}>
@@ -39,11 +40,11 @@ function ScheduleSidebar({
           className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left shadow-sm hover:border-blue-300 hover:bg-blue-50"
           onClick={() => onSelectEvent(item)}
         >
-          <p className="truncate text-sm font-black text-slate-900">{item.className}</p>
+          <p className="truncate text-sm font-semibold text-slate-900">{item.className}</p>
           <p className="mt-1 text-xs font-semibold text-slate-500">
             {dayjs(item.start).format('DD/MM HH:mm')} · {item.teacher}
           </p>
-          <p className="mt-1 text-xs font-bold text-slate-600">{item.room} · {item.branch}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-600">{item.room} · {item.branch}</p>
         </button>
       )) : (
         <p className="rounded-xl border border-dashed border-gray-300 p-3 text-sm font-semibold text-slate-500">
@@ -54,21 +55,21 @@ function ScheduleSidebar({
   )
 
   return (
-    <aside className="space-y-4 rounded-xl border border-gray-300 bg-white p-4 shadow-sm">
+    <aside className="space-y-4 ui-card !p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-900">
+          <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-900">
             <Filter size={16} aria-hidden="true" />
             Bộ lọc
           </p>
           <p className="mt-1 text-xs font-semibold text-slate-500">Lọc theo cơ sở, lớp, giáo viên và thời gian.</p>
         </div>
-        <button type="button" className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50" onClick={onClearFilters}>
+        <button type="button" className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50" onClick={onClearFilters}>
           Xóa lọc
         </button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+      <FilterBar>
         {renderSelect('branch', 'Cơ sở', filters.branches)}
         {renderSelect('course', 'Khóa học', filters.courses)}
         {renderSelect('className', 'Lớp học', filters.classes)}
@@ -76,11 +77,11 @@ function ScheduleSidebar({
         {renderSelect('room', 'Phòng học', filters.rooms)}
         {renderSelect('status', 'Trạng thái', filters.statuses)}
         {renderSelect('range', 'Khoảng thời gian', filters.ranges)}
-      </div>
+      </FilterBar>
 
       <div className="space-y-4">
         <section>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <CalendarCheck2 size={16} className="text-blue-600" aria-hidden="true" />
             Lớp học hôm nay
           </h3>
@@ -88,7 +89,7 @@ function ScheduleSidebar({
         </section>
 
         <section>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Clock3 size={16} className="text-amber-600" aria-hidden="true" />
             Lớp sắp diễn ra
           </h3>
@@ -96,7 +97,7 @@ function ScheduleSidebar({
         </section>
 
         <section>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <AlertTriangle size={16} className="text-red-600" aria-hidden="true" />
             Lịch học bị trùng
           </h3>
@@ -104,15 +105,15 @@ function ScheduleSidebar({
         </section>
 
         <section>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <UserRoundX size={16} className="text-violet-600" aria-hidden="true" />
             Giáo viên nghỉ
           </h3>
           <div className="space-y-2">
             {teacherLeaves.map((item) => (
               <div key={item.id} className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800">
-                <p className="font-black">{item.teacher}</p>
-                <p className="mt-1 text-xs font-bold">{item.time}</p>
+                <p className="font-semibold">{item.teacher}</p>
+                <p className="mt-1 text-xs font-semibold">{item.time}</p>
                 <p className="mt-1 text-xs font-semibold">{item.reason}</p>
               </div>
             ))}

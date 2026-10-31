@@ -1,26 +1,101 @@
-import { useEffect, useMemo, useState } from 'react'
+/** @typedef {{id:string,name:string,code:string,avatar?:string,phone?:string,parentPhone?:string,parent?:string,course?:string,className?:string,teacher?:string,branch?:string,status?:string,statusValue?:string,hasAccount?:boolean,enrollments?:Array<{status:string}>}} StudentRow */
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  useReactTable,
+  useReactTable
 } from '@tanstack/react-table'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Eye, Pencil, Search, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  Columns3,
+  Eye,
+  FileDown,
+  FileSpreadsheet,
+  Pencil,
+  Trash2,
+  UserPlus
+} from 'lucide-react'
+import StudentActionsMenu from './StudentActionsMenu.jsx'
+import {
+  EmptyState,
+  FilterBar,
+  Pagination,
+  SearchInput,
+  StatusBadge
+} from '../common/ui.jsx'
 
-function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStudent, onOpenModal, canManage, onExportRowsChange }) {
-  const [sorting, setSorting] = useState([])
-  const [rowSelection, setRowSelection] = useState({})
-  const [columnFilters, setColumnFilters] = useState([])
+const defaults = {
+  branch: false,
+  code: false,
+  avatar: false,
+  gender: false,
+  birthDate: false,
+  parent: false,
+  course: false,
+  teacher: false,
+  enrollmentDate: false
+}
+const widths = {
+  select: 'w-12',
+  name: 'min-w-[240px]',
+  code: 'min-w-[170px]',
+  phone: 'min-w-[135px]',
+  parent: 'min-w-[160px]',
+  className: 'min-w-[160px]',
+  course: 'min-w-[140px]',
+  teacher: 'min-w-[150px]',
+  statusValue: 'min-w-[130px]',
+  actions: 'w-px whitespace-nowrap',
+  gender: 'min-w-[90px]',
+  birthDate: 'min-w-[120px]',
+  enrollmentDate: 'min-w-[130px]'
+}
+const date = (value) =>
+  value ? new Date(value).toLocaleDateString('vi-VN') : '—'
+export default function StudentTable({
+  students,
+  filters,
+  keyword,
+  onKeywordChange,
+  onSelectStudent,
+  onOpenModal,
+  canManage,
+  onExportRowsChange,
+  onExport,
+  exportBusy
+}) {
+  const [sorting, setSorting] = useState([]),
+    [rowSelection, setRowSelection] = useState({}),
+    [columnFilters, setColumnFilters] = useState([])
+  const [visibility, setVisibility] = useState(() => {
+    try {
+      return {
+        ...defaults,
+        ...JSON.parse(localStorage.getItem('diichi-student-columns-v2') || '{}')
+      }
+    } catch {
+      return defaults
+    }
+  })
   const [filterValues, setFilterValues] = useState({
     course: '',
     className: '',
     teacher: '',
     branch: '',
-    statusValue: '',
+    statusValue: ''
   })
-
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'diichi-student-columns-v2',
+        JSON.stringify(visibility)
+      )
+    } catch {}
+  }, [visibility])
   const updateFilter = (id, value) => {
     setFilterValues((current) => ({ ...current, [id]: value }))
     setColumnFilters((current) => {
@@ -28,11 +103,12 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
       return value ? [...next, { id, value }] : next
     })
   }
-
   const columns = useMemo(
-    () => [
+    /** @returns {import('@tanstack/react-table').ColumnDef<StudentRow, any>[]} */ () => [
       {
         id: 'select',
+        enableHiding: false,
+        enableSorting: false,
         header: ({ table }) => (
           <input
             type="checkbox"
@@ -48,83 +124,140 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
             onChange={row.getToggleSelectedHandler()}
             aria-label={`Chọn ${row.original.name}`}
           />
-        ),
+        )
       },
       { accessorKey: 'code', header: 'Mã học viên' },
       {
         accessorKey: 'avatar',
-        header: 'Avatar',
+        header: 'Ảnh đại diện',
+        enableSorting: false,
         cell: ({ row }) => (
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-xs font-black text-white">
-            {row.original.avatar}
-          </span>
-        ),
+          <span className="ui-identity-avatar">{row.original.avatar}</span>
+        )
       },
-      { accessorKey: 'name', header: 'Họ tên' },
+      {
+        accessorKey: 'name',
+        header: 'Học viên',
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="ui-identity">
+            <span className="ui-identity-avatar">{row.original.avatar}</span>
+            <div>
+              <button
+                type="button"
+                className="ui-identity-name text-left hover:underline"
+                onClick={() => onSelectStudent(row.original)}
+              >
+                {row.original.name}
+              </button>
+              <button type="button" className="ui-record-link block" onClick={() => onSelectStudent(row.original)}>{row.original.code}</button>
+            </div>
+          </div>
+        )
+      },
       { accessorKey: 'gender', header: 'Giới tính' },
-      { accessorKey: 'birthDate', header: 'Ngày sinh' },
-      { accessorKey: 'phone', header: 'SĐT' },
+      {
+        accessorKey: 'birthDate',
+        header: 'Ngày sinh',
+        cell: ({ getValue }) => date(getValue())
+      },
+      {
+        accessorKey: 'phone',
+        header: 'Liên hệ',
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.phone || '—'}</span>
+            {row.original.parentPhone && (
+              <span className="ui-identity-code">
+                PH: {row.original.parentPhone}
+              </span>
+            )}
+          </div>
+        )
+      },
       { accessorKey: 'parent', header: 'Phụ huynh' },
       { accessorKey: 'course', header: 'Khóa học' },
-      { accessorKey: 'className', header: 'Lớp học' },
+      {
+        accessorKey: 'className',
+        header: 'Lớp / khóa học',
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.className || '—'}</span>
+            {row.original.course && row.original.course !== '—' && (
+              <span className="ui-identity-code">{row.original.course}</span>
+            )}
+          </div>
+        )
+      },
       { accessorKey: 'teacher', header: 'Giáo viên' },
+      { accessorKey: 'branch', header: 'Cơ sở' },
       {
         accessorKey: 'statusValue',
         header: 'Trạng thái',
         filterFn: 'equalsString',
-        cell: ({ row }) => {
-          const status = filters.statuses.find((item) => item.value === row.original.statusValue)
-          return (
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${status?.badgeClass || ''}`}>
-              {row.original.status}
-            </span>
-          )
-        },
+        cell: ({ row }) => (
+          <StatusBadge value={row.original.statusValue} context="student" />
+        )
       },
-      { accessorKey: 'enrollmentDate', header: 'Ngày nhập học' },
+      {
+        accessorKey: 'enrollmentDate',
+        header: 'Ngày nhập học',
+        cell: ({ getValue }) => date(getValue())
+      },
       {
         id: 'actions',
         header: 'Thao tác',
+        enableHiding: false,
+        enableSorting: false,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
+            {canManage && row.original.hasAccount === false && (
+              <button
+                type="button"
+                className="ui-button ui-icon-button"
+                title="Tạo tài khoản đăng nhập"
+                aria-label={`Tạo tài khoản cho ${row.original.name}`}
+                onClick={() => onOpenModal('create-account', row.original)}
+              >
+                <UserPlus size={16} />
+              </button>
+            )}
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-blue-700"
+              className="ui-button ui-icon-button"
+              title="Xem hồ sơ"
               aria-label={`Xem ${row.original.name}`}
               onClick={() => onSelectStudent(row.original)}
             >
-              <Eye size={17} aria-hidden="true" />
+              <Eye size={16} />
             </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
-              aria-label={`Sửa ${row.original.name}`}
-              onClick={() => onOpenModal('edit', row.original)}
-            >
-              <Pencil size={17} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100"
-              aria-label={`Xóa ${row.original.name}`}
-              onClick={() => onOpenModal('delete', row.original)}
-            >
-              <Trash2 size={17} aria-hidden="true" />
-            </button>
-            {canManage ? <select aria-label={`Nghiệp vụ cho ${row.original.name}`} className="h-9 max-w-36 rounded-lg border border-slate-300 px-2 text-xs" defaultValue="" onChange={(event) => { const type = event.target.value; event.target.value = ''; if (type) onOpenModal(type, row.original) }}>
-              <option value="">Nghiệp vụ</option>
-              <option value="transfer" disabled={row.original.statusValue !== 'active' || !row.original.enrollments?.some((item) => item.status === 'active')}>Chuyển lớp</option>
-              <option value="reserve" disabled={row.original.statusValue !== 'active'}>Bảo lưu</option>
-              <option value="stop" disabled={!['active', 'reserved'].includes(row.original.statusValue)}>Nghỉ học</option>
-              <option value="extend" disabled={!['active', 'reserved'].includes(row.original.statusValue) || !row.original.enrollments?.length}>Gia hạn</option>
-            </select> : null}
+            {canManage && (
+              <StudentActionsMenu
+                student={row.original}
+                onSelect={onOpenModal}
+                extraItems={[
+                  {
+                    key: 'edit',
+                    label: 'Cập nhật hồ sơ',
+                    icon: Pencil,
+                    onClick: () => onOpenModal('edit', row.original)
+                  },
+                  {
+                    key: 'delete',
+                    label: 'Xóa học viên',
+                    icon: Trash2,
+                    danger: true,
+                    onClick: () => onOpenModal('delete', row.original)
+                  }
+                ]}
+              />
+            )}
           </div>
-        ),
-      },
+        )
+      }
     ],
-    [filters.statuses, onOpenModal, onSelectStudent, canManage],
+    [onOpenModal, onSelectStudent, canManage]
   )
-
   const table = useReactTable({
     data: students,
     columns,
@@ -133,156 +266,279 @@ function StudentTable({ students, filters, keyword, onKeywordChange, onSelectStu
     state: {
       sorting,
       rowSelection,
-      globalFilter: keyword,
       columnFilters,
+      columnVisibility: visibility,
+      globalFilter: keyword
     },
+    onColumnVisibilityChange: setVisibility,
     enableRowSelection: true,
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
+    onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: onKeywordChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
-      pagination: { pageSize: 5 },
-    },
+      pagination: { pageSize: 10 },
+      columnVisibility: { branch: false }
+    }
   })
-
+  const selected = table.getSelectedRowModel().rows,
+    visible = table.getPrePaginationRowModel().rows
   useEffect(() => {
-    const visible = table.getPrePaginationRowModel().rows
-    const selected = table.getSelectedRowModel().rows
-    onExportRowsChange?.((selected.length ? selected : visible).map((row) => row.original))
-  }, [students, sorting, columnFilters, keyword, rowSelection, onExportRowsChange, table])
-
+    const chosen = table.getSelectedRowModel().rows
+    const all = table.getPrePaginationRowModel().rows
+    onExportRowsChange?.(
+      (chosen.length ? chosen : all).map((row) => row.original)
+    )
+  }, [
+    students,
+    sorting,
+    columnFilters,
+    keyword,
+    rowSelection,
+    onExportRowsChange,
+    table
+  ])
+  const clear = () => {
+    setFilterValues({
+      course: '',
+      className: '',
+      teacher: '',
+      branch: '',
+      statusValue: ''
+    })
+    setColumnFilters([])
+    onKeywordChange('')
+    table.setPageIndex(0)
+  }
   return (
-    <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex flex-col gap-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h2 className="text-lg font-black text-slate-950">Danh sách học viên</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              Đã chọn {Object.keys(rowSelection).length} dòng.
-            </p>
-          </div>
-          <div className="flex h-11 items-center gap-2 rounded-xl border border-gray-300 bg-slate-50 px-3 xl:w-96">
-            <Search size={18} className="text-slate-500" aria-hidden="true" />
-            <input
-              className="w-full bg-transparent text-sm font-medium outline-none"
-              placeholder="Từ khóa, mã, họ tên, số điện thoại"
-              value={keyword}
-              onChange={(event) => onKeywordChange(event.target.value)}
-            />
-          </div>
+    <section className="ui-card space-y-4">
+      <header className="ui-section-heading">
+        <div>
+          <h2 className="ui-section-title">Danh sách học viên</h2>
+          <p className="ui-caption">
+            {visible.length} hồ sơ phù hợp · Chọn học viên để xem chi tiết.
+          </p>
         </div>
-
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {[
-            ['course', 'Khóa học', filters.courses],
-            ['className', 'Lớp học', filters.classes],
-            ['teacher', 'Giáo viên', filters.teachers],
-            ['branch', 'Cơ sở', filters.branches],
-          ].map(([id, label, options]) => (
-            <label key={id} className="block">
-              <span className="text-xs font-bold text-slate-500">{label}</span>
-              <select
-                className="mt-1 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold outline-none"
-                value={filterValues[id]}
-                onChange={(event) => updateFilter(id, event.target.value)}
-              >
-                <option value="">Tất cả</option>
-                {options.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+          <SearchInput
+            value={keyword}
+            onChange={onKeywordChange}
+            placeholder="Lọc theo mã, tên, số điện thoại"
+          />
+          <details className="ui-columns">
+            <summary className="ui-button">
+              <Columns3 size={16} />
+              Cột hiển thị
+            </summary>
+            <div className="ui-columns-panel">
+              {table
+                .getAllLeafColumns()
+                .filter((c) => c.getCanHide())
+                .map((column) => (
+                  <label key={column.id}>
+                    <input
+                      type="checkbox"
+                      checked={column.getIsVisible()}
+                      onChange={column.getToggleVisibilityHandler()}
+                    />
+                    {typeof column.columnDef.header === 'string'
+                      ? column.columnDef.header
+                      : column.id}
+                  </label>
                 ))}
-              </select>
-            </label>
-          ))}
-          <label className="block">
-            <span className="text-xs font-bold text-slate-500">Trạng thái</span>
+              <button
+                type="button"
+                className="ui-button ui-button-small"
+                onClick={() => setVisibility({ ...defaults, branch: false })}
+              >
+                Khôi phục mặc định
+              </button>
+            </div>
+          </details>
+        </div>
+      </header>
+      <FilterBar
+        active={!!keyword || Object.values(filterValues).some(Boolean)}
+        onClear={clear}
+      >
+        {[
+          ['course', 'Khóa học', filters.courses],
+          ['className', 'Lớp học', filters.classes],
+          ['teacher', 'Giáo viên', filters.teachers],
+          ['branch', 'Cơ sở', filters.branches]
+        ].map(([id, label, options]) => (
+          <label key={id}>
+            {label}
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold outline-none"
-              value={filterValues.statusValue}
-              onChange={(event) => updateFilter('statusValue', event.target.value)}
+              className="ui-input mt-2"
+              value={filterValues[id]}
+              onChange={(e) => updateFilter(id, e.target.value)}
             >
               <option value="">Tất cả</option>
-              {filters.statuses.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
+              {options.map((item) => (
+                <option key={item} value={item}>
+                  {item}
                 </option>
               ))}
             </select>
           </label>
+        ))}
+        <label>
+          Trạng thái
+          <select
+            className="ui-input mt-2"
+            value={filterValues.statusValue}
+            onChange={(e) => updateFilter('statusValue', e.target.value)}
+          >
+            <option value="">Tất cả</option>
+            {filters.statuses.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </FilterBar>
+      {selected.length > 0 && (
+        <div className="ui-bulk-bar">
+          <span className="font-semibold">
+            Đã chọn {selected.length} học viên
+          </span>
+          {onExport && (
+            <>
+              <button
+                type="button"
+                className="ui-button ui-button-small"
+                disabled={exportBusy}
+                onClick={() => onExport('excel')}
+              >
+                <FileSpreadsheet size={14} />
+                Xuất Excel
+              </button>
+              <button
+                type="button"
+                className="ui-button ui-button-small"
+                disabled={exportBusy}
+                onClick={() => onExport('pdf')}
+              >
+                <FileDown size={14} />
+                Xuất PDF
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="ui-button ui-button-small ui-button-quiet"
+            onClick={() => table.resetRowSelection()}
+          >
+            Bỏ chọn
+          </button>
         </div>
-      </div>
-
-      <div className="overflow-x-auto rounded-xl border border-gray-300">
-        <table className="min-w-[1320px] w-full border-collapse text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-black uppercase text-slate-500">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-3">
-                    {header.isPlaceholder ? null : (
+      )}
+      <div
+        className="ui-table-wrap"
+        role="region"
+        aria-label="Danh sách học viên"
+        tabIndex={0}
+      >
+        <table className="min-w-[980px] w-full text-left">
+          <thead>
+            {table.getHeaderGroups().map((group) => (
+              <tr key={group.id}>
+                {group.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    scope="col"
+                    className={widths[header.column.id] || ''}
+                    aria-sort={
+                      header.column.getIsSorted() === false
+                        ? undefined
+                        : header.column.getIsSorted() === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                    }
+                  >
+                    {header.column.getCanSort() ? (
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1"
+                        className="inline-flex items-center gap-2"
                         onClick={header.column.getToggleSortingHandler()}
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() ? (
-                          header.column.getIsSorted() ? <ChevronDown size={14} /> : <ChevronsUpDown size={14} />
-                        ) : null}
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                        {header.column.getIsSorted() ? (
+                          <ChevronDown
+                            size={12}
+                            className={
+                              header.column.getIsSorted() === 'asc'
+                                ? 'rotate-180'
+                                : ''
+                            }
+                          />
+                        ) : (
+                          <ChevronsUpDown
+                            size={12}
+                            className="text-slate-300"
+                          />
+                        )}
                       </button>
+                    ) : (
+                      flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )
                     )}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {!table.getRowModel().rows.length ? <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500">Không có học viên phù hợp.</td></tr> : null}
+          <tbody className="divide-y divide-slate-100">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-slate-50">
+              <tr
+                key={row.id}
+                data-state={row.getIsSelected() ? 'selected' : undefined}
+                className={row.getIsSelected() ? 'bg-red-50/40' : ''}
+              >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3 font-medium text-slate-700">
+                  <td
+                    key={cell.id}
+                    className={widths[cell.column.id] || 'whitespace-nowrap'}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
               </tr>
             ))}
+            {!table.getRowModel().rows.length && (
+              <tr>
+                <td colSpan={table.getVisibleLeafColumns().length}>
+                  <EmptyState
+                    compact
+                    title="Không có học viên phù hợp"
+                    description="Thử thay đổi từ khóa hoặc xóa bộ lọc để xem danh sách."
+                  />
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-slate-500">
-          Trang {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 text-sm font-bold text-slate-600 disabled:opacity-50"
-            disabled={!table.getCanPreviousPage()}
-            onClick={() => table.previousPage()}
-          >
-            <ChevronLeft size={16} aria-hidden="true" />
-            Trước
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 text-sm font-bold text-slate-600 disabled:opacity-50"
-            disabled={!table.getCanNextPage()}
-            onClick={() => table.nextPage()}
-          >
-            Sau
-            <ChevronRight size={16} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <Pagination
+        page={table.getState().pagination.pageIndex + 1}
+        pages={table.getPageCount()}
+        total={visible.length}
+        size={table.getState().pagination.pageSize}
+        onPageChange={(page) => table.setPageIndex(page - 1)}
+        onSizeChange={(size) => table.setPageSize(size)}
+        label="học viên"
+      />
     </section>
   )
 }
-
-export default StudentTable
