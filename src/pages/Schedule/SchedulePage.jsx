@@ -19,6 +19,7 @@ import {
   initials
 } from '../../services/crmApi.js'
 import apiClient from '../../services/apiClient.js'
+import {generatePatternSessions} from '../../services/schedulePattern.js'
 import {
   useWorkspace,
   nameOf,
@@ -209,28 +210,21 @@ export default function SchedulePage() {
         lessonNote: values.reason || event?.lessonNote || null
       }
       if (['create', 'makeup', 'recurring', 'duplicate'].includes(type)) {
-        const count =
-          type === 'recurring'
-            ? Number(values.repeatWeeks || 1)
-            : values.repeatFullCourse
-              ? Number(values.totalSessions)
-              : 1
-        if (count < 1 || count > 104)
-          throw new Error('Số buổi cần từ 1 đến 104')
-        const schedules = Array.from({ length: count }, (_, index) => ({
+        const patternMode=type==='recurring'||(type==='create'&&values.repeatFullCourse)
+        const schedules = patternMode ? generatePatternSessions(values.schedulePattern,values.date,values.totalSessions).map(session=>({...payload,startAt:session.startAt,endAt:session.endAt})) : [{
           ...payload,
           startAt:
             type === 'duplicate'
               ? dayjs(event.start).add(1, 'day').toISOString()
-              : dayjs(start).add(index, 'week').toISOString(),
+              : dayjs(start).toISOString(),
           endAt:
             type === 'duplicate'
               ? dayjs(event.end).add(1, 'day').toISOString()
-              : dayjs(end).add(index, 'week').toISOString(),
+              : dayjs(end).toISOString(),
           ...(type === 'makeup' && event?.id
             ? { parentScheduleId: event.id }
             : {})
-        }))
+        }]
         await apiClient.post('/workspace/schedules', { schedules })
       } else if (type === 'edit')
         await updateResource('schedule', event.id, payload)

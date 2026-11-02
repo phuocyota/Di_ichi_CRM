@@ -3,6 +3,13 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import dayjs from 'dayjs'
 import { AlertTriangle, CalendarClock, X } from 'lucide-react'
+import {generatePatternSessions} from '../../services/schedulePattern.js'
+
+const todayInputDate = () => {
+  const parts = new Intl.DateTimeFormat('en', {timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
+  const part=type=>parts.find(item=>item.type===type).value
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
 
 function ScheduleModal({
   modal,
@@ -25,9 +32,15 @@ function ScheduleModal({
     setValue,
     watch,
     formState: { errors },
-  } = useForm()
+  } = useForm({shouldUnregister:true})
 
   const selectedClassName = watch('className')
+  const repeating = modal === 'recurring' || (modal === 'create' && watch('repeatFullCourse'))
+  const pattern = watch('schedulePattern'), firstDate=watch('date'), totalSessions=watch('totalSessions')
+  let preview=[], previewError=''
+  if(repeating && pattern) {
+    try {preview=generatePatternSessions(pattern,firstDate,totalSessions)} catch(error) {previewError=error.message}
+  }
 
   useEffect(() => {
     const isEditing = Boolean(event?.id)
@@ -38,11 +51,13 @@ function ScheduleModal({
       teacher: isEditing ? event?.teacherId || '' : '',
       room: isEditing ? event?.roomId || '' : '',
       branch: isEditing ? event?.branchId || '' : '',
-      date: event?.start ? dayjs(event.start).format('YYYY-MM-DD') : '',
+      date: event?.start ? dayjs(event.start).format('YYYY-MM-DD') : isEditing ? '' : todayInputDate(),
       startTime: event?.start ? dayjs(event.start).format('HH:mm') : '',
       endTime: event?.end ? dayjs(event.end).format('HH:mm') : '',
       status: isEditing ? event?.status || '' : '',
       repeatWeeks: 4,
+      totalSessions: 12,
+      schedulePattern: event?.start && event?.end ? `${dayjs(event.start).day()===0?'CN':'T'+(dayjs(event.start).day()+1)} ${dayjs(event.start).format('HH:mm')}-${dayjs(event.end).format('HH:mm')}` : '',
       homeworkTitle: isEditing ? event?.homework?.[0]?.title || '' : '',
       homeworkDeadline: isEditing ? event?.homework?.[0]?.deadline || '' : '',
       notifyTitle: isEditing ? `Thông báo lịch học ${event?.className || ''}`.trim() : '',
@@ -142,9 +157,6 @@ function ScheduleModal({
           {filters.statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </label>
-      {renderTimeFields()}
-      {watch('repeatFullCourse') && <label className="block text-sm font-semibold">Số buổi toàn khóa<input type="number" min="1" max="104" className={inputClass} {...register('totalSessions', { required: 'Nhập số buổi', min: 1, max: 104 })} />{renderError('totalSessions')}</label>}
-      {watch('repeatFullCourse') && <label className="block text-sm font-semibold">Số buổi toàn khóa<input type="number" min="1" max="104" className={inputClass} {...register('totalSessions', { required: 'Nhập số buổi', min: 1, max: 104 })} />{renderError('totalSessions')}</label>}
       {modal === 'create' ? (
         <label className="md:col-span-2 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <input
@@ -155,11 +167,18 @@ function ScheduleModal({
           <span>
             <span className="block text-sm font-semibold text-emerald-800">Lặp lại toàn khóa</span>
             <span className="mt-1 block text-xs font-semibold text-emerald-700">
-              Nhập số buổi cần tạo. Lịch lặp mỗi tuần theo giờ đã chọn.
+              Nhập thứ và giờ học để tạo nhiều buổi theo tuần.
             </span>
           </span>
         </label>
       ) : null}
+      {repeating ? <>
+        <label className="block"><span className={labelClass}>Ngày bắt đầu</span><input type="date" className={inputClass} {...register('date',required('Chọn ngày bắt đầu'))}/>{renderError('date')}</label>
+        <label className="block"><span className={labelClass}>Số buổi toàn khóa</span><input type="number" min="1" max="104" step="1" className={inputClass} {...register('totalSessions',{required:'Nhập số buổi toàn khóa',validate:value=>Number.isInteger(Number(value))&&Number(value)>=1&&Number(value)<=104||'Nhập số nguyên từ 1 đến 104'})}/>{renderError('totalSessions')}</label>
+        <label className="block md:col-span-2"><span className={labelClass}>Lịch học trong tuần</span><input className={inputClass} placeholder="T2-T4 14:00-16:00" {...register('schedulePattern',{required:'Nhập lịch học trong tuần',validate:value=>{try{generatePatternSessions(value,watch('date'),watch('totalSessions'));return true}catch(error){return error.message}}})}/><span className="mt-2 block text-xs text-slate-500">T2-T4 nghĩa là học thứ Hai và thứ Tư, không gồm thứ Ba. Thêm khung giờ khác bằng dấu chấm phẩy, ví dụ: T6 09:00-11:00. Dùng CN cho Chủ nhật.</span>{renderError('schedulePattern')}</label>
+        {previewError && !errors.schedulePattern ? <p role="status" className="md:col-span-2 text-sm text-amber-700">{previewError}</p> : null}
+        {preview.length>0 ? <section className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-4" aria-label="Xem trước lịch học"><h3 className="text-sm font-semibold text-slate-800">Sẽ tạo {preview.length} buổi học</h3><p className="mt-1 text-xs text-slate-500">Từ {dayjs(preview[0].date).format('DD/MM/YYYY')} đến {dayjs(preview.at(-1).date).format('DD/MM/YYYY')} · Giờ Việt Nam</p><ol className="mt-3 grid gap-2 sm:grid-cols-2">{preview.slice(0,6).map((session,index)=><li key={session.startAt} className="rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-slate-700"><span className="mr-2 text-slate-400">{index+1}.</span>{session.weekday===0?'CN':`T${session.weekday+1}`} · {dayjs(session.date).format('DD/MM/YYYY')} · {session.startTime}–{session.endTime}</li>)}</ol>{preview.length>6?<p className="mt-2 text-xs text-slate-500">Và {preview.length-6} buổi tiếp theo theo lịch đã nhập.</p>:null}</section> : null}
+      </> : renderTimeFields()}
     </div>
   )
 
