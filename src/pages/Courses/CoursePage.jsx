@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import CourseHeader from '../../components/Courses/CourseHeader.jsx'
 import CourseModal from '../../components/Courses/CourseModal.jsx'
 import ClassPlanConversionModal from '../../components/Courses/ClassPlanConversionModal.jsx'
+import QuickClassTeacherModal from '../../components/Courses/QuickClassTeacherModal.jsx'
 import CourseTable from '../../components/Courses/CourseTable.jsx'
 import CourseClassTable from '../../components/Courses/CourseClassTable.jsx'
 import LearningResultTable from '../../components/Courses/LearningResultTable.jsx'
@@ -43,6 +44,7 @@ export default function CoursePage() {
   const [loadError, setLoadError] = useState('')
   const [modal, setModal] = useState(null)
   const [conversionTarget,setConversionTarget]=useState(null)
+  const [teacherCreateTarget,setTeacherCreateTarget]=useState(null)
   const [selectedResult, setSelectedResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
@@ -398,8 +400,9 @@ export default function CoursePage() {
         </>
       )}
       <CourseModal
-        inactive={Boolean(conversionTarget)}
+        inactive={Boolean(conversionTarget||teacherCreateTarget)}
         onConvert={setConversionTarget}
+        onCreateTeacher={setTeacherCreateTarget}
         modal={modal}
         saving={saving}
         courseStatuses={courseStatuses}
@@ -413,7 +416,8 @@ export default function CoursePage() {
         }}
         onSubmit={handleSubmit}
       />
-      {conversionTarget?<ClassPlanConversionModal item={conversionTarget} teachers={teachers} rooms={data.room||[]} onClose={()=>setConversionTarget(null)} onConverted={async result=>{setConversionTarget(null);setModal(null);toast.success(`Đã tạo ${result.created} buổi thực tế; ${result.alreadyExisting} buổi đã có được giữ nguyên.`);try{await refresh()}catch(error){toast.warning('Đã chuyển lịch, nhưng chưa tải lại được danh sách: '+error.message)}}}/>:null}
+      {teacherCreateTarget?<QuickClassTeacherModal item={teacherCreateTarget} onClose={()=>setTeacherCreateTarget(null)} onCreated={result=>{const teacher=result.teacher;setData(current=>({...current,staff:[...(current.staff||[]).filter(t=>t.id!==teacher.id),teacher],...(result.assignment?{'class-staff':[...(current['class-staff']||[]).filter(l=>l.id!==result.assignment.id),result.assignment]}:{})}));if(result.assignment)setModal(current=>current?.item?.id===result.classId?{...current,item:{...current.item,teacherId:teacher.id,teacherIds:[teacher.id,...(current.item.teacherIds||[]).filter(id=>id!==teacher.id)]}}:current);setTeacherCreateTarget(null);toast.success(result.assignment?'Đã tạo giáo viên và phân công vào lớp.':'Đã tạo hồ sơ giáo viên.');window.dispatchEvent(new Event('crm:notifications-refresh'));}}/>:null}
+      {conversionTarget?<ClassPlanConversionModal item={conversionTarget} teachers={teachers} rooms={data.room||[]} onClose={()=>setConversionTarget(null)} onConverted={async result=>{setConversionTarget(null);setModal(null);window.dispatchEvent(new Event('crm:notifications-refresh'));toast.success(`Đã tạo ${result.created} buổi thực tế; ${result.alreadyExisting} buổi đã có được giữ nguyên.`);try{await refresh()}catch(error){toast.warning('Đã chuyển lịch, nhưng chưa tải lại được danh sách: '+error.message)}}}/>:null}
       <LearningResultDetailModal
         result={selectedResult}
         studentMap={studentMap}

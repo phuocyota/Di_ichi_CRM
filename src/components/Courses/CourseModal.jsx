@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import dayjs from 'dayjs'
 import {parseSchedulePattern,generatePatternUntil} from '../../services/schedulePattern.js'
 
@@ -29,7 +29,7 @@ function buildClassInitial(item, courseId, isCreate = false) {
     code: item?.code || '',
     name: item?.name || '',
     courseId: item?.courseId || courseId || '',
-    teacherId: item?.teacherId || '',
+    teacherId: item?.teacherId || item?.teacherIds?.[0] || '',
     startDate: item?.startDate || (isCreate ? today : ''),
     endDate: item?.endDate || (isCreate ? dayjs(today).add(4, 'month').format('YYYY-MM-DD') : ''),
     schedule: item?.schedule || '',
@@ -53,6 +53,7 @@ function CourseModal({
   onClose,
   onSubmit,
   onConvert,
+  onCreateTeacher,
   inactive=false,
 }) {
   const [values, setValues] = useState({})
@@ -195,13 +196,13 @@ function CourseModal({
                   {courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
-              <label>
-                <span className="text-xs font-black uppercase text-slate-500">Giáo viên</span>
-                <select className={inputClass} value={values.teacherId || ''} disabled onChange={(event) => updateValue('teacherId', event.target.value)}>
+              <div>
+                <label htmlFor="class-teacher" className="text-xs font-black uppercase text-slate-500">Giáo viên</label>
+                <div className="flex items-center gap-2"><select id="class-teacher" className={inputClass} value={values.teacherId || ''} disabled onChange={(event) => updateValue('teacherId', event.target.value)}>
                   <option value="">Chưa phân công</option>
                   {teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
-              </label>
+                </select>{isReadonly&&modal.item?.id&&onCreateTeacher?<button type="button" aria-label="Tạo giáo viên cho lớp" title="Tạo giáo viên mới" className="ui-button ui-icon-button mt-2 h-11 w-11 shrink-0" onClick={()=>onCreateTeacher(modal.item)}><Plus size={19}/></button>:null}</div>
+              </div>
               <label>
                 <span className="text-xs font-black uppercase text-slate-500">Ngày khai giảng</span>
                 <input className={inputClass} type="date" value={values.startDate || ''} disabled={isReadonly} onChange={(event) => updateValue('startDate', event.target.value)} required />

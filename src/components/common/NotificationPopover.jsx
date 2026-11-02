@@ -64,10 +64,12 @@ export default function NotificationPopover() {
     }, 60000);
     const focus = () => load();
     window.addEventListener("focus", focus);
+    window.addEventListener('crm:notifications-refresh',focus);
     return () => {
       loadVersion.current++;
       clearInterval(timer);
       window.removeEventListener("focus", focus);
+      window.removeEventListener('crm:notifications-refresh',focus);
     };
   }, [load]);
   useEffect(() => {
