@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 export const navigationItems = [
+  { label: 'Thư viện bài giảng', path: '/lesson-library', icon: BookOpen, color: 'bg-blue-50 text-blue-700 ring-blue-100', activeColor: 'bg-blue-600 text-white shadow-blue-200' },
   {
     label: 'Tổng quan',
     path: '/dashboard',

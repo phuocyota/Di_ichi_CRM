@@ -14,7 +14,9 @@ export async function signIn({ email, password }) {
     email,
     name: email.split('@')[0],
     role: result.userType,
-    position: result.userType === 'ADMIN' ? 'Quản trị viên' : result.userType,
+    position: result.userType === 'ADMIN' ? 'Quản trị chi nhánh' : result.userType === 'SUPER_ADMIN' ? 'Quản trị toàn hệ thống' : result.userType,
+    branchId: result.branchId || null,
+    adminScope: result.adminScope || null,
     deviceId: result.deviceId,
   }
 

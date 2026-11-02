@@ -18,6 +18,7 @@ const SchedulePage = lazy(() => import('../pages/Schedule/SchedulePage.jsx'))
 const StaffPage = lazy(() => import('../pages/Staff/StaffPage.jsx'))
 const StudentPage = lazy(() => import('../pages/Students/StudentPage.jsx'))
 const SystemSettingsPage = lazy(() => import('../pages/SystemSettings/SystemSettingsPage.jsx'))
+const LessonLibrary = lazy(() => import('../library/LessonLibrary.jsx'))
 
 function RouteFallback() {
   return (
@@ -45,6 +46,7 @@ function AppRouter() {
               <Route path="/parents" element={<ParentPage />} />
               <Route path="/classes" element={<Navigate to="/courses" replace />} />
               <Route path="/courses" element={<CoursePage />} />
+              <Route path="/lesson-library" element={<LessonLibrary manage />} />
               <Route path="/schedule" element={<SchedulePage />} />
               <Route path="/staff" element={<StaffPage />} />
               <Route path="/finance" element={<FinancePage />} />

@@ -60,7 +60,7 @@ function StudentPage() {
   }, [searchParams])
   const [canAssignSale] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(USER_KEY))?.role === 'ADMIN'
+      return ['ADMIN', 'SUPER_ADMIN'].includes(JSON.parse(localStorage.getItem(USER_KEY))?.role)
     } catch {
       return false
     }
