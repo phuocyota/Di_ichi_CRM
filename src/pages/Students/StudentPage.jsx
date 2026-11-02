@@ -58,13 +58,14 @@ function StudentPage() {
       setActiveTab('list')
     }
   }, [searchParams])
-  const [canAssignSale] = useState(() => {
+  const [currentUser] = useState(() => {
     try {
-      return ['ADMIN', 'SUPER_ADMIN'].includes(JSON.parse(localStorage.getItem(USER_KEY))?.role)
+      return JSON.parse(localStorage.getItem(USER_KEY))
     } catch {
-      return false
+      return null
     }
   })
+  const canAssignSale = ['ADMIN', 'SUPER_ADMIN'].includes(currentUser?.role)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [keyword, setKeyword] = useState('')
   const [studentItems, setStudentItems] = useState([])
@@ -507,6 +508,7 @@ function StudentPage() {
         selectedStudent={modal === 'add' ? null : selectedStudent}
         filters={effectiveFilters}
         directories={directories}
+        defaultBranchId={currentUser?.branchId || ''}
         canAssignSale={canAssignSale}
         onClose={() => setModal(null)}
         onSubmit={handleModalSubmit}

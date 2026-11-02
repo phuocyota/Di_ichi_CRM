@@ -10,7 +10,15 @@ const inputDate = (value) => {
   return parts ? `${parts[3]}-${parts[2]}-${parts[1]}` : ''
 }
 
-function StudentModal({ modal, configs, selectedStudent, filters, directories, canAssignSale = false, onClose, onSubmit }) {
+const todayInputDate = () => {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date())
+  const part = (type) => parts.find((item) => item.type === type).value
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
+
+function StudentModal({ modal, configs, selectedStudent, filters, directories, defaultBranchId = '', canAssignSale = false, onClose, onSubmit }) {
   const [saleOptions, setSaleOptions] = useState([])
   const [salesLoading, setSalesLoading] = useState(false)
   const [salesError, setSalesError] = useState('')
@@ -27,9 +35,9 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, c
 
   useEffect(() => {
     const source = modal === 'add' ? null : selectedStudent
-    reset({ code: source?.code || '', name: source?.name || '', gender: source?.gender || '', birthDate: inputDate(source?.birthDate), phone: source?.phone || '', email: source?.email || '', parent: source?.parent || '', parentPhone: source?.parentPhone || '', courseId: source?.courseId || '', classId: source?.classId || '', branchId: source?.branchId || '', assignedSaleUserId: source?.assignedSaleUserId || '', statusValue: source?.statusValue || '', enrollmentDate: inputDate(source?.enrollmentDate), reason: source?.note || '' })
+    reset({ code: source?.code || '', name: source?.name || '', gender: source?.gender || '', birthDate: inputDate(source?.birthDate), phone: source?.phone || '', email: source?.email || '', parent: source?.parent || '', parentPhone: source?.parentPhone || '', courseId: source?.courseId || '', classId: source?.classId || '', branchId: source?.branchId || (modal === 'add' ? defaultBranchId : ''), assignedSaleUserId: source?.assignedSaleUserId || '', statusValue: source?.statusValue || '', enrollmentDate: modal === 'add' ? todayInputDate() : inputDate(source?.enrollmentDate), reason: source?.note || '' })
     setSubmitError('')
-  }, [reset, modal, selectedStudent])
+  }, [reset, modal, selectedStudent, defaultBranchId])
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +67,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, c
       <header className="flex items-start justify-between border-b border-slate-200 p-6"><div><h2 id="student-modal-title" className="text-lg font-semibold">{config.title}</h2><p className="mt-1 text-sm text-slate-500">{creating ? 'Nhập thông tin học viên mới. Tài khoản học sinh được tạo kèm với email này, mật khẩu ban đầu: 123456.' : selectedStudent?.name}</p></div><button type="button" aria-label="Đóng modal" disabled={isSubmitting} onClick={onClose} className="rounded-lg border p-2 disabled:opacity-40"><X size={18} /></button></header>
       <form onSubmit={submit} className="space-y-5 p-6">
         {deleting ? <p className="rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700">Bạn có chắc chắn muốn xóa vĩnh viễn học viên {selectedStudent?.name} và các dữ liệu liên quan?</p> : <fieldset disabled={isSubmitting} className="space-y-5">
+          {creating ? <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800"><strong>Hướng dẫn:</strong> Tạo khóa học trước khi thêm học viên. Sau đó chọn khóa học và lớp học tương ứng bên dưới.</p> : null}
           <h3 className="font-semibold text-blue-700">Thông tin học viên</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {textField('code', 'Mã học viên')}{textField('name', 'Họ tên', 'text', true)}
