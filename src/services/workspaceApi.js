@@ -140,6 +140,7 @@ export const saveWorkspaceRecord = (id, payload) =>
 export const deleteWorkspaceRecord = (id) =>
   apiClient.delete(`/workspace/records/${id}`)
 export const getNotifications = () => apiClient.get('/workspace/notifications')
+export const getScheduleAlerts = () => apiClient.get('/workspace/schedule-alerts')
 export const readNotifications = (id) =>
   apiClient.patch(
     id

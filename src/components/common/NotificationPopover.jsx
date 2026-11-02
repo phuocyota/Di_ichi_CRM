@@ -1,65 +1,104 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Bell, CheckCheck, RefreshCcw } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Bell, CheckCheck, RefreshCcw, UserRoundX } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   getNotifications,
-  readNotifications
-} from '../../services/workspaceApi.js'
+  getScheduleAlerts,
+  readNotifications,
+} from "../../services/workspaceApi.js";
+import { USER_KEY } from "../../services/apiClient.js";
 
 export default function NotificationPopover() {
-  const ref = useRef(null)
+  const ref = useRef(null);
+  const loadVersion = useRef(0);
+  const [isAdmin] = useState(() => {
+    try {
+      return ["ADMIN", "SUPER_ADMIN"].includes(
+        JSON.parse(localStorage.getItem(USER_KEY))?.role,
+      );
+    } catch {
+      return false;
+    }
+  });
+  const [alerts, setAlerts] = useState([]);
   const [open, setOpen] = useState(false),
     [rows, setRows] = useState([]),
-    [error, setError] = useState(''),
+    [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
-    [filter, setFilter] = useState('all')
+    [filter, setFilter] = useState("all");
   const load = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    const version = ++loadVersion.current;
+    setLoading(true);
+    setError("");
     try {
-      const data = await getNotifications()
-      if (!Array.isArray(data))
-        throw new Error('Dữ liệu thông báo không hợp lệ')
-      setRows(data)
+      const results = await Promise.allSettled([
+        getNotifications(),
+        isAdmin ? getScheduleAlerts() : Promise.resolve([]),
+      ]);
+      if (version !== loadVersion.current) return;
+      const messages = [];
+      for (const [index, result] of results.entries()) {
+        if (result.status === "rejected") {
+          messages.push(result.reason?.message || "Không tải được thông báo");
+          continue;
+        }
+        if (!Array.isArray(result.value)) {
+          messages.push("Dữ liệu thông báo không hợp lệ");
+          continue;
+        }
+        if (index === 0) setRows(result.value);
+        else setAlerts(result.value);
+      }
+      if (messages.length) setError(messages.join("; "));
     } catch (cause) {
-      setError(cause.message)
+      setError(cause.message);
     } finally {
-      setLoading(false)
+      if (version === loadVersion.current) setLoading(false);
     }
-  }, [])
+  }, [isAdmin]);
   useEffect(() => {
-    load()
-  }, [load])
-  useEffect(() => {
-    if (!open) return
-    load()
-    const outside = (event) => {
-      if (!ref.current?.contains(event.target)) setOpen(false)
-    }
-    const escape = (event) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('pointerdown', outside)
-    document.addEventListener('keydown', escape)
+    load();
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") load();
+    }, 60000);
+    const focus = () => load();
+    window.addEventListener("focus", focus);
     return () => {
-      document.removeEventListener('pointerdown', outside)
-      document.removeEventListener('keydown', escape)
-    }
-  }, [open, load])
+      loadVersion.current++;
+      clearInterval(timer);
+      window.removeEventListener("focus", focus);
+    };
+  }, [load]);
+  useEffect(() => {
+    if (!open) return;
+    load();
+    const outside = (event) => {
+      if (!ref.current?.contains(event.target)) setOpen(false);
+    };
+    const escape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open, load]);
   async function mark(id) {
-    setBusy(true)
-    setError('')
+    setBusy(true);
+    setError("");
     try {
-      await readNotifications(id)
-      await load()
+      await readNotifications(id);
+      await load();
     } catch (cause) {
-      setError(cause.message)
+      setError(cause.message);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
-  const unread = rows.filter((r) => !r.readAt).length
+  const unread = rows.filter((r) => !r.readAt).length;
   return (
     <div ref={ref} className="relative">
       <button
@@ -71,9 +110,9 @@ export default function NotificationPopover() {
         className="ui-button ui-icon-button relative"
       >
         <Bell size={19} />
-        {unread > 0 && (
+        {unread + alerts.length > 0 && (
           <span className="absolute -right-1 -top-1 rounded-full border-2 border-white bg-red-600 px-1.5 text-[10px] font-bold text-white">
-            {unread}
+            {unread + alerts.length}
           </span>
         )}
       </button>
@@ -87,7 +126,10 @@ export default function NotificationPopover() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-bold">Thông báo</h2>
-                <p className="mt-1 text-xs text-slate-500">{unread} chưa đọc</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {unread} chưa đọc
+                  {alerts.length ? ` · ${alerts.length} cần phân công` : ""}
+                </p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -108,15 +150,18 @@ export default function NotificationPopover() {
                 </button>
               </div>
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {[
-                ['all', 'Tất cả'],
-                ['unread', 'Chưa đọc']
+                ["all", "Tất cả"],
+                ["unread", "Chưa đọc"],
+                ...(isAdmin
+                  ? [["teachers", `Cần phân công (${alerts.length})`]]
+                  : []),
               ].map(([v, l]) => (
                 <button
                   key={v}
                   onClick={() => setFilter(v)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${filter === v ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${filter === v ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}
                 >
                   {l}
                 </button>
@@ -124,6 +169,41 @@ export default function NotificationPopover() {
             </div>
           </header>
           <div className="max-h-[min(30rem,65vh)] overflow-y-auto p-2">
+            {filter !== "unread" &&
+              alerts.map((alert) => (
+                <article
+                  key={alert.id}
+                  className="mb-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3"
+                >
+                  <div className="flex items-start gap-2">
+                    <UserRoundX
+                      size={17}
+                      className="mt-0.5 shrink-0 text-amber-700"
+                    />
+                    <div>
+                      <h3 className="text-sm font-semibold text-amber-900">
+                        {alert.title}
+                      </h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">
+                        {alert.content}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {alert.branchName}
+                        {alert.plannedSessions > 0
+                          ? ` · ${alert.plannedSessions} buổi dự kiến`
+                          : ""}
+                      </p>
+                      <Link
+                        className="mt-2 inline-flex text-xs font-semibold text-amber-800 underline"
+                        to={alert.targetPath}
+                        onClick={() => setOpen(false)}
+                      >
+                        Mở lớp để phân công
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
             {error && (
               <p role="alert" className="p-3 text-sm text-red-600">
                 {error}
@@ -135,11 +215,14 @@ export default function NotificationPopover() {
               </p>
             )}
             {rows
-              .filter((r) => filter !== 'unread' || !r.readAt)
+              .filter(
+                (r) =>
+                  filter !== "teachers" && (filter !== "unread" || !r.readAt),
+              )
               .map((r) => (
                 <article
                   key={r.id}
-                  className={`mb-1 rounded-xl p-3 ${r.readAt ? 'bg-white' : 'bg-blue-50'}`}
+                  className={`mb-1 rounded-xl p-3 ${r.readAt ? "bg-white" : "bg-blue-50"}`}
                 >
                   <h3 className="text-sm font-bold text-slate-800">
                     {r.title}
@@ -148,7 +231,7 @@ export default function NotificationPopover() {
                     {r.content}
                   </p>
                   <p className="mt-2 text-[11px] text-slate-400">
-                    {new Date(r.createdAt).toLocaleString('vi-VN')}
+                    {new Date(r.createdAt).toLocaleString("vi-VN")}
                   </p>
                   <div className="mt-2 flex gap-3">
                     {!r.readAt && (
@@ -160,14 +243,14 @@ export default function NotificationPopover() {
                         Đánh dấu đã đọc
                       </button>
                     )}
-                    {r.targetPath?.startsWith('/') &&
-                      !r.targetPath.startsWith('//') && (
+                    {r.targetPath?.startsWith("/") &&
+                      !r.targetPath.startsWith("//") && (
                         <Link
                           className="text-xs font-semibold text-blue-600"
                           to={r.targetPath}
                           onClick={() => {
-                            setOpen(false)
-                            if (!r.readAt) mark(r.id)
+                            setOpen(false);
+                            if (!r.readAt) mark(r.id);
                           }}
                         >
                           Xem chi tiết
@@ -178,7 +261,11 @@ export default function NotificationPopover() {
               ))}
             {!loading &&
               !error &&
-              !rows.some((r) => filter !== 'unread' || !r.readAt) && (
+              !(filter !== "unread" && alerts.length) &&
+              !rows.some(
+                (r) =>
+                  filter !== "teachers" && (filter !== "unread" || !r.readAt),
+              ) && (
                 <p className="p-8 text-center text-sm text-slate-400">
                   Chưa có thông báo.
                 </p>
@@ -187,5 +274,5 @@ export default function NotificationPopover() {
         </section>
       )}
     </div>
-  )
+  );
 }

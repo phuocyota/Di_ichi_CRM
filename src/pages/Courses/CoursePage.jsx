@@ -1,5 +1,6 @@
 import { LoadingSkeleton } from '../../components/common/ui.jsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {useSearchParams} from 'react-router-dom'
 import { toast } from 'sonner'
 import CourseHeader from '../../components/Courses/CourseHeader.jsx'
 import CourseModal from '../../components/Courses/CourseModal.jsx'
@@ -31,7 +32,10 @@ const normalize = (value) =>
     .trim()
 
 export default function CoursePage() {
-  const [activeTab, setActiveTab] = useState('courses')
+  const [searchParams,setSearchParams]=useSearchParams()
+  const targetClassId=searchParams.get('classId')
+  const [activeTab, setActiveTab] = useState(targetClassId?'classes':'courses')
+  useEffect(()=>{if(targetClassId)setActiveTab('classes')},[targetClassId])
   const [keyword, setKeyword] = useState('')
   const [filterValues, setFilterValues] = useState({})
   const [data, setData] = useState({})
@@ -43,6 +47,17 @@ export default function CoursePage() {
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const requestRef = useRef(0)
+  useEffect(()=>{
+    if(!targetClassId||activeTab!=='classes'||loading||!Array.isArray(data.class))return
+    const item=data.class.find(c=>c.id===targetClassId&&!c.deletedAt)
+    if(item){
+      const teacherIds=(data['class-staff']||[]).filter(l=>l.classId===item.id&&l.role==='teacher').map(l=>l.staffId)
+      const schedule=(data['class-weekly-schedule']||[]).filter(l=>l.classId===item.id).map(l=>`${l.weekday===0?'CN':'T'+(l.weekday+1)} ${l.startTime.slice(0,5)}-${l.endTime.slice(0,5)}`).join('; ')
+      const currentStudents=(data.enrollment||[]).filter(e=>e.classId===item.id&&e.isCurrent).length
+      setModal({entity:'class',mode:'view',item:{...item,teacherIds,maxStudents:item.maxSize,currentStudents,schedule}})
+    }else toast.error('Lớp không còn tồn tại hoặc bạn không có quyền xem lớp này')
+    const next=new URLSearchParams(searchParams);next.delete('classId');setSearchParams(next,{replace:true})
+  },[targetClassId,activeTab,loading,data,searchParams,setSearchParams])
 
   const refresh = useCallback(async () => {
     const request = ++requestRef.current
