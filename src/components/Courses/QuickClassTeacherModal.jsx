@@ -1,8 +1,13 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { LoaderCircle, UserRoundPlus, X } from "lucide-react";
 import apiClient from "../../services/apiClient.js";
 
 export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
+  const opener = useRef(document.activeElement);
+  useEffect(() => {
+    const previous = opener.current;
+    return () => previous?.focus?.();
+  }, []);
   const [values, setValues] = useState({
     name: "",
     code: "",
@@ -50,6 +55,28 @@ export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
   return (
     <div className="fixed inset-0 z-[75] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
       <form
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !busy) {
+            event.preventDefault();
+            onClose();
+          }
+          if (event.key === "Tab") {
+            const controls = [
+                ...event.currentTarget.querySelectorAll(
+                  "button:not(:disabled),input:not(:disabled)",
+                ),
+              ],
+              first = controls[0],
+              last = controls.at(-1);
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }
+        }}
         role="dialog"
         aria-modal="true"
         aria-label="Tạo giáo viên tại lớp"

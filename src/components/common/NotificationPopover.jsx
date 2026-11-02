@@ -11,6 +11,9 @@ import { USER_KEY } from "../../services/apiClient.js";
 export default function NotificationPopover() {
   const ref = useRef(null);
   const loadVersion = useRef(0);
+  const invalidateLoads = useCallback(() => {
+    loadVersion.current++;
+  }, []);
   const [isAdmin] = useState(() => {
     try {
       return ["ADMIN", "SUPER_ADMIN"].includes(
@@ -64,14 +67,14 @@ export default function NotificationPopover() {
     }, 60000);
     const focus = () => load();
     window.addEventListener("focus", focus);
-    window.addEventListener('crm:notifications-refresh',focus);
+    window.addEventListener("crm:notifications-refresh", focus);
     return () => {
-      loadVersion.current++;
+      invalidateLoads();
       clearInterval(timer);
       window.removeEventListener("focus", focus);
-      window.removeEventListener('crm:notifications-refresh',focus);
+      window.removeEventListener("crm:notifications-refresh", focus);
     };
-  }, [load]);
+  }, [load, invalidateLoads]);
   useEffect(() => {
     if (!open) return;
     load();
