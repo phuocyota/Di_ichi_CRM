@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {parseSchedulePattern,generatePatternSessions} from '../src/services/schedulePattern.js'
+import {parseSchedulePattern,generatePatternSessions,generatePatternUntil} from '../src/services/schedulePattern.js'
 
 const slots=parseSchedulePattern('t2-t4 14:00-16:00')
 assert.deepEqual(slots.map(slot=>slot.weekday),[1,3])
@@ -18,4 +18,11 @@ assert.equal(generatePatternSessions('CN 14:00-16:00','2026-11-02',104).length,1
 for(const text of ['', 'T8 14:00-16:00','T2-T4 25:00-26:00','T2 14:60-16:00','T2 16:00-14:00','T2 14:00-14:00','T2 14:00-16:00;T2 15:00-17:00','T2-T2 14:00-16:00'])assert.throws(()=>parseSchedulePattern(text))
 for(const count of [0,105,1.5,'abc'])assert.throws(()=>generatePatternSessions('T2 14:00-16:00','2026-11-02',count))
 assert.throws(()=>generatePatternSessions('T2 14:00-16:00','2026-02-30',2))
+const range=generatePatternUntil('T2-T4 14:00-16:00','2026-11-02','2026-11-11')
+assert.deepEqual(range.map(s=>s.date),['2026-11-02','2026-11-04','2026-11-09','2026-11-11'])
+assert.ok(range.every(s=>s.date<='2026-11-11'))
+assert.equal(generatePatternUntil('T2 14:00-16:00','2026-11-02','2026-11-02').length,1)
+assert.equal(generatePatternUntil('T3 09:00-11:00','2028-02-28','2028-03-01')[0].date,'2028-02-29')
+assert.throws(()=>generatePatternUntil('T2 14:00-16:00','2026-11-11','2026-11-02'))
+assert.throws(()=>generatePatternUntil('T2 14:00-16:00','2026-11-03','2026-11-03'))
 console.log('PASS: weekdays, total sessions, preview dates, Vietnam timezone, multiple slots, leap day, invalid input and overlapping hours. No live API writes.')

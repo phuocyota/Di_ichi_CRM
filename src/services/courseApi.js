@@ -46,4 +46,5 @@ export const classPayload = (values) => ({
   endDate: values.endDate,
   status: values.status,
   ...(Array.isArray(values.weeklySchedule) ? {weeklySchedule: values.weeklySchedule.map(({weekday,startTime,endTime})=>({weekday:Number(weekday),startTime,endTime}))} : {}),
+  ...(typeof values.repeatUntilEnd==='boolean'?{repeatUntilEnd:values.repeatUntilEnd}:{}),
 })

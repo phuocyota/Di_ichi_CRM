@@ -19,7 +19,7 @@ import {
   initials
 } from '../../services/crmApi.js'
 import apiClient from '../../services/apiClient.js'
-import {generatePatternSessions} from '../../services/schedulePattern.js'
+import {generatePatternSessions,generatePatternUntil} from '../../services/schedulePattern.js'
 import {
   useWorkspace,
   nameOf,
@@ -211,7 +211,9 @@ export default function SchedulePage() {
       }
       if (['create', 'makeup', 'recurring', 'duplicate'].includes(type)) {
         const patternMode=type==='recurring'||(type==='create'&&values.repeatFullCourse)
-        const schedules = patternMode ? generatePatternSessions(values.schedulePattern,values.date,values.totalSessions).map(session=>({...payload,startAt:session.startAt,endAt:session.endAt})) : [{
+        const planned = patternMode ? (type==='create'&&values.repeatFullCourse?generatePatternUntil(values.schedulePattern,values.date,values.untilDate):generatePatternSessions(values.schedulePattern,values.date,values.totalSessions)) : []
+        if(planned.length>104)throw new Error('Mỗi lần tạo tối đa 104 buổi. Vui lòng chia thành các khoảng ngày ngắn hơn.')
+        const schedules = patternMode ? planned.map(session=>({...payload,startAt:session.startAt,endAt:session.endAt})) : [{
           ...payload,
           startAt:
             type === 'duplicate'

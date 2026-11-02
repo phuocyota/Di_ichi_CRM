@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import dayjs from 'dayjs'
 import { AlertTriangle, CalendarClock, X } from 'lucide-react'
-import {generatePatternSessions} from '../../services/schedulePattern.js'
+import {generatePatternSessions,generatePatternUntil} from '../../services/schedulePattern.js'
+const sessionLimitMessage = 'Mỗi lần tạo tối đa 104 buổi. Vui lòng chia thành các khoảng ngày ngắn hơn.'
 
 const todayInputDate = () => {
   const parts = new Intl.DateTimeFormat('en', {timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
@@ -36,10 +37,15 @@ function ScheduleModal({
 
   const selectedClassName = watch('className')
   const repeating = modal === 'recurring' || (modal === 'create' && watch('repeatFullCourse'))
+  const untilEnd = modal === 'create' && watch('repeatFullCourse')
+  const untilDate = watch('untilDate')
   const pattern = watch('schedulePattern'), firstDate=watch('date'), totalSessions=watch('totalSessions')
   let preview=[], previewError=''
   if(repeating && pattern) {
-    try {preview=generatePatternSessions(pattern,firstDate,totalSessions)} catch(error) {previewError=error.message}
+    try {
+      preview=untilEnd?generatePatternUntil(pattern,firstDate,untilDate):generatePatternSessions(pattern,firstDate,totalSessions)
+      if(preview.length>104){preview=[];throw new Error('Mỗi lần tạo tối đa 104 buổi. Vui lòng chia thành các khoảng ngày ngắn hơn.')}
+    } catch(error) {previewError=error.message}
   }
 
   useEffect(() => {
@@ -56,6 +62,7 @@ function ScheduleModal({
       endTime: event?.end ? dayjs(event.end).format('HH:mm') : '',
       status: isEditing ? event?.status || '' : '',
       totalSessions: 12,
+      untilDate: dayjs(todayInputDate()).add(4,'month').format('YYYY-MM-DD'),
       schedulePattern: event?.start && event?.end ? `${dayjs(event.start).day()===0?'CN':'T'+(dayjs(event.start).day()+1)} ${dayjs(event.start).format('HH:mm')}-${dayjs(event.end).format('HH:mm')}` : '',
       homeworkTitle: isEditing ? event?.homework?.[0]?.title || '' : '',
       homeworkDeadline: isEditing ? event?.homework?.[0]?.deadline || '' : '',
@@ -77,6 +84,17 @@ function ScheduleModal({
     setValue('teacher', selectedClass.teacherId || '')
     setValue('room', selectedClass.roomId || '')
     setValue('branch', selectedClass.branchId || '')
+    if (selectedClass.endDate) setValue('untilDate', selectedClass.endDate)
+    if(modal==='create' && selectedClass.plannedSchedule?.repeatUntilEnd) {
+      const plan=selectedClass.plannedSchedule
+      setValue('repeatFullCourse',true)
+      setValue('date',plan.startDate)
+      setValue('untilDate',plan.endDate)
+      setValue('schedulePattern',plan.weeklySchedule.map(slot=>`${slot.weekday===0?'CN':'T'+(slot.weekday+1)} ${slot.startTime.slice(0,5)}-${slot.endTime.slice(0,5)}`).join('; '))
+    } else if(modal==='create') {
+      setValue('repeatFullCourse',false)
+      setValue('schedulePattern','')
+    }
   }, [classes, modal, selectedClassName, setValue])
 
   if (!isOpen) return null
@@ -166,15 +184,15 @@ function ScheduleModal({
           <span>
             <span className="block text-sm font-semibold text-emerald-800">Lặp lại toàn khóa</span>
             <span className="mt-1 block text-xs font-semibold text-emerald-700">
-              Nhập thứ và giờ học để tạo nhiều buổi theo tuần.
+              Tự lặp lịch theo thứ và giờ đã nhập, đến hết ngày kết thúc.
             </span>
           </span>
         </label>
       ) : null}
       {repeating ? <>
         <label className="block"><span className={labelClass}>Ngày bắt đầu</span><input type="date" className={inputClass} {...register('date',required('Chọn ngày bắt đầu'))}/>{renderError('date')}</label>
-        <label className="block"><span className={labelClass}>Số buổi toàn khóa</span><input type="number" min="1" max="104" step="1" className={inputClass} {...register('totalSessions',{required:'Nhập số buổi toàn khóa',validate:value=>Number.isInteger(Number(value))&&Number(value)>=1&&Number(value)<=104||'Nhập số nguyên từ 1 đến 104'})}/>{renderError('totalSessions')}</label>
-        <label className="block md:col-span-2"><span className={labelClass}>Lịch học trong tuần</span><input className={inputClass} placeholder="T2-T4 14:00-16:00" {...register('schedulePattern',{required:'Nhập lịch học trong tuần',validate:value=>{try{generatePatternSessions(value,watch('date'),watch('totalSessions'));return true}catch(error){return error.message}}})}/><span className="mt-2 block text-xs text-slate-500">T2-T4 nghĩa là học thứ Hai và thứ Tư, không gồm thứ Ba. Thêm khung giờ khác bằng dấu chấm phẩy, ví dụ: T6 09:00-11:00. Dùng CN cho Chủ nhật.</span>{renderError('schedulePattern')}</label>
+        {untilEnd ? <label className="block"><span className={labelClass}>Ngày kết thúc</span><input type="date" className={inputClass} {...register('untilDate',required('Chọn ngày kết thúc'))}/>{renderError('untilDate')}</label> : <label className="block"><span className={labelClass}>Số buổi toàn khóa</span><input type="number" min="1" max="104" step="1" className={inputClass} {...register('totalSessions',{required:'Nhập số buổi toàn khóa',validate:value=>Number.isInteger(Number(value))&&Number(value)>=1&&Number(value)<=104||'Nhập số nguyên từ 1 đến 104'})}/>{renderError('totalSessions')}</label>}
+        <label className="block md:col-span-2"><span className={labelClass}>Lịch học trong tuần</span><input className={inputClass} placeholder="T2-T4 14:00-16:00" {...register('schedulePattern',{required:'Nhập lịch học trong tuần',validate:value=>{try{const sessions=untilEnd?generatePatternUntil(value,watch('date'),watch('untilDate')):generatePatternSessions(value,watch('date'),watch('totalSessions'));if(sessions.length>104)throw new Error(sessionLimitMessage);return true}catch(error){return error.message}}})}/><span className="mt-2 block text-xs text-slate-500">T2-T4 nghĩa là học thứ Hai và thứ Tư, không gồm thứ Ba. Thêm khung giờ khác bằng dấu chấm phẩy, ví dụ: T6 09:00-11:00. Dùng CN cho Chủ nhật.</span>{renderError('schedulePattern')}</label>
         {previewError && !errors.schedulePattern ? <p role="status" className="md:col-span-2 text-sm text-amber-700">{previewError}</p> : null}
         {preview.length>0 ? <section className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-4" aria-label="Xem trước lịch học"><h3 className="text-sm font-semibold text-slate-800">Sẽ tạo {preview.length} buổi học</h3><p className="mt-1 text-xs text-slate-500">Từ {dayjs(preview[0].date).format('DD/MM/YYYY')} đến {dayjs(preview.at(-1).date).format('DD/MM/YYYY')} · Giờ Việt Nam</p><ol className="mt-3 grid gap-2 sm:grid-cols-2">{preview.slice(0,6).map((session,index)=><li key={session.startAt} className="rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-slate-700"><span className="mr-2 text-slate-400">{index+1}.</span>{session.weekday===0?'CN':`T${session.weekday+1}`} · {dayjs(session.date).format('DD/MM/YYYY')} · {session.startTime}–{session.endTime}</li>)}</ol>{preview.length>6?<p className="mt-2 text-xs text-slate-500">Và {preview.length-6} buổi tiếp theo theo lịch đã nhập.</p>:null}</section> : null}
       </> : renderTimeFields()}

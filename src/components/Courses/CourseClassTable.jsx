@@ -57,7 +57,7 @@ export default function CourseClassTable({
               </div>
             )
           ],
-          ['schedule', 'Lịch học'],
+          ['schedule', 'Lịch học', (r)=><div>{r.schedule || '—'}{r.plannedSchedule?.sessions?.length>0?<span className="ui-identity-code">Dự kiến {r.plannedSchedule.sessions.length} buổi · Chưa xếp lịch dạy</span>:null}</div>],
           [
             'currentStudents',
             'Sĩ số',

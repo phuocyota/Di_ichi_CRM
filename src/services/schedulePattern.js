@@ -42,3 +42,26 @@ export function generatePatternSessions(text, fromDate, count) {
   }
   return result
 }
+
+export function generatePatternUntil(text, fromDate, throughDate) {
+  const slots = parseSchedulePattern(text)
+  const dates = [fromDate, throughDate].map(value => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) throw new Error('Chọn đủ ngày bắt đầu và ngày kết thúc')
+    const date = new Date(value + 'T00:00:00Z')
+    if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new Error('Ngày học không hợp lệ')
+    return date
+  })
+  if (dates[1] < dates[0]) throw new Error('Ngày kết thúc phải từ ngày bắt đầu trở đi')
+  if (dates[1] - dates[0] > 3660 * 86400000) throw new Error('Khoảng thời gian lặp tối đa 10 năm')
+  const result = []
+  for (let time = dates[0].getTime(); time <= dates[1].getTime(); time += 86400000) {
+    const day = new Date(time), date = day.toISOString().slice(0, 10)
+    for (const slot of slots.filter(slot => slot.weekday === day.getUTCDay()).sort((a, b) => a.startTime.localeCompare(b.startTime))) {
+      result.push({date,weekday:slot.weekday,startTime:slot.startTime,endTime:slot.endTime,
+        startAt:new Date(`${date}T${slot.startTime}:00+07:00`).toISOString(),
+        endAt:new Date(`${date}T${slot.endTime}:00+07:00`).toISOString()})
+    }
+  }
+  if (!result.length) throw new Error('Không có buổi học khớp lịch trong khoảng ngày đã chọn')
+  return result
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import dayjs from 'dayjs'
-import {parseSchedulePattern} from '../../services/schedulePattern.js'
+import {parseSchedulePattern,generatePatternUntil} from '../../services/schedulePattern.js'
 
 const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-400'
 
@@ -33,7 +33,7 @@ function buildClassInitial(item, courseId, isCreate = false) {
     startDate: item?.startDate || (isCreate ? today : ''),
     endDate: item?.endDate || (isCreate ? dayjs(today).add(4, 'month').format('YYYY-MM-DD') : ''),
     schedule: item?.schedule || '',
-    ...(isCreate ? {schedulePattern: ''} : {}),
+    ...(isCreate ? {schedulePattern: '', repeatUntilEnd: false} : {}),
     currentStudents: item?.currentStudents || 0,
     maxStudents: item?.maxStudents || 20,
     status: item?.status || 'upcoming',
@@ -94,6 +94,7 @@ function CourseModal({
       try {
         const weeklySchedule=values.schedulePattern?.trim()?parseSchedulePattern(values.schedulePattern):[]
         if(weeklySchedule.length>21)throw new Error('Mỗi lớp hỗ trợ tối đa 21 khung giờ học mỗi tuần.')
+        if(values.repeatUntilEnd)generatePatternUntil(values.schedulePattern,values.startDate,values.endDate)
         onSubmit(modal,{...values,weeklySchedule})
       } catch(error) {
         setValidationError(error.message)
@@ -106,9 +107,12 @@ function CourseModal({
   }
 
   const courseName = courseMap[values.courseId || modal.courseId]?.name
-  let weeklyPreview=[],patternError=''
+  let weeklyPreview=[],coursePreview=[],patternError=''
   if(isClass && modal.mode==='create' && values.schedulePattern?.trim()) {
-    try{weeklyPreview=parseSchedulePattern(values.schedulePattern)}catch(error){patternError=error.message}
+    try{
+      weeklyPreview=parseSchedulePattern(values.schedulePattern)
+      if(values.repeatUntilEnd)coursePreview=generatePatternUntil(values.schedulePattern,values.startDate,values.endDate)
+    }catch(error){patternError=error.message}
   }
 
   return (
@@ -207,7 +211,9 @@ function CourseModal({
               {modal.mode === 'create' ? <section className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                 <label className="block"><span className="text-xs font-black uppercase text-slate-500">Lịch học hằng tuần</span><input name="schedulePattern" className={inputClass} placeholder="T2-T4 14:00-16:00" value={values.schedulePattern || ''} disabled={saving} aria-invalid={Boolean(patternError)} onChange={event=>{updateValue('schedulePattern',event.target.value);setValidationError('')}}/></label>
                 <p className="mt-2 text-xs text-slate-500">T2-T4 là thứ Hai và thứ Tư. Thêm khung giờ bằng dấu chấm phẩy, ví dụ: T6 09:00-11:00. Có thể để trống và bổ sung sau.</p>
+                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-red-600" checked={Boolean(values.repeatUntilEnd)} disabled={saving} onChange={event=>{updateValue('repeatUntilEnd',event.target.checked);setValidationError('')}}/><span><span className="block text-sm font-semibold text-slate-700">Lặp lại toàn khóa</span><span className="mt-1 block text-xs text-slate-500">Lặp đúng thứ và giờ đã nhập từ ngày khai giảng đến hết ngày kết thúc. Số buổi được tính tự động.</span></span></label>
                 {patternError ? <p className="mt-2 text-xs text-red-600" role="status">{patternError}</p> : weeklyPreview.length>0 ? <div className="mt-3 flex flex-wrap gap-2" aria-label="Xem trước lịch tuần">{weeklyPreview.map(slot=><span key={`${slot.weekday}-${slot.startTime}`} className="rounded-lg border border-blue-100 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{slot.weekday===0?'Chủ nhật':`Thứ ${slot.weekday+1}`} · {slot.startTime}–{slot.endTime}</span>)}</div> : null}
+                {values.repeatUntilEnd && coursePreview.length>0 ? <section className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3" aria-label="Lịch toàn khóa"><h4 className="text-sm font-semibold text-emerald-900">Dự kiến {coursePreview.length} buổi học</h4><p className="mt-1 text-xs text-emerald-800">Buổi đầu {dayjs(coursePreview[0].date).format('DD/MM/YYYY')} · Buổi cuối {dayjs(coursePreview.at(-1).date).format('DD/MM/YYYY')}</p><ol className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">{coursePreview.slice(0,6).map((session,index)=><li key={session.startAt}>{index+1}. {session.weekday===0?'CN':`T${session.weekday+1}`} · {dayjs(session.date).format('DD/MM/YYYY')} · {session.startTime}–{session.endTime}</li>)}</ol>{coursePreview.length>6?<p className="mt-2 text-xs text-emerald-800">Và {coursePreview.length-6} buổi tiếp theo, không vượt ngày kết thúc.</p>:null}<p className="mt-2 text-xs text-slate-500">Toàn bộ lịch dự kiến được lưu cùng lớp, chưa cần giáo viên. Phân công giáo viên và tạo buổi dạy chính thức sau.</p></section> : null}
               </section> : <label>
                 <span className="text-xs font-black uppercase text-slate-500">Lịch học</span>
                 <input
@@ -248,6 +254,7 @@ function CourseModal({
               <p>Giáo viên: {modal.item.teacherIds?.map((id) => teacherMap[id]?.name || id).join(', ') || '—'}</p>
             </div>
           ) : null}
+          {isReadonly && isClass && modal.item?.plannedSchedule?.sessions?.length>0 ? <section className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4" aria-label="Lịch dự kiến đã lưu"><h4 className="text-sm font-semibold text-emerald-900">Lịch dự kiến đã lưu · {modal.item.plannedSchedule.sessions.length} buổi</h4><p className="mt-1 text-xs text-slate-500">Chưa phải lịch dạy chính thức. Có thể phân công giáo viên sau.</p><ol className="mt-3 max-h-64 space-y-2 overflow-auto">{modal.item.plannedSchedule.sessions.map((session,index)=><li key={session.startAt} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm text-slate-700">{index+1}. {new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Bangkok',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(session.startAt))}–{new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit'}).format(new Date(session.endAt))}</li>)}</ol></section>:null}
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
