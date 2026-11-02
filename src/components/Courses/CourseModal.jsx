@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import dayjs from 'dayjs'
+import {parseSchedulePattern} from '../../services/schedulePattern.js'
 
 const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-400'
 
@@ -32,7 +33,7 @@ function buildClassInitial(item, courseId, isCreate = false) {
     startDate: item?.startDate || (isCreate ? today : ''),
     endDate: item?.endDate || (isCreate ? dayjs(today).add(4, 'month').format('YYYY-MM-DD') : ''),
     schedule: item?.schedule || '',
-    ...(isCreate ? {weeklySchedule: []} : {}),
+    ...(isCreate ? {schedulePattern: ''} : {}),
     currentStudents: item?.currentStudents || 0,
     maxStudents: item?.maxStudents || 20,
     status: item?.status || 'upcoming',
@@ -89,23 +90,26 @@ function CourseModal({
       onClose()
       return
     }
-    if (Array.isArray(values.weeklySchedule)) {
-      const slots=values.weeklySchedule
-      const invalid=slots.find(slot=>!slot.startTime || !slot.endTime || slot.startTime>=slot.endTime)
-      if (invalid) {
-        setValidationError('Giờ kết thúc phải sau giờ bắt đầu của từng buổi học.')
-        event.currentTarget.querySelector('input[type="time"]')?.focus()
+    if (isClass && modal.mode === 'create') {
+      try {
+        const weeklySchedule=values.schedulePattern?.trim()?parseSchedulePattern(values.schedulePattern):[]
+        if(weeklySchedule.length>21)throw new Error('Mỗi lớp hỗ trợ tối đa 21 khung giờ học mỗi tuần.')
+        onSubmit(modal,{...values,weeklySchedule})
+      } catch(error) {
+        setValidationError(error.message)
+        event.currentTarget.querySelector('[name="schedulePattern"]')?.focus()
         return
       }
-      if(slots.some((slot,index)=>slots.slice(0,index).some(other=>Number(other.weekday)===Number(slot.weekday)&&slot.startTime<other.endTime&&slot.endTime>other.startTime))) {
-        setValidationError('Các khung giờ học trong cùng ngày không được trùng nhau.')
-        return
-      }
+      return
     }
     onSubmit(modal, values)
   }
 
   const courseName = courseMap[values.courseId || modal.courseId]?.name
+  let weeklyPreview=[],patternError=''
+  if(isClass && modal.mode==='create' && values.schedulePattern?.trim()) {
+    try{weeklyPreview=parseSchedulePattern(values.schedulePattern)}catch(error){patternError=error.message}
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
@@ -201,14 +205,9 @@ function CourseModal({
                 <input className={inputClass} type="date" value={values.endDate || ''} disabled={isReadonly} onChange={(event) => updateValue('endDate', event.target.value)} required />
               </label>
               {modal.mode === 'create' ? <section className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-xs font-black uppercase text-slate-500">Lịch học hằng tuần</h4><button type="button" className="ui-button ui-button-small" disabled={saving || (values.weeklySchedule || []).length >= 21} onClick={()=>updateValue('weeklySchedule',[...(values.weeklySchedule || []),{weekday:1,startTime:'18:00',endTime:'20:00'}])}>+ Thêm buổi học</button></div>
-                <p className="mt-2 text-xs text-slate-500">Chọn thứ và khung giờ học. Có thể để trống để bổ sung sau.</p>
-                {(values.weeklySchedule || []).map((slot,index)=><div key={index} className="mt-3 grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
-                  <label><span className="text-xs font-semibold text-slate-600">Thứ</span><select aria-label={`Thứ buổi ${index+1}`} className={inputClass} value={slot.weekday} disabled={saving} onChange={event=>updateValue('weeklySchedule',values.weeklySchedule.map((s,i)=>i===index?{...s,weekday:Number(event.target.value)}:s))}>{[1,2,3,4,5,6,0].map(day=><option key={day} value={day}>{day===0?'Chủ nhật':`Thứ ${day+1}`}</option>)}</select></label>
-                  <label><span className="text-xs font-semibold text-slate-600">Bắt đầu</span><input aria-label={`Giờ bắt đầu buổi ${index+1}`} type="time" className={inputClass} required disabled={saving} value={slot.startTime} onChange={event=>updateValue('weeklySchedule',values.weeklySchedule.map((s,i)=>i===index?{...s,startTime:event.target.value}:s))}/></label>
-                  <label><span className="text-xs font-semibold text-slate-600">Kết thúc</span><input aria-label={`Giờ kết thúc buổi ${index+1}`} type="time" className={inputClass} required disabled={saving} value={slot.endTime} onChange={event=>updateValue('weeklySchedule',values.weeklySchedule.map((s,i)=>i===index?{...s,endTime:event.target.value}:s))}/></label>
-                  <button type="button" className="ui-button mb-0 h-11" aria-label={`Xóa buổi ${index+1}`} disabled={saving} onClick={()=>updateValue('weeklySchedule',values.weeklySchedule.filter((_,i)=>i!==index))}>Xóa</button>
-                </div>)}
+                <label className="block"><span className="text-xs font-black uppercase text-slate-500">Lịch học hằng tuần</span><input name="schedulePattern" className={inputClass} placeholder="T2-T4 14:00-16:00" value={values.schedulePattern || ''} disabled={saving} aria-invalid={Boolean(patternError)} onChange={event=>{updateValue('schedulePattern',event.target.value);setValidationError('')}}/></label>
+                <p className="mt-2 text-xs text-slate-500">T2-T4 là thứ Hai và thứ Tư. Thêm khung giờ bằng dấu chấm phẩy, ví dụ: T6 09:00-11:00. Có thể để trống và bổ sung sau.</p>
+                {patternError ? <p className="mt-2 text-xs text-red-600" role="status">{patternError}</p> : weeklyPreview.length>0 ? <div className="mt-3 flex flex-wrap gap-2" aria-label="Xem trước lịch tuần">{weeklyPreview.map(slot=><span key={`${slot.weekday}-${slot.startTime}`} className="rounded-lg border border-blue-100 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{slot.weekday===0?'Chủ nhật':`Thứ ${slot.weekday+1}`} · {slot.startTime}–{slot.endTime}</span>)}</div> : null}
               </section> : <label>
                 <span className="text-xs font-black uppercase text-slate-500">Lịch học</span>
                 <input

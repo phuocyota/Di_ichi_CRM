@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict'
+import {parseSchedulePattern,generatePatternSessions} from '../src/services/schedulePattern.js'
+
+const slots=parseSchedulePattern('t2-t4 14:00-16:00')
+assert.deepEqual(slots.map(slot=>slot.weekday),[1,3])
+const sessions=generatePatternSessions('t2-t4 14:00-16:00','2026-11-02',12)
+assert.equal(sessions.length,12)
+assert.equal(sessions[0].startAt,'2026-11-02T07:00:00.000Z')
+assert.equal(sessions[1].date,'2026-11-04')
+assert.equal(sessions.at(-1).date,'2026-12-09')
+assert.ok(sessions.every(s=>[1,3].includes(s.weekday)))
+assert.equal(generatePatternSessions('T2-T4 14:00-16:00','2026-11-03',1)[0].date,'2026-11-04')
+const multiple=generatePatternSessions('T2,T4 14:00-16:00; CN 9:00-11:00','2026-11-02',5)
+assert.deepEqual(multiple.map(s=>s.date),['2026-11-02','2026-11-04','2026-11-08','2026-11-09','2026-11-11'])
+assert.equal(generatePatternSessions('T2 14:00-16:00; T2 09:00-10:00','2026-11-02',1)[0].startTime,'09:00')
+assert.equal(generatePatternSessions('T3 14:00-16:00','2028-02-28',1)[0].date,'2028-02-29')
+assert.equal(generatePatternSessions('CN 14:00-16:00','2026-11-02',104).length,104)
+for(const text of ['', 'T8 14:00-16:00','T2-T4 25:00-26:00','T2 14:60-16:00','T2 16:00-14:00','T2 14:00-14:00','T2 14:00-16:00;T2 15:00-17:00','T2-T2 14:00-16:00'])assert.throws(()=>parseSchedulePattern(text))
+for(const count of [0,105,1.5,'abc'])assert.throws(()=>generatePatternSessions('T2 14:00-16:00','2026-11-02',count))
+assert.throws(()=>generatePatternSessions('T2 14:00-16:00','2026-02-30',2))
+console.log('PASS: weekdays, total sessions, preview dates, Vietnam timezone, multiple slots, leap day, invalid input and overlapping hours. No live API writes.')

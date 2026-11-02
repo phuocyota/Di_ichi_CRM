@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import dayjs from 'dayjs'
@@ -55,7 +55,6 @@ function ScheduleModal({
       startTime: event?.start ? dayjs(event.start).format('HH:mm') : '',
       endTime: event?.end ? dayjs(event.end).format('HH:mm') : '',
       status: isEditing ? event?.status || '' : '',
-      repeatWeeks: 4,
       totalSessions: 12,
       schedulePattern: event?.start && event?.end ? `${dayjs(event.start).day()===0?'CN':'T'+(dayjs(event.start).day()+1)} ${dayjs(event.start).format('HH:mm')}-${dayjs(event.end).format('HH:mm')}` : '',
       homeworkTitle: isEditing ? event?.homework?.[0]?.title || '' : '',
@@ -226,15 +225,7 @@ function ScheduleModal({
     }
 
     if (config.intent === 'recurring') {
-      return (
-        <div className="space-y-4">
-          {renderMainForm()}
-          <label className="block">
-            <span className={labelClass}>Số tuần lặp</span>
-            <input type="number" min="1" max="24" className={inputClass} {...register('repeatWeeks')} />
-          </label>
-        </div>
-      )
+      return renderMainForm()
     }
 
     if (config.intent === 'homework') {
