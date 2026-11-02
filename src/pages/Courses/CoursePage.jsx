@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import CourseHeader from '../../components/Courses/CourseHeader.jsx'
 import CourseModal from '../../components/Courses/CourseModal.jsx'
+import ClassPlanConversionModal from '../../components/Courses/ClassPlanConversionModal.jsx'
 import CourseTable from '../../components/Courses/CourseTable.jsx'
 import CourseClassTable from '../../components/Courses/CourseClassTable.jsx'
 import LearningResultTable from '../../components/Courses/LearningResultTable.jsx'
@@ -37,6 +38,7 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [modal, setModal] = useState(null)
+  const [conversionTarget,setConversionTarget]=useState(null)
   const [selectedResult, setSelectedResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
@@ -381,6 +383,8 @@ export default function CoursePage() {
         </>
       )}
       <CourseModal
+        inactive={Boolean(conversionTarget)}
+        onConvert={setConversionTarget}
         modal={modal}
         saving={saving}
         courseStatuses={courseStatuses}
@@ -394,6 +398,7 @@ export default function CoursePage() {
         }}
         onSubmit={handleSubmit}
       />
+      {conversionTarget?<ClassPlanConversionModal item={conversionTarget} teachers={teachers} rooms={data.room||[]} onClose={()=>setConversionTarget(null)} onConverted={async result=>{setConversionTarget(null);setModal(null);toast.success(`Đã tạo ${result.created} buổi thực tế; ${result.alreadyExisting} buổi đã có được giữ nguyên.`);try{await refresh()}catch(error){toast.warning('Đã chuyển lịch, nhưng chưa tải lại được danh sách: '+error.message)}}}/>:null}
       <LearningResultDetailModal
         result={selectedResult}
         studentMap={studentMap}

@@ -20,8 +20,9 @@ try {
   assert.deepEqual(body.weeklySchedule.map(s=>s.weekday),[1,3])
   assert.equal(body.teacherId,undefined)
   const plannedSchedule={repeatUntilEnd:true,startDate:values.startDate,endDate:values.endDate,weeklySchedule:values.weeklySchedule,sessions:generatePatternUntil('T2-T4 14:00-16:00',values.startDate,values.endDate)}
-  const html=renderToString(createElement(CourseModal,{modal:{entity:'class',mode:'view',item:{...values,id:'class-1',plannedSchedule}},courses:[],teachers:[],courseMap:{},teacherMap:{},courseStatuses:[],classStatuses:[],onSubmit:()=>{},onClose:()=>{}}))
+  const html=renderToString(createElement(CourseModal,{modal:{entity:'class',mode:'view',item:{...values,id:'class-1',plannedSchedule}},courses:[],teachers:[],courseMap:{},teacherMap:{},courseStatuses:[],classStatuses:[],onSubmit:()=>{},onClose:()=>{},onConvert:()=>{}}))
   assert.ok(html.includes('Lịch dự kiến đã lưu'))
+  assert.ok(html.includes('Chuyển sang lịch học thực tế'))
   assert.ok(html.includes('4')&&html.includes('buổi'))
   assert.equal((html.match(/<li /g)||[]).length,4)
   console.log('PASS: class creation sends full-course planning without a teacher; saved planned lessons render after reload. Isolated API adapter, no live writes.')

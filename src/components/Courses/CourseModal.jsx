@@ -52,6 +52,8 @@ function CourseModal({
   teacherMap,
   onClose,
   onSubmit,
+  onConvert,
+  inactive=false,
 }) {
   const [values, setValues] = useState({})
   const [validationError,setValidationError]=useState('')
@@ -116,7 +118,7 @@ function CourseModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+    <div inert={inactive} aria-hidden={inactive?true:undefined} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
       <form ref={formRef} role="dialog" aria-modal="true" aria-label={titleMap[modal.mode]} className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onSubmit={handleSubmit}>
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-6 py-5">
           <div>
@@ -258,6 +260,7 @@ function CourseModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+          {isReadonly&&isClass&&modal.item?.plannedSchedule?.sessions?.length>0&&onConvert?<button type="button" className="ui-button ui-button-primary mr-auto" onClick={()=>onConvert(modal.item)}>Chuyển sang lịch học thực tế</button>:null}
           <button type="button" className="h-10 rounded-xl border border-gray-300 px-4 text-sm font-black text-slate-600" onClick={onClose}>
             {isReadonly ? 'Đóng' : 'Hủy'}
           </button>
