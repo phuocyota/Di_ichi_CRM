@@ -54,6 +54,7 @@ function CourseModal({
   onSubmit,
   onConvert,
   onCreateTeacher,
+  onAssignTeacher,
   inactive=false,
 }) {
   const [values, setValues] = useState({})
@@ -198,10 +199,11 @@ function CourseModal({
               </label>
               <div>
                 <label htmlFor="class-teacher" className="text-xs font-black uppercase text-slate-500">Giáo viên</label>
-                <div className="flex items-center gap-2"><select id="class-teacher" className={inputClass} value={values.teacherId || ''} disabled onChange={(event) => updateValue('teacherId', event.target.value)}>
+                <div className="flex items-center gap-2"><select id="class-teacher" className={inputClass} value={values.teacherId || ''} disabled={!isReadonly || !onAssignTeacher || saving} onChange={(event) => updateValue('teacherId', event.target.value)}>
                   <option value="">Chưa phân công</option>
                   {teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>{isReadonly&&modal.item?.id&&onCreateTeacher?<button type="button" aria-label="Tạo giáo viên cho lớp" title="Tạo giáo viên mới" className="ui-button ui-icon-button mt-2 h-11 w-11 shrink-0" onClick={()=>onCreateTeacher(modal.item)}><Plus size={19}/></button>:null}</div>
+                </select>{isReadonly&&modal.item?.id&&onCreateTeacher?<button type="button" disabled={saving} aria-label="Tạo giáo viên cho lớp" title="Tạo giáo viên mới" className="ui-button ui-icon-button mt-2 h-11 w-11 shrink-0" onClick={()=>onCreateTeacher(modal.item)}><Plus size={19}/></button>:null}</div>
+                {isReadonly && onAssignTeacher ? <button type="button" className="ui-button ui-button-primary mt-2" disabled={saving || !values.teacherId || values.teacherId === (modal.item.teacherId || modal.item.teacherIds?.[0]) || modal.item.teacherIds?.includes(values.teacherId)} onClick={() => onAssignTeacher(modal.item, values.teacherId)}>{saving ? 'Đang lưu...' : modal.item.teacherIds?.length ? 'Cập nhật giáo viên' : 'Phân công giáo viên'}</button> : null}
               </div>
               <label>
                 <span className="text-xs font-black uppercase text-slate-500">Ngày khai giảng</span>

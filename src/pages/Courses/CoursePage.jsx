@@ -282,6 +282,43 @@ export default function CoursePage() {
       setSaving(false)
     }
   }
+  const handleAssignTeacher = async (item, teacherId) => {
+    if (savingRef.current || !teacherId || item.teacherIds?.includes(teacherId)) return
+    savingRef.current = true
+    setSaving(true)
+    try {
+      const previous = (data['class-staff'] || []).find(
+        (link) => link.classId === item.id && link.role === 'teacher'
+      )
+      const payload = { classId: item.id, staffId: teacherId, role: 'teacher' }
+      const assignment = previous
+        ? await updateResource('class-staff', previous.id, payload)
+        : await createResource('class-staff', payload)
+      if (!assignment?.id || assignment.classId !== item.id || assignment.staffId !== teacherId)
+        throw new Error('Máy chủ chưa xác nhận phân công giáo viên. Vui lòng tải lại danh sách để kiểm tra.')
+      setData((current) => ({
+        ...current,
+        'class-staff': previous
+          ? current['class-staff'].map((link) => link.id === previous.id ? assignment : link)
+          : [...(current['class-staff'] || []), assignment],
+      }))
+      setModal((current) => current?.item?.id === item.id ? {
+        ...current,
+        item: {
+          ...current.item,
+          teacherId,
+          teacherIds: [teacherId, ...(current.item.teacherIds || []).filter((id) => id !== previous?.staffId && id !== teacherId)],
+        },
+      } : current)
+      toast.success('Đã cập nhật phân công giáo viên.')
+      window.dispatchEvent(new Event('crm:notifications-refresh'))
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
   const exportResults = async () => {
     try {
       const XLSX = await import('xlsx')
@@ -403,6 +440,7 @@ export default function CoursePage() {
         inactive={Boolean(conversionTarget||teacherCreateTarget)}
         onConvert={setConversionTarget}
         onCreateTeacher={setTeacherCreateTarget}
+        onAssignTeacher={handleAssignTeacher}
         modal={modal}
         saving={saving}
         courseStatuses={courseStatuses}
