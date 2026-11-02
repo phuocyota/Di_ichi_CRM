@@ -1,3 +1,5 @@
+import { useForm } from "react-hook-form";
+import TeacherAccountFields from "../Staff/TeacherAccountFields.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { LoaderCircle, UserRoundPlus, X } from "lucide-react";
 import apiClient from "../../services/apiClient.js";
@@ -8,20 +10,18 @@ export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
     const previous = opener.current;
     return () => previous?.focus?.();
   }, []);
-  const [values, setValues] = useState({
+  const { register, handleSubmit, formState: { errors } } = useForm({ defaultValues: {
     name: "",
     code: "",
     phone: "",
     email: "",
     assignToClass: true,
-  });
+  } });
   const [requestId] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const lock = useRef(false);
-  const update = (key, value) => setValues((v) => ({ ...v, [key]: value }));
-  const submit = async (event) => {
-    event.preventDefault();
+  const submit = async (values) => {
     if (lock.current) return;
     lock.current = true;
     setBusy(true);
@@ -34,7 +34,7 @@ export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
           name: values.name.trim(),
           ...(values.code.trim() ? { code: values.code.trim() } : {}),
           ...(values.phone.trim() ? { phone: values.phone.trim() } : {}),
-          ...(values.email.trim() ? { email: values.email.trim() } : {}),
+          email: values.email.trim().toLowerCase(),
           assignToClass: values.assignToClass,
         },
       );
@@ -80,7 +80,7 @@ export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
         role="dialog"
         aria-modal="true"
         aria-label="Tạo giáo viên tại lớp"
-        onSubmit={submit}
+        onSubmit={handleSubmit(submit)}
         className="max-h-[90vh] w-full max-w-xl overflow-auto rounded-2xl bg-white shadow-2xl"
       >
         <header className="flex items-start justify-between border-b border-slate-200 p-5">
@@ -108,54 +108,13 @@ export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
             Giáo viên được tạo tại cùng cơ sở với lớp này.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm font-semibold text-slate-700">
-              Họ tên *
-              <input
-                autoFocus
-                required
-                maxLength={200}
-                className={field}
-                value={values.name}
-                onChange={(e) => update("name", e.target.value)}
-              />
-            </label>
-            <label className="text-sm font-semibold text-slate-700">
-              Mã giáo viên
-              <input
-                maxLength={50}
-                placeholder="Tự tạo nếu để trống"
-                className={field}
-                value={values.code}
-                onChange={(e) => update("code", e.target.value)}
-              />
-            </label>
-            <label className="text-sm font-semibold text-slate-700">
-              Số điện thoại
-              <input
-                type="tel"
-                maxLength={30}
-                className={field}
-                value={values.phone}
-                onChange={(e) => update("phone", e.target.value)}
-              />
-            </label>
-            <label className="text-sm font-semibold text-slate-700">
-              Email liên hệ
-              <input
-                type="email"
-                maxLength={254}
-                className={field}
-                value={values.email}
-                onChange={(e) => update("email", e.target.value)}
-              />
-            </label>
+            <TeacherAccountFields register={register} errors={errors} inputClass={field} autoFocus />
           </div>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
             <input
               type="checkbox"
               className="mt-0.5 h-4 w-4 accent-red-600"
-              checked={values.assignToClass}
-              onChange={(e) => update("assignToClass", e.target.checked)}
+              {...register("assignToClass")}
             />
             <span>
               <strong className="block text-sm text-slate-700">
@@ -167,8 +126,7 @@ export default function QuickClassTeacherModal({ item, onClose, onCreated }) {
             </span>
           </label>
           <p className="text-xs text-slate-500">
-            Tạo hồ sơ giáo viên để phân công. Tài khoản đăng nhập được thiết lập
-            riêng.
+            Tự động tạo tài khoản đăng nhập bằng email này. Mật khẩu ban đầu: 123456.
           </p>
         </fieldset>
         {error ? (

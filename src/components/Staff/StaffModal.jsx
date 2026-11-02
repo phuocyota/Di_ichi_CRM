@@ -1,3 +1,4 @@
+import TeacherAccountFields from './TeacherAccountFields.jsx'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { AlertTriangle, Upload, X } from 'lucide-react'
@@ -63,15 +64,7 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
   const renderStaffForm = () => (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className={labelClass}>Mã giáo viên</span>
-          <input className={inputClass} placeholder="Tự động nếu để trống" {...register('code')} />
-        </label>
-        <label className="block">
-          <span className={labelClass}>Họ tên</span>
-          <input className={inputClass} placeholder="Nhập họ tên" {...register('name', required('Vui lòng nhập họ tên'))} />
-          {renderError('name')}
-        </label>
+        <TeacherAccountFields register={register} errors={errors} creating={modal === 'add'} inputClass={inputClass} />
         <label className="block">
           <span className={labelClass}>Cơ sở</span>
           <select className={inputClass} {...register('branch', required('Vui lòng chọn cơ sở'))}>
@@ -100,14 +93,6 @@ function StaffModal({ modal, config, staff, filters, onClose, onSubmit }) {
             <option value="">Chọn chuyên môn</option>
             {safeFilters.specialties.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
-        </label>
-        <label className="block">
-          <span className={labelClass}>Số điện thoại</span>
-          <input className={inputClass} placeholder="Nhập số điện thoại" {...register('phone')} />
-        </label>
-        <label className="block">
-          <span className={labelClass}>Email</span>
-          <input type="email" className={inputClass} placeholder="name@diichi.edu.vn" {...register('email')} />
         </label>
         <label className="block">
           <span className={labelClass}>Ngày vào làm</span>
