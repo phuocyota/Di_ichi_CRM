@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { getStudentSaleOptions } from '../../services/crmApi.js'
+import CourseModal from '../Courses/CourseModal.jsx'
+import {courseStatuses,classStatuses} from '../../config/courses.js'
 
 const inputDate = (value) => {
   if (!value) return ''
@@ -18,7 +20,10 @@ const todayInputDate = () => {
   return `${part('year')}-${part('month')}-${part('day')}`
 }
 
-function StudentModal({ modal, configs, selectedStudent, filters, directories, defaultBranchId = '', canAssignSale = false, onClose, onSubmit }) {
+function StudentModal({ modal, configs, selectedStudent, filters, directories, defaultBranchId = '', canAssignSale = false, onCreateCourseClass, onClose, onSubmit }) {
+  const [quickModal,setQuickModal]=useState(null)
+  const [quickSaving,setQuickSaving]=useState(false),[quickError,setQuickError]=useState('')
+  const quickLock=useRef(false),quickTrigger=useRef(null)
   const [saleOptions, setSaleOptions] = useState([])
   const [salesLoading, setSalesLoading] = useState(false)
   const [salesError, setSalesError] = useState('')
@@ -32,11 +37,16 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
   const courseId = useWatch({ control, name: 'courseId' })
   const classId = useWatch({ control, name: 'classId' })
   const classroom = directories.classes.find((item) => item.id === classId)
+  useEffect(() => {
+    if (!quickModal) quickTrigger.current?.focus()
+  }, [quickModal])
 
   useEffect(() => {
     const source = modal === 'add' ? null : selectedStudent
     reset({ code: source?.code || '', name: source?.name || '', gender: source?.gender || '', birthDate: inputDate(source?.birthDate), phone: source?.phone || '', email: source?.email || '', parent: source?.parent || '', parentPhone: source?.parentPhone || '', courseId: source?.courseId || '', classId: source?.classId || '', branchId: source?.branchId || (modal === 'add' ? defaultBranchId : ''), assignedSaleUserId: source?.assignedSaleUserId || '', statusValue: source?.statusValue || '', enrollmentDate: modal === 'add' ? todayInputDate() : inputDate(source?.enrollmentDate), reason: source?.note || '' })
     setSubmitError('')
+    setQuickModal(null)
+    setQuickError('')
   }, [reset, modal, selectedStudent, defaultBranchId])
 
   useEffect(() => {
@@ -61,8 +71,34 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
     try { await onSubmit(modal, { ...values, assignedSaleUserId: saleUserId }, selectedStudent) }
     catch (cause) { setSubmitError(cause.message) }
   })
+  const closeQuick = () => {
+    if (quickLock.current) return
+    setQuickModal(null);setQuickError('')
+    quickTrigger.current?.focus()
+  }
+  const openQuick = (entity,event) => {
+    if (isSubmitting || quickLock.current || (entity === 'class' && !courseId)) return
+    quickTrigger.current=event.currentTarget
+    setQuickError('');setQuickModal({entity,mode:'create',...(entity==='class'?{courseId}:{})})
+  }
+  const saveQuick = async (action,values) => {
+    if (quickLock.current) return
+    quickLock.current=true;setQuickSaving(true);setQuickError('')
+    try {
+      const saved=await onCreateCourseClass(action,values)
+      if(action.entity==='course') {
+        setValue('courseId',saved.id,{shouldDirty:true,shouldValidate:true})
+        setValue('classId','',{shouldDirty:true})
+        setQuickModal({entity:'class',mode:'create',courseId:saved.id})
+      } else {
+        setValue('classId',saved.id,{shouldDirty:true,shouldValidate:true})
+        setQuickModal(null)
+      }
+    } catch(error) {setQuickError(error.message)}
+    finally{quickLock.current=false;setQuickSaving(false)}
+  }
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+  return <><div inert={Boolean(quickModal)} aria-hidden={quickModal ? true : undefined} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
     <section role="dialog" aria-modal="true" aria-labelledby="student-modal-title" className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl">
       <header className="flex items-start justify-between border-b border-slate-200 p-6"><div><h2 id="student-modal-title" className="text-lg font-semibold">{config.title}</h2><p className="mt-1 text-sm text-slate-500">{creating ? 'Nhập thông tin học viên mới. Tài khoản học sinh được tạo kèm với email này, mật khẩu ban đầu: 123456.' : selectedStudent?.name}</p></div><button type="button" aria-label="Đóng modal" disabled={isSubmitting} onClick={onClose} className="rounded-lg border p-2 disabled:opacity-40"><X size={18} /></button></header>
       <form onSubmit={submit} className="space-y-5 p-6">
@@ -80,8 +116,8 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
           <h3 className="font-semibold text-blue-700">Khóa học và trạng thái</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {creating ? <>
-              <label className="block text-sm font-semibold">Khóa học *<select className={fieldClass} {...register('courseId', { required: 'Vui lòng chọn khóa học', onChange: () => setValue('classId', '') })}><option value="">Chọn khóa học</option>{directories.courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{error('courseId')}</label>
-              <label className="block text-sm font-semibold">Lớp học *<select className={fieldClass} disabled={!courseId} {...register('classId', { required: 'Vui lòng chọn lớp học' })}><option value="">Chọn lớp học</option>{directories.classes.filter((item) => item.courseId === courseId && ['active', 'upcoming'].includes(item.status?.toLowerCase())).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{error('classId')}</label>
+              <div><label htmlFor="student-course" className="block text-sm font-semibold">Khóa học *</label><div className="flex items-center gap-2"><select id="student-course" className={fieldClass} value={courseId || ''} {...register('courseId', { required: 'Vui lòng chọn khóa học', onChange: () => setValue('classId', '') })}><option value="">Chọn khóa học</option>{directories.courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button type="button" title="Tạo khóa học mới" aria-label="Tạo khóa học mới" className="mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-40" disabled={!onCreateCourseClass} onClick={(event)=>openQuick('course',event)}><Plus size={19}/></button></div>{error('courseId')}</div>
+              <div><label htmlFor="student-class" className="block text-sm font-semibold">Lớp học *</label><div className="flex items-center gap-2"><select id="student-class" className={fieldClass} value={classId || ''} disabled={!courseId} {...register('classId', { required: 'Vui lòng chọn lớp học' })}><option value="">Chọn lớp học</option>{directories.classes.filter((item) => item.courseId === courseId && ['active', 'upcoming'].includes(item.status?.toLowerCase())).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button type="button" title={courseId?'Tạo lớp học mới':'Chọn hoặc tạo khóa học trước'} aria-label="Tạo lớp học mới" className="mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-40" disabled={!courseId || !onCreateCourseClass} onClick={(event)=>openQuick('class',event)}><Plus size={19}/></button></div>{error('classId')}</div>
               <label className="block text-sm font-semibold">Trạng thái *<select className={fieldClass} {...register('statusValue', { required: 'Vui lòng chọn trạng thái' })}><option value="">Chọn trạng thái</option>{filters.statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>{error('statusValue')}</label>
             </> : <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600 md:col-span-2"><p>Lớp học: {selectedStudent?.className || '—'} · Trạng thái: {selectedStudent?.status || '—'}</p><p className="mt-1">Dùng menu Nghiệp vụ để chuyển lớp, bảo lưu, nghỉ học hoặc gia hạn.</p></div>}
             <div className="text-sm"><p className="font-semibold">Giáo viên theo lớp</p><p className="mt-2 text-slate-600">{creating ? classroom?.teacherNames || '—' : selectedStudent?.teacher || '—'}</p></div>
@@ -93,6 +129,6 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
         <footer className="flex justify-end gap-3 border-t pt-4"><button type="button" disabled={isSubmitting} onClick={onClose} className="rounded-xl border px-4 py-2.5 disabled:opacity-40">Hủy</button><button type="submit" disabled={isSubmitting || salesLoading} className={`rounded-xl px-4 py-2.5 font-semibold text-white disabled:opacity-40 ${deleting ? 'bg-red-600' : 'bg-blue-600'}`}>{isSubmitting ? 'Đang lưu…' : config.submitText}</button></footer>
       </form>
     </section>
-  </div>
+  </div>{quickModal ? <CourseModal modal={quickModal} saving={quickSaving} errorMessage={quickError} courseStatuses={courseStatuses} classStatuses={classStatuses.filter(item=>['active','upcoming'].includes(item.value))} courses={directories.courses} teachers={directories.teachers || []} courseMap={Object.fromEntries(directories.courses.map(item=>[item.id,item]))} teacherMap={{}} onClose={closeQuick} onSubmit={saveQuick}/> : null}</>
 }
 export default StudentModal

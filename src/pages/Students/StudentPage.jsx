@@ -18,6 +18,7 @@ import {
   studentStatistics
 } from '../../datas/students.js'
 import {
+  createResource,
   deleteResource,
   getStudentSummary,
   indexById,
@@ -35,6 +36,7 @@ import {
   exportStudentsPdf
 } from '../../services/studentExport.js'
 import { USER_KEY } from '../../services/apiClient.js'
+import {coursePayload, classPayload} from '../../services/courseApi.js'
 
 
 const emptyCharts = { monthly: [], status: [], courses: [], branches: [] }
@@ -293,6 +295,21 @@ function StudentPage() {
     }
   }, [activeTab, studentDataLoaded])
 
+  const handleCreateCourseClass = async (action, values) => {
+    const resource = action.entity === 'course' ? 'course' : 'class'
+    const payload = resource === 'course' ? coursePayload(values) : classPayload(values)
+    if (resource === 'class') {
+      if (!action.courseId || !directories.courses.some(course => course.id === action.courseId)) throw new Error('Vui lòng tạo hoặc chọn khóa học trước khi tạo lớp học')
+      payload.courseId = action.courseId
+    }
+    if (!payload.code || !payload.name) throw new Error('Vui lòng nhập mã và tên hợp lệ')
+    if (resource === 'class' && values.endDate < values.startDate) throw new Error('Ngày kết thúc phải từ ngày khai giảng trở đi')
+    const saved = await createResource(resource, payload)
+    if (!saved?.id) throw new Error('Máy chủ chưa trả về mã của mục vừa tạo. Vui lòng kiểm tra danh sách trước khi thử lại.')
+    setDirectories(current => ({...current, [resource === 'course' ? 'courses' : 'classes']: [...current[resource === 'course' ? 'courses' : 'classes'].filter(item => item.id !== saved.id), saved]}))
+    return saved
+  }
+
   const handleModalSubmit = async (type, values, student) => {
     let warnings = []
     let successMessage = 'Đã lưu học viên'
@@ -509,6 +526,7 @@ function StudentPage() {
         filters={effectiveFilters}
         directories={directories}
         defaultBranchId={currentUser?.branchId || ''}
+        onCreateCourseClass={handleCreateCourseClass}
         canAssignSale={canAssignSale}
         onClose={() => setModal(null)}
         onSubmit={handleModalSubmit}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import dayjs from 'dayjs'
 
@@ -41,6 +41,7 @@ function buildClassInitial(item, courseId, isCreate = false) {
 function CourseModal({
   modal,
   saving = false,
+  errorMessage = '',
   courseStatuses,
   classStatuses,
   courses,
@@ -51,10 +52,12 @@ function CourseModal({
   onSubmit,
 }) {
   const [values, setValues] = useState({})
+  const formRef = useRef(null)
 
   useEffect(() => {
     if (!modal) return
     setValues(modal.entity === 'course' ? buildCourseInitial(modal.item) : buildClassInitial(modal.item, modal.courseId, modal.mode === 'create'))
+    formRef.current?.querySelector('input:not(:disabled), select:not(:disabled)')?.focus()
   }, [modal])
 
   if (!modal) return null
@@ -89,7 +92,7 @@ function CourseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-      <form className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onSubmit={handleSubmit}>
+      <form ref={formRef} role="dialog" aria-modal="true" aria-label={titleMap[modal.mode]} className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onSubmit={handleSubmit}>
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-6 py-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Quản lý khóa học</p>
@@ -101,6 +104,7 @@ function CourseModal({
         </div>
 
         <div className="space-y-5 px-6 py-5">
+          {errorMessage ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p> : null}
           {isDelete ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm font-bold text-red-700">
