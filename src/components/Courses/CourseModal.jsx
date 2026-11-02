@@ -32,6 +32,7 @@ function buildClassInitial(item, courseId, isCreate = false) {
     startDate: item?.startDate || (isCreate ? today : ''),
     endDate: item?.endDate || (isCreate ? dayjs(today).add(4, 'month').format('YYYY-MM-DD') : ''),
     schedule: item?.schedule || '',
+    ...(isCreate ? {weeklySchedule: []} : {}),
     currentStudents: item?.currentStudents || 0,
     maxStudents: item?.maxStudents || 20,
     status: item?.status || 'upcoming',
@@ -52,10 +53,12 @@ function CourseModal({
   onSubmit,
 }) {
   const [values, setValues] = useState({})
+  const [validationError,setValidationError]=useState('')
   const formRef = useRef(null)
 
   useEffect(() => {
     if (!modal) return
+    setValidationError('')
     setValues(modal.entity === 'course' ? buildCourseInitial(modal.item) : buildClassInitial(modal.item, modal.courseId, modal.mode === 'create'))
     formRef.current?.querySelector('input:not(:disabled), select:not(:disabled)')?.focus()
   }, [modal])
@@ -81,9 +84,23 @@ function CourseModal({
   const handleSubmit = (event) => {
     event.preventDefault()
     if (saving) return
+    setValidationError('')
     if (isReadonly) {
       onClose()
       return
+    }
+    if (Array.isArray(values.weeklySchedule)) {
+      const slots=values.weeklySchedule
+      const invalid=slots.find(slot=>!slot.startTime || !slot.endTime || slot.startTime>=slot.endTime)
+      if (invalid) {
+        setValidationError('Giờ kết thúc phải sau giờ bắt đầu của từng buổi học.')
+        event.currentTarget.querySelector('input[type="time"]')?.focus()
+        return
+      }
+      if(slots.some((slot,index)=>slots.slice(0,index).some(other=>Number(other.weekday)===Number(slot.weekday)&&slot.startTime<other.endTime&&slot.endTime>other.startTime))) {
+        setValidationError('Các khung giờ học trong cùng ngày không được trùng nhau.')
+        return
+      }
     }
     onSubmit(modal, values)
   }
@@ -104,7 +121,7 @@ function CourseModal({
         </div>
 
         <div className="space-y-5 px-6 py-5">
-          {errorMessage ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p> : null}
+          {validationError || errorMessage ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{validationError || errorMessage}</p> : null}
           {isDelete ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm font-bold text-red-700">
@@ -147,7 +164,7 @@ function CourseModal({
 
           {isClass && !isDelete ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <p className="md:col-span-2 text-sm text-slate-500">Giáo viên và lịch học được cập nhật từ phân công lớp; sĩ số được tính từ ghi danh.</p>
+              <p className="md:col-span-2 text-sm text-slate-500">Có thể thêm lịch học hằng tuần khi tạo lớp. Giáo viên được cập nhật từ phân công lớp; sĩ số được tính từ ghi danh.</p>
               {courseName ? (
                 <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
                   Lớp này thuộc khóa học: {courseName}
@@ -183,7 +200,16 @@ function CourseModal({
                 <span className="text-xs font-black uppercase text-slate-500">Ngày kết thúc</span>
                 <input className={inputClass} type="date" value={values.endDate || ''} disabled={isReadonly} onChange={(event) => updateValue('endDate', event.target.value)} required />
               </label>
-              <label>
+              {modal.mode === 'create' ? <section className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-xs font-black uppercase text-slate-500">Lịch học hằng tuần</h4><button type="button" className="ui-button ui-button-small" disabled={saving || (values.weeklySchedule || []).length >= 21} onClick={()=>updateValue('weeklySchedule',[...(values.weeklySchedule || []),{weekday:1,startTime:'18:00',endTime:'20:00'}])}>+ Thêm buổi học</button></div>
+                <p className="mt-2 text-xs text-slate-500">Chọn thứ và khung giờ học. Có thể để trống để bổ sung sau.</p>
+                {(values.weeklySchedule || []).map((slot,index)=><div key={index} className="mt-3 grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                  <label><span className="text-xs font-semibold text-slate-600">Thứ</span><select aria-label={`Thứ buổi ${index+1}`} className={inputClass} value={slot.weekday} disabled={saving} onChange={event=>updateValue('weeklySchedule',values.weeklySchedule.map((s,i)=>i===index?{...s,weekday:Number(event.target.value)}:s))}>{[1,2,3,4,5,6,0].map(day=><option key={day} value={day}>{day===0?'Chủ nhật':`Thứ ${day+1}`}</option>)}</select></label>
+                  <label><span className="text-xs font-semibold text-slate-600">Bắt đầu</span><input aria-label={`Giờ bắt đầu buổi ${index+1}`} type="time" className={inputClass} required disabled={saving} value={slot.startTime} onChange={event=>updateValue('weeklySchedule',values.weeklySchedule.map((s,i)=>i===index?{...s,startTime:event.target.value}:s))}/></label>
+                  <label><span className="text-xs font-semibold text-slate-600">Kết thúc</span><input aria-label={`Giờ kết thúc buổi ${index+1}`} type="time" className={inputClass} required disabled={saving} value={slot.endTime} onChange={event=>updateValue('weeklySchedule',values.weeklySchedule.map((s,i)=>i===index?{...s,endTime:event.target.value}:s))}/></label>
+                  <button type="button" className="ui-button mb-0 h-11" aria-label={`Xóa buổi ${index+1}`} disabled={saving} onClick={()=>updateValue('weeklySchedule',values.weeklySchedule.filter((_,i)=>i!==index))}>Xóa</button>
+                </div>)}
+              </section> : <label>
                 <span className="text-xs font-black uppercase text-slate-500">Lịch học</span>
                 <input
                   className={inputClass}
@@ -193,7 +219,7 @@ function CourseModal({
                   onChange={(event) => updateValue('schedule', event.target.value)}
                   required
                 />
-              </label>
+              </label>}
               {modal.mode !== 'create' ? <label>
                 <span className="text-xs font-black uppercase text-slate-500">Sĩ số hiện tại</span>
                 <input className={inputClass} type="number" min="0" value={values.currentStudents || 0} disabled />

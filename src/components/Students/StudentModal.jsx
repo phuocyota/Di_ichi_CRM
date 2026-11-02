@@ -23,6 +23,7 @@ const todayInputDate = () => {
 function StudentModal({ modal, configs, selectedStudent, filters, directories, defaultBranchId = '', canAssignSale = false, onCreateCourseClass, onClose, onSubmit }) {
   const [quickModal,setQuickModal]=useState(null)
   const [quickSaving,setQuickSaving]=useState(false),[quickError,setQuickError]=useState('')
+  const [pendingSelection,setPendingSelection]=useState(null)
   const quickLock=useRef(false),quickTrigger=useRef(null)
   const [saleOptions, setSaleOptions] = useState([])
   const [salesLoading, setSalesLoading] = useState(false)
@@ -38,6 +39,14 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
   const classId = useWatch({ control, name: 'classId' })
   const classroom = directories.classes.find((item) => item.id === classId)
   useEffect(() => {
+    if (!pendingSelection) return
+    const items=pendingSelection.field==='courseId'?directories.courses:directories.classes
+    if (!items.some(item=>item.id===pendingSelection.id)) return
+    // Validate only after the new option has been rendered into the native select.
+    setValue(pendingSelection.field,pendingSelection.id,{shouldDirty:true,shouldValidate:true})
+    setPendingSelection(null)
+  }, [pendingSelection,directories.courses,directories.classes,setValue])
+  useEffect(() => {
     if (!quickModal) quickTrigger.current?.focus()
   }, [quickModal])
 
@@ -47,6 +56,7 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
     setSubmitError('')
     setQuickModal(null)
     setQuickError('')
+    setPendingSelection(null)
   }, [reset, modal, selectedStudent, defaultBranchId])
 
   useEffect(() => {
@@ -87,11 +97,11 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
     try {
       const saved=await onCreateCourseClass(action,values)
       if(action.entity==='course') {
-        setValue('courseId',saved.id,{shouldDirty:true,shouldValidate:true})
+        setPendingSelection({field:'courseId',id:saved.id})
         setValue('classId','',{shouldDirty:true})
         setQuickModal({entity:'class',mode:'create',courseId:saved.id})
       } else {
-        setValue('classId',saved.id,{shouldDirty:true,shouldValidate:true})
+        setPendingSelection({field:'classId',id:saved.id})
         setQuickModal(null)
       }
     } catch(error) {setQuickError(error.message)}
@@ -135,6 +145,6 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
         </footer>
       </form>
     </section>
-  </div>{quickModal ? <CourseModal modal={quickModal} saving={quickSaving} errorMessage={quickError} courseStatuses={courseStatuses} classStatuses={classStatuses.filter(item=>['active','upcoming'].includes(item.value))} courses={directories.courses} teachers={directories.teachers || []} courseMap={Object.fromEntries(directories.courses.map(item=>[item.id,item]))} teacherMap={{}} onClose={closeQuick} onSubmit={saveQuick}/> : null}</>
+  </div>{quickModal ? <CourseModal key={quickModal.entity + (quickModal.courseId || "")} modal={quickModal} saving={quickSaving} errorMessage={quickError} courseStatuses={courseStatuses} classStatuses={classStatuses.filter(item=>['active','upcoming'].includes(item.value))} courses={directories.courses} teachers={directories.teachers || []} courseMap={Object.fromEntries(directories.courses.map(item=>[item.id,item]))} teacherMap={{}} onClose={closeQuick} onSubmit={saveQuick}/> : null}</>
 }
 export default StudentModal
