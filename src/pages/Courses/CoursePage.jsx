@@ -96,7 +96,6 @@ export default function CoursePage() {
       ),
     [data.staff]
   )
-  const rooms = data.room || []
   const courseMap = useMemo(() => indexById(courses), [courses])
   const teacherMap = useMemo(() => indexById(data.staff || []), [data.staff])
   const roomMap = useMemo(() => indexById(data.room || []), [data.room])
@@ -388,10 +387,8 @@ export default function CoursePage() {
         classStatuses={classStatuses}
         courses={courses}
         teachers={teachers}
-        rooms={rooms}
         courseMap={courseMap}
         teacherMap={teacherMap}
-        roomMap={roomMap}
         onClose={() => {
           if (!savingRef.current) setModal(null)
         }}

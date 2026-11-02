@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import dayjs from 'dayjs'
 
 const inputClass = 'mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-400'
 
@@ -17,15 +18,19 @@ function buildCourseInitial(item) {
   }
 }
 
-function buildClassInitial(item, courseId) {
+function buildClassInitial(item, courseId, isCreate = false) {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date())
+  const datePart = (type) => parts.find((part) => part.type === type).value
+  const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`
   return {
     code: item?.code || '',
     name: item?.name || '',
     courseId: item?.courseId || courseId || '',
     teacherId: item?.teacherId || '',
-    roomId: item?.roomId || '',
-    startDate: item?.startDate || '',
-    endDate: item?.endDate || '',
+    startDate: item?.startDate || (isCreate ? today : ''),
+    endDate: item?.endDate || (isCreate ? dayjs(today).add(4, 'month').format('YYYY-MM-DD') : ''),
     schedule: item?.schedule || '',
     currentStudents: item?.currentStudents || 0,
     maxStudents: item?.maxStudents || 20,
@@ -40,10 +45,8 @@ function CourseModal({
   classStatuses,
   courses,
   teachers,
-  rooms,
   courseMap,
   teacherMap,
-  roomMap,
   onClose,
   onSubmit,
 }) {
@@ -51,7 +54,7 @@ function CourseModal({
 
   useEffect(() => {
     if (!modal) return
-    setValues(modal.entity === 'course' ? buildCourseInitial(modal.item) : buildClassInitial(modal.item, modal.courseId))
+    setValues(modal.entity === 'course' ? buildCourseInitial(modal.item) : buildClassInitial(modal.item, modal.courseId, modal.mode === 'create'))
   }, [modal])
 
   if (!modal) return null
@@ -140,7 +143,7 @@ function CourseModal({
 
           {isClass && !isDelete ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <p className="md:col-span-2 text-sm text-slate-500">Giáo viên, phòng và lịch học được cập nhật từ phân công lớp; sĩ số được tính từ ghi danh.</p>
+              <p className="md:col-span-2 text-sm text-slate-500">Giáo viên và lịch học được cập nhật từ phân công lớp; sĩ số được tính từ ghi danh.</p>
               {courseName ? (
                 <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
                   Lớp này thuộc khóa học: {courseName}
@@ -169,13 +172,6 @@ function CourseModal({
                 </select>
               </label>
               <label>
-                <span className="text-xs font-black uppercase text-slate-500">Phòng học</span>
-                <select className={inputClass} value={values.roomId || ''} disabled onChange={(event) => updateValue('roomId', event.target.value)}>
-                  <option value="">Chưa phân phòng</option>
-                  {rooms.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
-              </label>
-              <label>
                 <span className="text-xs font-black uppercase text-slate-500">Ngày khai giảng</span>
                 <input className={inputClass} type="date" value={values.startDate || ''} disabled={isReadonly} onChange={(event) => updateValue('startDate', event.target.value)} required />
               </label>
@@ -194,10 +190,10 @@ function CourseModal({
                   required
                 />
               </label>
-              <label>
+              {modal.mode !== 'create' ? <label>
                 <span className="text-xs font-black uppercase text-slate-500">Sĩ số hiện tại</span>
-                <input className={inputClass} type="number" min="0" value={values.currentStudents || 0} disabled onChange={(event) => updateValue('currentStudents', event.target.value)} />
-              </label>
+                <input className={inputClass} type="number" min="0" value={values.currentStudents || 0} disabled />
+              </label> : null}
               <label>
                 <span className="text-xs font-black uppercase text-slate-500">Sĩ số tối đa</span>
                 <input className={inputClass} type="number" min="1" value={values.maxStudents || ''} disabled={isReadonly} onChange={(event) => updateValue('maxStudents', event.target.value)} required />
@@ -221,7 +217,6 @@ function CourseModal({
           {isReadonly && isClass ? (
             <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700 md:grid-cols-2">
               <p>Giáo viên: {modal.item.teacherIds?.map((id) => teacherMap[id]?.name || id).join(', ') || '—'}</p>
-              <p>Phòng học: {modal.item.roomIds?.map((id) => roomMap[id]?.name || id).join(', ') || '—'}</p>
             </div>
           ) : null}
         </div>
