@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Plus, X } from 'lucide-react'
+import { LoaderCircle, Plus, Save, Trash2, X } from 'lucide-react'
 import { getStudentSaleOptions } from '../../services/crmApi.js'
 import CourseModal from '../Courses/CourseModal.jsx'
 import {courseStatuses,classStatuses} from '../../config/courses.js'
@@ -126,7 +126,13 @@ function StudentModal({ modal, configs, selectedStudent, filters, directories, d
           <label className="block text-sm font-semibold">Ghi chú<textarea rows={3} className={fieldClass} {...register('reason')} /></label>
         </fieldset>}
         {submitError ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{submitError}</p> : null}
-        <footer className="flex justify-end gap-3 border-t pt-4"><button type="button" disabled={isSubmitting} onClick={onClose} className="rounded-xl border px-4 py-2.5 disabled:opacity-40">Hủy</button><button type="submit" disabled={isSubmitting || salesLoading} className={`rounded-xl px-4 py-2.5 font-semibold text-white disabled:opacity-40 ${deleting ? 'bg-red-600' : 'bg-blue-600'}`}>{isSubmitting ? 'Đang lưu…' : config.submitText}</button></footer>
+        <footer className="sticky bottom-0 -mx-6 -mb-6 flex justify-end gap-3 border-t border-slate-200 bg-slate-50/95 px-6 py-4 backdrop-blur-sm">
+          <button type="button" disabled={isSubmitting} onClick={onClose} className="ui-button h-11 min-w-24 flex-1 sm:flex-none">Hủy</button>
+          <button type="submit" disabled={isSubmitting || salesLoading} className={`ui-button h-11 min-w-40 flex-1 shadow-sm sm:flex-none ${deleting ? 'ui-button-danger' : 'ui-button-primary'}`}>
+            {isSubmitting ? <LoaderCircle size={17} className="animate-spin" aria-hidden="true"/> : deleting ? <Trash2 size={17} aria-hidden="true"/> : <Save size={17} aria-hidden="true"/>}
+            {isSubmitting ? 'Đang lưu…' : config.submitText}
+          </button>
+        </footer>
       </form>
     </section>
   </div>{quickModal ? <CourseModal modal={quickModal} saving={quickSaving} errorMessage={quickError} courseStatuses={courseStatuses} classStatuses={classStatuses.filter(item=>['active','upcoming'].includes(item.value))} courses={directories.courses} teachers={directories.teachers || []} courseMap={Object.fromEntries(directories.courses.map(item=>[item.id,item]))} teacherMap={{}} onClose={closeQuick} onSubmit={saveQuick}/> : null}</>
