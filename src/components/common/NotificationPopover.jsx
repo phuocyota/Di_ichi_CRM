@@ -1,3 +1,4 @@
+import { useResourceUpdates } from '../../services/realtime.js'
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck, RefreshCcw, UserRoundX } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -60,6 +61,7 @@ export default function NotificationPopover() {
       if (version === loadVersion.current) setLoading(false);
     }
   }, [isAdmin]);
+  useResourceUpdates(load, ['notification','workspace','class','class-staff','schedule','portal'])
   useEffect(() => {
     load();
     const timer = setInterval(() => {

@@ -1,3 +1,4 @@
+import { useResourceUpdates } from '../../services/realtime.js'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import EmployeesPanel from '../../components/SystemSettings/EmployeesPanel.jsx'
@@ -9,13 +10,14 @@ export default function SystemSettingsPage() {
   const [activeTab, setActiveTab] = useState('employees'), [keyword, setKeyword] = useState('')
   const [data, setData] = useState(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false)
   const requestId = useRef(0), lock = useRef(false)
-  const reload = useCallback(async signal => {
-    const id = ++requestId.current; setLoading(true); setError('')
+  const reload = useCallback(async (signal, { silent = false } = {}) => {
+    const id = ++requestId.current; if (!silent) setLoading(true); setError('')
     try { const next = await loadSettings(signal); if (id === requestId.current) setData(next); return next }
     catch (cause) { if (!signal?.aborted && id === requestId.current) setError(cause.message); throw cause }
     finally { if (!signal?.aborted && id === requestId.current) setLoading(false) }
   }, [])
   useEffect(() => { const controller = new AbortController(); reload(controller.signal).catch(() => {}); return () => controller.abort() }, [reload])
+  useResourceUpdates(() => reload(undefined, { silent: true }), ['system-settings','staff','user-account','role','user-role','role-permission','branch'], !busy)
   async function mutate(action, message) {
     if (lock.current || loading) throw new Error('Đang xử lý dữ liệu, vui lòng chờ')
     lock.current = true; setBusy(true)

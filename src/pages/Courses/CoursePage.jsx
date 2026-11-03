@@ -1,3 +1,4 @@
+import { useResourceUpdates } from '../../services/realtime.js'
 import { LoadingSkeleton } from '../../components/common/ui.jsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {useSearchParams} from 'react-router-dom'
@@ -99,6 +100,7 @@ export default function CoursePage() {
     }
   }, [refresh])
 
+  useResourceUpdates(refresh, ['course','class','class-staff','class-weekly-schedule','enrollment','staff','portal','workspace','score'], !modal && !saving && !conversionTarget && !teacherCreateTarget)
   const courses = useMemo(
     () =>
       (data.course || []).map((item) => ({

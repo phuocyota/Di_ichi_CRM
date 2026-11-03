@@ -1,3 +1,4 @@
+import { useUpdatesConnection } from '../services/realtime.js'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   LogOut,
@@ -14,6 +15,7 @@ import { navigationItems } from '../datas/navigation.js'
 import { removeStoredSession } from '../services/apiClient.js'
 
 export default function MainLayout() {
+  useUpdatesConnection()
   const location = useLocation()
   const module = location.pathname.split('/')[1] || 'dashboard'
   const navigate = useNavigate(),

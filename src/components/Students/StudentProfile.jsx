@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react'
+import { useResourceUpdates } from '../../services/realtime.js'
+import { useEffect, useState } from 'react'
 import { getStudentProfile, initials } from '../../services/crmApi.js'
 import { studentStatus } from '../../datas/students.js'
 
@@ -39,7 +40,7 @@ function profileGroups(tab, data) {
   }
 }
 
-function StudentProfile({ student, tabs, canManage, onOpenModal }) {
+function StudentProfile({ student, tabs, canManage, onOpenModal, realtimeEnabled = true }) {
   const [activeTab, setActiveTab] = useState(tabs[0])
   const [page, setPage] = useState(1)
   const [result, setResult] = useState(null)
@@ -48,6 +49,7 @@ function StudentProfile({ student, tabs, canManage, onOpenModal }) {
   const [version, setVersion] = useState(0)
   const section = sections[activeTab]
   const studentId = student?.id
+  useResourceUpdates(() => setVersion(v => v + 1), ['student','enrollment','class','class-staff','schedule','attendance-record','score','homework','homework-submission','finance-transaction','payment','student-certificate','workspace','portal'], Boolean(studentId) && realtimeEnabled)
   const requestKey = `${studentId}/${section}/${page}`
 
   useEffect(() => {

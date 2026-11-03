@@ -1,3 +1,4 @@
+import { useResourceUpdates } from './realtime.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import apiClient from './apiClient.js'
 
@@ -109,9 +110,9 @@ export function useWorkspace(area) {
     [error, setError] = useState('')
   const revision = useRef(0)
   const reload = useCallback(
-    async (signal) => {
+    async (signal, { silent = false } = {}) => {
       const id = ++revision.current
-      setLoading(true)
+      if (!silent) setLoading(true)
       setError('')
       try {
         const next = await getWorkspace(area, signal)
@@ -131,6 +132,7 @@ export function useWorkspace(area) {
     reload(controller.signal).catch(() => {})
     return () => controller.abort()
   }, [reload])
+  useResourceUpdates(() => reload(undefined, { silent: true }))
   return { data, loading, error, reload }
 }
 export const saveWorkspaceRecord = (id, payload) =>

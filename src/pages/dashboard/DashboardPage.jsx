@@ -1,3 +1,4 @@
+import { useResourceUpdates } from '../../services/realtime.js'
 import { categoryColor } from '../../components/common/presentation.js'
 import {
   EmptyState,
@@ -89,6 +90,7 @@ function DashboardPage() {
   const [error, setError] = useState('')
   const [requestVersion, setRequestVersion] = useState(0)
 
+  useResourceUpdates(() => setRequestVersion(v => v + 1))
   useEffect(() => {
     let cancelled = false
     setLoading(true)

@@ -1,3 +1,4 @@
+import { useResourceUpdates } from '../../services/realtime.js'
 import { statusColor } from '../../components/common/presentation.js'
 import { LoadingSkeleton } from '../../components/common/ui.jsx'
 import { useSearchParams } from 'react-router-dom'
@@ -295,6 +296,11 @@ function StudentPage() {
     }
   }, [activeTab, studentDataLoaded])
 
+  useResourceUpdates(async () => {
+    await refreshSummary();
+    if (studentDataLoaded) await refreshStudents();
+    setProfileVersion(v => v + 1);
+  }, ['student','enrollment','class','class-staff','staff','student-guardian','finance-transaction','payment','score','workspace','portal'], !modal && !selectedStudent)
   const handleCreateCourseClass = async (action, values) => {
     const resource = action.entity === 'course' ? 'course' : 'class'
     const payload = resource === 'course' ? coursePayload(values) : classPayload(values)
@@ -507,6 +513,7 @@ function StudentPage() {
           key={`${selectedStudent?.id || 'empty'}-${profileVersion}`}
           student={selectedStudent}
           tabs={profileTabs}
+          realtimeEnabled={!modal}
           canManage={canAssignSale}
           onOpenModal={handleOpenModal}
         />
