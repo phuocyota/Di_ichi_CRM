@@ -1,0 +1,141 @@
+.work-page { color: #344054; font-size: 13px; }
+.work-page button, .work-dialog button { cursor: pointer; }
+.work-demo { padding: 10px 14px; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; background: #fffbeb; font-size: 12px; line-height: 1.7; }
+.work-demo > span { font-weight: 650; margin-right: 8px; }
+.work-toolbar, .work-week, .work-week label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.work-toolbar { gap: 12px; }
+.work-toolbar .ui-search { flex: 1; min-width: 180px; }
+.work-week label { background: white; border: 1px solid #d0d5dd; padding: 8px; border-radius: 8px; min-height: 40px; }
+.work-week input { min-width: 110px; outline: none; }
+.work-branch select { min-height: 40px; padding: 8px 30px 8px 12px; border: 1px solid #d0d5dd; border-radius: 8px; background: white; }
+.work-panel { background: white; border: 1px solid #e4e7ec; border-radius: 12px; overflow: hidden; }
+.work-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; border-bottom: 1px solid #e4e7ec; }
+.work-section-heading h2 { font-size: 16px; font-weight: 650; }
+.work-section-heading p { color: #667085; font-size: 12px; margin-top: 5px; }
+.work-calendar-scroll { width: 100%; overflow-x: auto; }
+.work-calendar { width: 100%; min-width: 1120px; table-layout: fixed; border-collapse: collapse; }
+.work-calendar th, .work-calendar td { border-right: 1px solid #e4e7ec; border-bottom: 1px solid #e4e7ec; padding: 12px 8px; vertical-align: top; text-align: left; }
+.work-calendar thead th { background: #f8fafc; font-weight: 600; text-align: center; }
+.work-calendar thead th:first-child, .work-calendar tbody th { width: 190px; text-align: left; position: sticky; left: 0; z-index: 1; background: #fff; border-right: 1px solid #d0d5dd; }
+.work-calendar thead th:first-child { background: #f8fafc; }
+.work-calendar small { display: block; font-size: 11px; font-weight: 400; margin-top: 5px; color: #667085; }
+.work-calendar tbody th strong { display: block; margin-top: 8px; font-size: 13px; font-weight: 600; }
+.work-avatar { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; color: #475467; font-size: 11px; }
+.work-slot { border: 1px solid #a7f3d0; border-left: 3px solid #10b981; border-radius: 7px; background: #ecfdf5; margin-bottom: 8px; overflow: hidden; }
+.work-slot.is-lesson { background: #eff6ff; border-color: #bfdbfe; border-left-color: #3b82f6; }
+.work-time-row { display: grid; align-items: stretch; gap: 6px; margin-bottom: 8px; }
+.work-time-row > .work-slot { display: flex; flex-direction: column; min-width: 0; margin-bottom: 0; }
+.work-time-row > .work-slot > .work-slot-main { flex: 1; }
+.work-time-row.has-parallel .work-slot-main { padding: 6px; }
+.work-time-row.has-parallel .work-slot-main strong { font-size: 11px; }
+.work-time-row.has-parallel .work-slot-main > .work-lesson-teacher { font-size: 11px; }
+.work-time-row.has-parallel .work-attendance-summary { padding: 6px; }
+.work-time-row.has-parallel .work-replace { padding: 5px 6px; }
+.work-slot-main { text-align: left; padding: 8px; width: 100%; display: block; }
+.work-slot-main strong { display: block; font-size: 12px; }
+.work-slot-main > span { display: block; margin-top: 4px; font-size: 11px; overflow-wrap: anywhere; }
+.work-calendar small.work-warning, .work-warning { color: #b45309; }
+.work-calendar small.work-success, .work-success { color: #047857; font-size: 12px; }
+.work-replace { display: flex; align-items: center; gap: 4px; border-top: 1px solid #bfdbfe; padding: 5px 8px; width: 100%; color: #2563eb; font-size: 11px; }
+.work-replace:hover, .work-slot-main:hover { background: #ffffff80; }
+.work-off { display: block; text-align: center; padding: 16px 0; font-size: 11px; color: #98a2b3; }
+.work-calendar small.work-preference { color: #7c3aed; margin-bottom: 8px; }
+.work-add { display: flex; align-items: center; gap: 4px; margin: 8px auto 0; color: #667085; font-size: 11px; }
+.work-add:hover { color: #e60023; }
+.work-dialog { width: min(560px, calc(100vw - 24px)); max-height: 90dvh; margin: auto; padding: 0; border: 1px solid #e4e7ec; border-radius: 16px; color: #344054; background: #fff; box-shadow: 0 24px 64px #10182840; overflow-y: auto; font-size: 13px; }
+.work-dialog::backdrop { background: #10182877; }
+.work-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e4e7ec; }
+.work-dialog h2 { font-weight: 650; font-size: 17px; }
+.work-form { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.work-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.work-field > span { font-size: 12px; font-weight: 600; }
+.work-field input, .work-field select, .work-field textarea { width: 100%; border: 1px solid #d0d5dd; background: white; border-radius: 8px; padding: 9px 10px; min-height: 40px; font: inherit; }
+.work-field :disabled { background: #f8fafc; color: #667085; }
+.work-form-row { display: flex; gap: 12px; }
+.work-form-row > div { flex: 1; }
+.work-form footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid #e4e7ec; }
+.work-error { color: #be123c; padding: 10px; background: #fff1f2; border-radius: 8px; }
+.work-hint { font-size: 12px; color: #667085; line-height: 1.7; }
+.work-detail { padding: 12px; background: #f8fafc; border-radius: 8px; line-height: 1.8; }
+.work-detail strong { font-weight: 650; }
+.work-photo { width: 100%; max-height: 280px; object-fit: contain; border-radius: 8px; background: #f1f5f9; }
+.work-photo.hidden { display: none; }
+.work-checkbox { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+.work-report { width: 100%; border-collapse: collapse; min-width: 450px; text-align: left; }
+.work-report th { background: #f8fafc; font-size: 12px; font-weight: 600; }
+.work-report th, .work-report td { padding: 12px 20px; border-bottom: 1px solid #e4e7ec; }
+.work-alert-list { display: grid; gap: 8px; padding: 16px; max-height: 350px; overflow: auto; }
+.work-alert-list > button { display: flex; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; }
+.work-alert-list small { display: block; margin-top: 4px; font-size: 11px; }
+.work-audit { max-height: 200px; overflow: auto; margin-top: 12px; color: #667085; font-size: 12px; line-height: 2; }
+@media (max-width: 640px) { .work-toolbar > *, .work-week { width: 100%; } .work-week label { flex: 1; } .work-week label > span:not(.sr-only) { display: none; } .work-form { padding: 16px; } .work-calendar thead th:first-child, .work-calendar tbody th { width: 160px; } }
+.work-timetable-filters { padding: 16px 20px; border-bottom: 1px solid #e4e7ec; background: #f8fafc; }
+.work-week label.work-week-picker { position: relative; flex-wrap: nowrap; cursor: pointer; }
+.work-week-picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.work-week-picker:focus-within { outline: 2px solid var(--ui-focus-border); outline-offset: 2px; }
+.work-week-picker input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.work-week label > span.work-week-display { display: inline; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
+.work-day-calendar { min-width: 1050px; }
+.work-day-calendar thead th:first-child { position: static; width: auto; text-align: center; background: #f8fafc; }
+.crm-content table.work-calendar thead th { height: 76px; padding: 14px 12px; background: #e8f0fc; color: #1e3a5f; font-size: 15px; font-weight: 700; text-align: center; border-bottom: 2px solid #bfd2ee; }
+.crm-content table.work-calendar thead th small { margin-top: 6px; color: #334155; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.crm-content table.work-calendar:not(.work-day-calendar) thead th:first-child { text-align: left; }
+.work-day-calendar td { height: 260px; }
+.crm-content table.work-day-calendar tbody td { vertical-align: top; padding: 12px 8px; }
+.work-slot-main > .work-lesson-teacher { font-size: 12px; font-weight: 600; color: #1e40af; }
+.work-teacher-select { position: relative; }
+.work-teacher-trigger { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 10px 12px; background: white; text-align: left; font: inherit; }
+.work-teacher-trigger > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.work-teacher-trigger > svg { flex-shrink: 0; color: #98a2b3; transition: transform .15s; }
+.work-teacher-trigger.is-placeholder { color: #98a2b3; }
+.work-teacher-trigger:disabled { cursor: not-allowed; background: #f8fafc; color: #98a2b3; }
+.work-teacher-trigger.is-open { border-color: #60a5fa; box-shadow: 0 0 0 2px #eff6ff; }
+.work-teacher-select button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.work-teacher-search input:focus-visible { outline: none; box-shadow: none; }
+.work-teacher-trigger.is-open > svg { transform: rotate(180deg); }
+.work-teacher-dropdown { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e4e7ec; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px #1018281a; }
+.work-teacher-search { display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #f2f4f7; }
+.work-teacher-search > svg { flex-shrink: 0; color: #98a2b3; }
+.work-teacher-search input { min-width: 0; border: 0; outline: 0; box-shadow: none; padding: 12px 0; background: white; }
+.work-teacher-search input::placeholder { color: #98a2b3; }
+.work-teacher-options { max-height: 240px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 0; scrollbar-width: thin; }
+.work-teacher-options li { list-style: none; }
+.work-teacher-options button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 14px; background: white; color: #101828; text-align: left; font: inherit; }
+.work-teacher-options button > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.work-teacher-options button > svg { flex-shrink: 0; }
+.work-teacher-options button.is-highlighted, .work-teacher-options button.is-selected { background: #eff6ff; }
+.work-teacher-options button.is-selected { color: #2563eb; font-weight: 600; }
+.work-teacher-count { padding: 8px 14px; border-top: 1px solid #f2f4f7; font-size: 11px; color: #98a2b3; }
+.work-teacher-empty { padding: 14px; font-size: 12px; color: #667085; }
+.work-attendance-summary { padding: 8px; border-top: 1px solid #cbd5e1; background: #ffffff90; }
+.work-attendance-status { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; width: 100%; text-align: left; font-size: 11px; }
+.work-attendance-badge { display: inline-block; padding: 3px 6px; border-radius: 5px; font-size: 11px; line-height: 1.5; }
+.work-attendance-badge.is-success { background: #d1fae5; color: #047857; }
+.work-attendance-badge.is-warning { background: #fef3c7; color: #92400e; }
+.work-attendance-badge.is-info { background: #dbeafe; color: #1d4ed8; }
+.work-attendance-badge.is-neutral { background: #f1f5f9; color: #667085; }
+.work-attendance-more { display: flex; align-items: center; gap: 2px; color: #2563eb; }
+.work-attendance-times { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; color: #667085; font-size: 11px; font-variant-numeric: tabular-nums; }
+.work-attendance-times strong { font-weight: 600; color: #344054; }
+.work-map-link, .work-no-location { display: flex; align-items: flex-start; gap: 4px; margin-top: 8px; font-size: 11px; line-height: 1.5; }
+.work-map-link { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+.work-map-link svg, .work-no-location svg { flex-shrink: 0; margin-top: 1px; }
+.work-no-location { color: #667085; }
+.work-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.work-detail-grid dt { font-size: 11px; color: #667085; margin-bottom: 4px; }
+.work-detail-grid dd { font-size: 13px; overflow-wrap: anywhere; }
+.work-evidence, .work-attendance-overview { padding: 12px; border: 1px solid #e4e7ec; border-radius: 8px; }
+.work-evidence h3, .work-attendance-overview h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.work-evidence-time { margin-bottom: 10px; }
+.work-evidence .work-hint { margin-top: 5px; }
+.work-evidence .work-hint svg { display: inline; }
+.work-evidence-map { width: 100%; height: 240px; border: 0; border-radius: 8px; margin-top: 12px; }
+.work-map-toggle { color: #2563eb; font-size: 11px; text-decoration: underline; margin-top: 8px; }
+.work-teacher-filter { width: 230px; max-width: 100%; }
+.work-teacher-filter .work-teacher-trigger { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
+.work-panel:has(.work-teacher-filter .is-open) { overflow: visible; }
+.work-employee-off { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; padding: 8px; border: 1px dashed #d0d5dd; border-radius: 7px; background: #f8fafc; font-size: 11px; }
+.work-employee-off strong { font-weight: 600; }
+.work-employee-off span { color: #667085; }
+.work-employee-calendar .work-slot-main > .work-lesson-teacher { color: #065f46; }
+.work-employee-calendar .work-replace { border-top-color: #a7f3d0; color: #047857; }

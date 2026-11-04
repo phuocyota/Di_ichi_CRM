@@ -42,7 +42,7 @@ function LoginPage() {
       <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
         <label className="block">
           <span className="text-sm font-bold text-slate-800">Email</span>
-          <span className="mt-2 flex h-12 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 shadow-sm transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-blue-100">
+          <span className="mt-2 flex h-12 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 shadow-sm transition focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100">
             <Mail size={18} className="text-brand-600" aria-hidden="true" />
             <input
               className="w-full font-medium text-slate-900 outline-none"
@@ -56,7 +56,7 @@ function LoginPage() {
 
         <label className="block">
           <span className="text-sm font-bold text-slate-800">Mật khẩu</span>
-          <span className="mt-2 flex h-12 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 shadow-sm transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-blue-100">
+          <span className="mt-2 flex h-12 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 shadow-sm transition focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100">
             <LockKeyhole size={18} className="text-brand-600" aria-hidden="true" />
             <input
               className="w-full font-medium text-slate-900 outline-none"
