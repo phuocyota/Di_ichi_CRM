@@ -10,7 +10,7 @@ export default function AssignmentForm({ initial, data, catalog, people, employe
   const [error, setError] = useState('')
   const [courseId, setCourse] = useState(() => catalog.classes.find(item => item.id === initial.classId)?.courseId || initial.courseId || '')
   const change = (key, next) => { setValue(old => ({ ...old, [key]: next })); setError('') }
-  const shifts = data.shifts.filter(item => item.branchId === value.branchId)
+  const shifts = data.shifts.filter(item => item.branchId === value.branchId && !item.deletedAt)
   const branchClasses = catalog.classes.filter(item => classMatchesWorkBranch(item, value.branchId))
   const availableCourses = catalog.courses
   const classes = branchClasses.filter(item => item.courseId === courseId)
@@ -48,7 +48,7 @@ export default function AssignmentForm({ initial, data, catalog, people, employe
         setValue(old => ({ ...old, shiftId: shift?.id || '', start: shift?.start || '', end: shift?.end || '' }))
       }}><option value="">Chọn ca làm</option>{shifts.map(item => <option key={item.id} value={item.id}>{item.name} ({item.start}–{item.end})</option>)}</select></Field>}
       <div className="work-form-row"><Field label="Bắt đầu"><input required disabled={replacement} type="time" value={value.start} onChange={e => change('start', e.target.value)} /></Field><Field label="Kết thúc"><input required disabled={replacement} type="time" value={value.end} onChange={e => change('end', e.target.value)} /></Field></div>
-      {value.kind === 'employee' && !replacement && <p className="work-hint">Ca làm hiện dùng dữ liệu mẫu theo cơ sở. Giờ mặc định lấy từ ca, có thể chỉnh riêng cho lần phân lịch này.</p>}
+      {value.kind === 'employee' && !replacement && <p className="work-hint">Ca làm lấy từ máy chủ và cấu hình tại tab Quản lý ca làm. Giờ mặc định lấy từ ca, có thể chỉnh riêng cho lần phân lịch này.</p>}
       {replacement && <Field label="Lý do thay thế"><textarea required value={value.replacementReason || ''} onChange={e => change('replacementReason', e.target.value)} /></Field>}
       {error && <p role="alert" className="work-error">{error}</p>}
       <footer><button type="button" className="ui-button" onClick={onClose}>Hủy</button><button disabled={value.kind === 'teacher' ? catalog.loading || Boolean(catalog.error) || !classes.length : employeeCatalog.loading || Boolean(employeeCatalog.error)} className="ui-button ui-button-primary">{replacement ? value.kind === 'teacher' ? 'Lưu giáo viên dạy thế' : 'Lưu nhân viên làm thay' : 'Lưu phân lịch'}</button></footer>

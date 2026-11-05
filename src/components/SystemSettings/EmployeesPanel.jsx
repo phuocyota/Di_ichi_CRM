@@ -1,7 +1,8 @@
 import {
   ActionDropdown,
   Pagination as SharedPagination,
-  StatusBadge
+  StatusBadge,
+  ConfirmDialog
 } from '../common/ui.jsx'
 import React, { useMemo, useState } from 'react'
 import EmployeeModal from './EmployeeModal.jsx'
@@ -14,7 +15,8 @@ import {
   Plus,
   RefreshCcw,
   ShieldCheck,
-  Unlock
+  Unlock,
+  Trash2
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
@@ -25,6 +27,8 @@ function uniqueOptions(rows, key) {
 }
 
 function EmployeesPanel({
+  employeesOnly = false,
+  sectionLabel = 'Cài đặt hệ thống',
   rows,
   roles,
   directories,
@@ -32,6 +36,7 @@ function EmployeesPanel({
   keyword,
   onRefresh,
   onSave,
+  onDelete,
   onRoles,
   onLock,
   onReset,
@@ -123,14 +128,13 @@ function EmployeesPanel({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">
-            Cài đặt hệ thống
+            {sectionLabel}
           </p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">
             Nhân viên
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
-            Quản lý quản trị viên, kế toán, sale, giáo vụ, giáo viên, thu ngân
-            và lễ tân sử dụng hệ thống.
+            {employeesOnly ? 'Quản lý nhân viên Sale, CSKH, kế toán, giáo vụ, thu ngân và lễ tân. Phân loại nhân viên theo chức vụ và vai trò.' : 'Quản lý quản trị viên, kế toán, sale, giáo vụ, giáo viên, thu ngân và lễ tân sử dụng hệ thống.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -277,6 +281,11 @@ function EmployeesPanel({
                           icon: ShieldCheck,
                           disabled: busy || !row.accountId,
                           onClick: () => setModal({ type: 'role', row })
+                        },
+                        {
+                          label: 'Xóa nhân viên', icon: Trash2, danger: true,
+                          disabled: busy || row.accountId === currentUserId,
+                          onClick: () => setModal({ type: 'delete', row })
                         }
                       ]}
                     />
@@ -298,8 +307,10 @@ function EmployeesPanel({
         shown={pagedRows.length}
       />
 
-      {modal ? (
+      {modal?.type === 'delete' && <ConfirmDialog open title="Xóa nhân viên" description={`Xóa nhân viên ${modal.row.name}? Hồ sơ sẽ được ẩn, tài khoản liên kết bị vô hiệu hóa. Dữ liệu lịch sử vẫn được giữ lại.`} confirmLabel="Xóa nhân viên" danger onClose={() => setModal(null)} onConfirm={async () => { await onDelete(modal.row); setModal(null) }} />}
+      {modal && modal.type !== 'delete' ? (
         <EmployeeModal
+          employeesOnly={employeesOnly}
           key={`${modal.type}-${modal.row?.id || 'new'}`}
           modal={modal}
           roles={roles}

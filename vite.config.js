@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    optimizeDeps: {
+      include: ['xlsx'],
+    },
     server: {
       proxy: {
         '/socket.io': { target: env.VITE_API_PROXY_TARGET || 'http://localhost:3004', changeOrigin: true, ws: true },

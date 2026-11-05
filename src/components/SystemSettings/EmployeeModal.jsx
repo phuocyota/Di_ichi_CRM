@@ -1,10 +1,13 @@
 import { ConfirmDialog } from '../common/ui.jsx'
 import React, { useState } from 'react'
 import { staffTypes } from '../../services/systemSettingsApi.js'
+import { Plus } from 'lucide-react'
+import EmployeeDirectoryCreate from './EmployeeDirectoryCreate.jsx'
 
 const fieldClass =
   'mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100'
 export default function EmployeeModal({
+  employeesOnly = false,
   modal,
   roles,
   directories,
@@ -23,7 +26,7 @@ export default function EmployeeModal({
   const [form, setForm] = useState({
     code: row.code || '',
     name: row.name || '',
-    type: row.typeValue || 'TEACHER',
+    type: employeesOnly ? 'KINH_DOANH' : row.typeValue || 'KINH_DOANH',
     branchId: row.branchId || '',
     departmentId: row.departmentId || '',
     positionId: row.positionId || '',
@@ -41,6 +44,10 @@ export default function EmployeeModal({
     password: ''
   })
   const [confirmAction, setConfirmAction] = useState(false)
+  const [credentials, setCredentials] = useState(null)
+  const [creatingDirectory, setCreatingDirectory] = useState(null)
+  const [createdDirectories, setCreatedDirectories] = useState({ departments: [], positions: [] })
+  const directoryRows = key => [...new Map([...createdDirectories[key], ...directories[key]].map(item => [item.id, item])).values()]
   const [confirm, setConfirm] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('')
@@ -62,11 +69,12 @@ export default function EmployeeModal({
       />
     </label>
   )
-  const select = (key, label, options, required = false, disabled = false) => (
-    <label className="block text-sm font-semibold">
-      {label}
-      {required && ' *'}
+  const select = (key, label, options, required = false, disabled = false, createResource = null) => (
+    <div className="block text-sm font-semibold">
+      <div className="flex min-h-6 items-center justify-between gap-2"><label htmlFor={`employee-${key}`}>{label}{required && ' *'}</label>
+      {createResource && !detail && <button type="button" disabled={busy} className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-300 text-blue-600 hover:bg-blue-50 disabled:opacity-50" aria-label={`Thêm ${label.toLowerCase()}`} title={`Thêm ${label.toLowerCase()}`} onClick={() => setCreatingDirectory(createResource)}><Plus size={15} aria-hidden="true" /></button>}</div>
       <select
+        id={`employee-${key}`}
         className={fieldClass}
         required={required}
         disabled={detail || busy || disabled}
@@ -83,7 +91,7 @@ export default function EmployeeModal({
           </option>
         ))}
       </select>
-    </label>
+    </div>
   )
   const roleFields = (
     <div className="space-y-2">
@@ -128,7 +136,7 @@ export default function EmployeeModal({
       !roleOnly &&
       !locking &&
       !detail &&
-      (passwordOnly || form.password || !row.accountId)
+      (passwordOnly || ((row.accountId || form.email.trim()) && form.password))
     ) {
       if (form.password !== confirm) {
         setError('Mật khẩu xác nhận không khớp')
@@ -166,6 +174,7 @@ export default function EmployeeModal({
         const payload = {
           ...form,
           email: form.email.trim().toLowerCase(),
+          roleIds: row.accountId || form.email.trim() ? form.roleIds : [],
           code: form.code.trim(),
           name: form.name.trim()
         }
@@ -182,7 +191,9 @@ export default function EmployeeModal({
         ])
           payload[key] = payload[key] || null
         if (!payload.password) delete payload.password
-        await onSave(row, payload)
+        if (!payload.email) { delete payload.email; delete payload.password }
+        const result = await onSave(row, payload)
+        if (result?.credentials) { setCredentials(result.credentials); return }
       }
       onClose()
     } catch (cause) {
@@ -192,6 +203,7 @@ export default function EmployeeModal({
       setBusy(false)
     }
   }
+  if (credentials) return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"><section role="dialog" aria-modal="true" aria-label="Tài khoản nhân viên vừa tạo" className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-semibold">Đã tạo tài khoản nhân viên</h2><p className="text-sm text-slate-600">Lưu lại thông tin đăng nhập trước khi đóng. Mật khẩu tự sinh chỉ hiển thị tại đây sau khi tạo.</p><label className="block text-sm font-semibold">Email<input className={fieldClass} readOnly value={credentials.email} /></label><label className="block text-sm font-semibold">Mật khẩu khởi tạo<input className={fieldClass} readOnly autoComplete="off" value={credentials.password} /></label><button type="button" className="ui-button ui-button-primary" onClick={onClose}>Đã lưu thông tin · Đóng</button></section></div>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <section
@@ -262,9 +274,9 @@ export default function EmployeeModal({
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {text('code', 'Mã nhân viên', 'text', true)}
                 {text('name', 'Họ và tên', 'text', true)}
-                {select(
+                {!employeesOnly && select(
                   'type',
-                  'Loại tài khoản',
+                  'Loại nhân viên',
                   staffTypes,
                   true,
                   own && form.type === 'ADMIN'
@@ -281,18 +293,18 @@ export default function EmployeeModal({
                 {select(
                   'departmentId',
                   'Phòng ban',
-                  directories.departments.map((b) => ({
+                  directoryRows('departments').map((b) => ({
                     value: b.id,
                     label: b.name
-                  }))
+                  })), false, false, 'department'
                 )}
                 {select(
                   'positionId',
                   'Chức vụ',
-                  directories.positions.map((b) => ({
+                  directoryRows('positions').map((b) => ({
                     value: b.id,
                     label: b.name
-                  }))
+                  })), false, false, 'position'
                 )}
                 {select(
                   'specialtyId',
@@ -302,7 +314,7 @@ export default function EmployeeModal({
                     label: b.name
                   }))
                 )}
-                {text('email', 'Email đăng nhập', 'email', true)}
+                {text('email', 'Email đăng nhập', 'email', form.type === 'TEACHER' || Boolean(row.accountId))}
                 {text('phone', 'Số điện thoại')}
                 {text('gender', 'Giới tính')}
                 {text('birthDate', 'Ngày sinh', 'date')}
@@ -330,15 +342,15 @@ export default function EmployeeModal({
                   own
                 )}
               </div>
-              {!detail && (
+              {!detail && (row.accountId || form.email.trim()) && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {text(
                     'password',
                     row.accountId
                       ? 'Mật khẩu mới (để trống nếu giữ nguyên)'
-                      : 'Mật khẩu đăng nhập',
+                      : 'Mật khẩu đăng nhập (để trống để tự sinh)',
                     'password',
-                    !row.accountId
+                    false
                   )}
                   <label className="block text-sm font-semibold">
                     Nhập lại mật khẩu
@@ -348,14 +360,13 @@ export default function EmployeeModal({
                       className={fieldClass}
                       value={confirm}
                       disabled={busy}
-                      required={!!form.password || !row.accountId}
+                      required={!!form.password}
                       onChange={(e) => setConfirm(e.target.value)}
                     />
                   </label>
                 </div>
               )}
-              <h3 className="font-semibold">Vai trò</h3>
-              {roleFields}
+              {row.accountId || form.email.trim() ? <><h3 className="font-semibold">Vai trò</h3>{roleFields}<p className="text-sm text-slate-600">Có email: tài khoản đăng nhập được tạo cùng nhân viên. Có thể nhập mật khẩu hoặc để hệ thống tự sinh.</p></> : <p className="text-sm text-slate-600">Chưa nhập email: chỉ lưu hồ sơ nhân viên, chưa tạo tài khoản đăng nhập.</p>}
               {detail && (
                 <p className="text-sm text-slate-600">
                   {row.accountStatus} · Đăng nhập gần nhất: {row.lastLogin}
@@ -402,6 +413,12 @@ export default function EmployeeModal({
             </footer>
           )}
         </form>
+        {creatingDirectory && <EmployeeDirectoryCreate resource={creatingDirectory} onClose={() => setCreatingDirectory(null)} onCreated={created => {
+          const key = creatingDirectory === 'department' ? 'departments' : 'positions'
+          setCreatedDirectories(previous => ({ ...previous, [key]: [...previous[key], created] }))
+          set(creatingDirectory === 'department' ? 'departmentId' : 'positionId', created.id)
+          setCreatingDirectory(null)
+        }} />}
         <ConfirmDialog
           open={confirmAction}
           title={passwordOnly ? 'Đặt lại mật khẩu' : 'Thay đổi quyền truy cập'}

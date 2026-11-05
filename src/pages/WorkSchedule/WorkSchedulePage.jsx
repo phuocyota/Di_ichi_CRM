@@ -5,6 +5,8 @@ import PageHeader from '../../components/common/PageHeader.jsx'
 import StatCard from '../../components/common/StatCard.jsx'
 import { ConfirmDialog } from '../../components/common/ui.jsx'
 import WeeklySchedule from '../../components/WorkSchedule/WeeklySchedule.jsx'
+import ShiftManagement from '../../components/WorkSchedule/ShiftManagement.jsx'
+import useWorkShifts from '../../components/WorkSchedule/useWorkShifts.js'
 import TeacherTimetable from '../../components/WorkSchedule/TeacherTimetable.jsx'
 import ScheduleFilters from '../../components/WorkSchedule/ScheduleFilters.jsx'
 import AssignmentForm from '../../components/WorkSchedule/AssignmentForm.jsx'
@@ -12,7 +14,7 @@ import AttendanceDialog from '../../components/WorkSchedule/AttendanceDialog.jsx
 import TeacherSelect from '../../components/WorkSchedule/TeacherSelect.jsx'
 import useWorkScheduleCatalog from '../../components/WorkSchedule/useWorkScheduleCatalog.js'
 import useWorkScheduleEmployees from '../../components/WorkSchedule/useWorkScheduleEmployees.js'
-import { matchesWorkEmployeeType, shiftsForWorkBranches, withWorkEmployeeSamples } from '../../services/workScheduleEmployees.js'
+import { matchesWorkEmployeeType, withWorkEmployeeSamples } from '../../services/workScheduleEmployees.js'
 import { classMatchesWorkBranch } from '../../services/workScheduleCatalog.js'
 import { workPeople, workTabs, workEmployeeTypes } from '../../datas/workSchedules.js'
 import { addDays, attendanceIssues, loadWorkSchedule, saveWorkSchedule, upsertWorkAssignment, removeWorkAssignment, weekStart, workAlerts, WORK_SCHEDULE_KEY } from '../../services/workSchedule.js'
@@ -20,7 +22,7 @@ import './WorkSchedulePage.css'
 
 export default function WorkSchedulePage() {
   const [data, setData] = useState(loadWorkSchedule)
-  const [tab, setTab] = useState('teacher')
+  const [tab, setTab] = useState('employee')
   const [week, setWeek] = useState(weekStart)
   const [employeeBranchId, setEmployeeBranch] = useState('')
   const [teacherBranchId, setTeacherBranch] = useState('')
@@ -28,14 +30,15 @@ export default function WorkSchedulePage() {
   const [teacherId, setTeacher] = useState('')
   const [employeeId, setEmployee] = useState('')
   const [modal, setModal] = useState(null)
-  const catalog = useWorkScheduleCatalog(!modal)
+  const catalog = useWorkScheduleCatalog(!modal, { load: tab === 'teacher' })
   const employeeCatalog = useWorkScheduleEmployees(!modal)
   const employeeDirectory = useMemo(() => withWorkEmployeeSamples({ employees: employeeCatalog.employees, branches: employeeCatalog.branches }, data.assignments), [employeeCatalog.employees, employeeCatalog.branches, data.assignments])
   const directoryPeople = useMemo(() => [...workPeople.filter(person => person.kind === 'teacher'), ...employeeDirectory.employees], [employeeDirectory.employees])
-  const shifts = useMemo(() => shiftsForWorkBranches(data.shifts, employeeCatalog.branches), [data.shifts, employeeCatalog.branches])
   const branches = tab === 'teacher' ? catalog.branches : employeeCatalog.branches
   const chosenBranchId = tab === 'teacher' ? teacherBranchId : employeeBranchId
   const branchId = branches.some(item => item.id === chosenBranchId) ? chosenBranchId : branches[0]?.id || ''
+  const shiftApi = useWorkShifts(branchId)
+  const shifts = shiftApi.snapshot?.shifts || []
   const setBranch = tab === 'teacher' ? setTeacherBranch : setEmployeeBranch
   const [now, setNow] = useState(Date.now)
   const [showAlerts, setShowAlerts] = useState(false)
@@ -60,7 +63,7 @@ export default function WorkSchedulePage() {
   const total = visible.reduce((sum, item) => sum + (tab === 'teacher' ? item.periods : 1), 0)
   const confirmed = completed.reduce((sum, item) => sum + (tab === 'teacher' ? item.periods : 1), 0)
   const commit = (next, message) => {
-    const nextData = { ...next, shifts }
+    const nextData = next
     try { saveWorkSchedule(nextData) } catch { throw new Error('Không lưu được dữ liệu trên trình duyệt. Bộ nhớ có thể đã đầy; hãy giảm số ảnh lưu hoặc kiểm tra quyền lưu trữ.') }
     setData(nextData); setModal(null); toast.success(message)
   }
@@ -68,6 +71,7 @@ export default function WorkSchedulePage() {
   const add = (person, date = week) => {
     if (tab === 'teacher' && (catalog.loading || catalog.error)) return toast.error('Vui lòng tải danh sách khóa học / lớp học trước khi phân lịch.')
     if (tab === 'employee' && (employeeCatalog.loading || employeeCatalog.error)) return toast.error('Vui lòng tải danh sách nhân viên / cơ sở trước khi phân lịch.')
+    if (shiftApi.loading || shiftApi.error) return toast.error('Vui lòng tải cấu hình ca làm từ máy chủ trước khi phân lịch.')
     if (!branchId) return toast.error('Chưa có cơ sở để phân lịch.')
     const selectedPerson = person || directoryPeople.find(item => item.id === selectedPersonId)
     setModal({ type: 'assignment', item: { personId: selectedPerson?.id || '', kind: tab, branchId, date } })
@@ -88,7 +92,7 @@ export default function WorkSchedulePage() {
       if (!workEmployeeTypes.some(type => type.value === candidate.employeeType) || !matchesWorkEmployeeType(employee, candidate.employeeType)) throw new Error('Chọn nhân viên đúng loại CSKH hoặc Sale.')
       if (employee.catalogSource === 'sample' && employee.branchId !== candidate.branchId) throw new Error('Chọn nhân viên mẫu thuộc cơ sở đang phân lịch.')
       if (!employeeCatalog.branches.some(branch => branch.id === candidate.branchId)) throw new Error('Chọn cơ sở hợp lệ từ API.')
-      const shift = shifts.find(item => item.id === candidate.shiftId && item.branchId === candidate.branchId)
+      const shift = shifts.find(item => !item.deletedAt && item.id === candidate.shiftId && item.branchId === candidate.branchId)
       if (!shift) throw new Error('Chọn ca hợp lệ của chi nhánh.')
       candidate = { ...candidate, catalogSource: employee.catalogSource, personName: employee.name, personRole: workEmployeeTypes.find(type => type.value === candidate.employeeType).label, start: candidate.start || shift.start, end: candidate.end || shift.end }
     }
@@ -106,7 +110,15 @@ export default function WorkSchedulePage() {
   const scheduleTitle = branchId ? `${tab === 'teacher' ? 'Lịch dạy' : 'Lịch làm việc'} ở ${branchName} từ ngày ${week.split('-').reverse().join('/')} tới ngày ${end.split('-').reverse().join('/')}` : tab === 'teacher' ? 'Lịch dạy trong tuần' : 'Lịch làm việc trong tuần'
   return <div className="work-page space-y-5">
     <PageHeader title="Lịch làm việc" description="Điều phối lịch tuần, theo dõi ca làm và chấm công tại trung tâm." tabs={workTabs} activeTab={tab} onTabChange={setTab} />
-    <div className="work-demo"><span>Lịch & chấm công mẫu</span> Khóa học, lớp học và cơ sở lấy từ API. Nhân viên ưu tiên dữ liệu API; bổ sung người có nhãn “(mẫu)” khi thiếu loại CSKH / Sale. Giáo viên, ca làm, lịch phân công và chấm công vẫn dùng dữ liệu mẫu lưu trên trình duyệt.</div>
+    <div className="work-demo"><span>Lịch & chấm công mẫu</span> Nhân viên, cơ sở và cấu hình ca làm lấy từ API; bổ sung người có nhãn “(mẫu)” khi thiếu loại CSKH / Sale. Lịch phân công và chấm công vẫn dùng dữ liệu mẫu lưu trên trình duyệt.</div>
+    {employeeCatalog.refreshError && <div className="work-error" role="alert">Chưa cập nhật được dữ liệu mới: {employeeCatalog.refreshError}. Đang hiển thị dữ liệu đã tải. <button type="button" className="ui-button" onClick={employeeCatalog.reload}>Thử lại</button></div>}
+    {shiftApi.refreshError && <div className="work-error" role="alert">Chưa cập nhật được ca làm: {shiftApi.refreshError}. Đang hiển thị lần tải thành công gần nhất. <button type="button" className="ui-button" onClick={shiftApi.reload}>Thử lại</button></div>}
+    {tab === 'shifts' ? <ShiftManagement branches={branches} branchId={branchId} onBranchChange={setBranch} shifts={shifts} revision={shiftApi.snapshot?.revision} saved={shiftApi.snapshot?.saved} saving={shiftApi.saving} loading={employeeCatalog.loading || shiftApi.loading} error={employeeCatalog.error || shiftApi.error} onReload={() => { employeeCatalog.reload(); shiftApi.reload() }} onSave={async (values, revision) => {
+      await shiftApi.save(values, revision)
+      toast.success('Đã lưu ca làm trên máy chủ')
+    }} /> : <>
+    {shiftApi.loading && <p className="work-hint" role="status">Đang tải cấu hình ca làm…</p>}
+    {shiftApi.error && <div className="work-error" role="alert">Không tải được ca làm: {shiftApi.error} <button type="button" className="ui-button" onClick={shiftApi.reload}>Thử lại</button></div>}
     {tab === 'teacher' && catalog.loading && <p className="work-hint" role="status">Đang tải khóa học, lớp học và cơ sở…</p>}
     {tab === 'teacher' && catalog.error && <div className="work-error" role="alert">Không tải được khóa học / lớp học: {catalog.error} <button type="button" className="ui-button" onClick={catalog.reload}>Thử lại</button></div>}
     {tab === 'teacher' && !catalog.loading && !catalog.error && !catalog.branches.length && <p className="work-hint">Chưa có cơ sở trong dữ liệu API.</p>}
@@ -124,6 +136,7 @@ export default function WorkSchedulePage() {
       {tab === 'teacher' ? <TeacherTimetable week={week} assignments={decorated} classes={catalog.classes} attendance={data.attendance} onAdd={add} onDetail={item => setModal({ type: 'attendance', item })} onReplace={item => setModal({ type: 'assignment', replacement: true, item })} /> : <WeeklySchedule week={week} people={people} assignments={decorated} allAssignments={data.assignments} attendance={data.attendance} onAdd={add} onDetail={item => setModal({ type: 'attendance', item })} onReplace={item => setModal({ type: 'assignment', replacement: true, item })} />}
     </section>
     {showAlerts && <section className="work-panel"><div className="work-section-heading"><div><h2>Cảnh báo & thống kê chấm công</h2><p>Cập nhật mỗi 30 giây · Theo tuần, chi nhánh và danh sách đang lọc</p></div></div><div className="work-calendar-scroll"><table className="work-report"><thead><tr><th>Nhân sự</th><th>Đi trễ</th><th>Về sớm</th><th>Quên công</th></tr></thead><tbody>{people.map(person => <tr key={person.id}><td>{person.name}</td>{['Đi trễ', 'Về sớm', 'Quên chấm công'].map(type => <td key={type}>{alerts.filter(item => item.personId === person.id && item.type === type).length}</td>)}</tr>)}</tbody></table></div><div className="work-alert-list">{alerts.length ? alerts.map(alert => <button key={alert.id} onClick={() => setModal({ type: 'attendance', item: data.assignments.find(item => item.id === alert.assignmentId) })}><AlertTriangle size={15} /><span><strong>{alert.name}</strong> · {alert.type}<small>{alert.date.split('-').reverse().join('/')} · Xem chấm công</small></span></button>) : <p className="work-hint">Chưa có cảnh báo trong tuần này.</p>}</div></section>}
+    </>}
     {data.audit.length > 0 && <details className="work-panel p-4"><summary className="cursor-pointer text-sm font-semibold">Nhật ký thay đổi ({data.audit.length})</summary><div className="work-audit">{data.audit.slice().reverse().map(item => <p key={item.id}>{new Date(item.at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · {item.actor} · {item.action}{item.detail?.after?.replacementReason ? ` · ${item.detail.after.replacementReason}` : ''}</p>)}</div></details>}
     {modal?.type === 'assignment' && <AssignmentForm initial={modal.item} data={{ ...data, branches, shifts }} catalog={catalog} people={directoryPeople} employeeCatalog={employeeCatalog} replacement={modal.replacement} onSave={saveAssignment} onClose={() => setModal(null)} />}
     {modal?.type === 'delete' && <ConfirmDialog open title="Xóa lịch làm việc" description={`Xóa lịch mẫu của ${directoryPeople.find(person => person.id === modal.item.personId)?.name || modal.item.personName || modal.item.personId} ngày ${modal.item.date.split('-').reverse().join('/')} (${modal.item.start}–${modal.item.end})? Bản chấm công gắn với lịch này cũng sẽ được xóa.`} confirmLabel="Xóa lịch" danger onClose={() => setModal({ type: 'attendance', item: modal.item })} onConfirm={() => {

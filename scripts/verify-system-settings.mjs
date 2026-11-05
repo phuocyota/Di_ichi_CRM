@@ -27,6 +27,12 @@ try {
   const loaded = await api.loadSettings()
   assert.equal(loaded.staff[0].name, 'API Employee')
   const view = api.settingsView(loaded)
+  for (const type of ['TEACHER', 'ADMIN', 'SUPER_ADMIN', 'STUDENT', 'Giáo viên', 'giao-vien', '']) {
+    assert.equal(api.isBusinessEmployee({ type }), false)
+  }
+  for (const type of ['KINH_DOANH', 'SALE', 'CSKH', 'STAFF']) {
+    assert.equal(api.isBusinessEmployee({ type }), true)
+  }
   assert.equal(view.employeeRows[0].branch, 'API Branch')
   assert.equal(view.employeeRows[0].username, 'actual@example.test')
   assert.deepEqual(view.employeeRows[0].roleIds, ['role-1'])
@@ -43,19 +49,36 @@ try {
   await api.saveRole('role-1', { code: 'custom', name: 'Renamed', permissionIds: ['permission-1'] })
   await api.savePermissions('role-1', ['permission-1'])
   await api.deleteRole('role-1')
+  await api.deleteEmployee('staff-1')
   assert.deepEqual(calls.map(c => [c.method, c.url]), [
     ['get', '/system-settings'], ['post', '/system-settings/employees'], ['patch', '/system-settings/employees/staff-1'],
     ['patch', '/system-settings/accounts/account-1/lock'], ['post', '/system-settings/accounts/account-1/password'],
     ['put', '/system-settings/accounts/account-1/roles'], ['post', '/system-settings/roles'], ['patch', '/system-settings/roles/role-1'],
     ['put', '/system-settings/roles/role-1/permissions'], ['delete', '/system-settings/roles/role-1'],
+    ['delete', '/system-settings/employees/staff-1'],
   ])
   assert.deepEqual(calls[3].payload, { locked: true })
   assert.deepEqual(calls[5].payload, { roleIds: ['role-1'] })
   assert.deepEqual(calls[8].payload, { permissionIds: ['permission-1'] })
+  const directoryCalls = []
+  client.defaults.adapter = async config => {
+    const payload = JSON.parse(config.data)
+    directoryCalls.push({ method: config.method, url: config.url, payload })
+    return { data: { success: true, data: { id: 'created-directory', ...payload } }, status: 201, statusText: 'Created', headers: {}, config }
+  }
+  assert.equal((await api.createEmployeeDirectory('department', { code: ' KD ', name: ' Kinh doanh ' })).id, 'created-directory')
+  await api.createEmployeeDirectory('position', { code: ' CSKH ', name: ' Chăm sóc khách hàng ' })
+  assert.deepEqual(directoryCalls, [
+    { method: 'post', url: '/department', payload: { code: 'KD', name: 'Kinh doanh', status: 'active' } },
+    { method: 'post', url: '/position', payload: { code: 'CSKH', name: 'Chăm sóc khách hàng', status: 'active' } },
+  ])
+  await assert.rejects(api.createEmployeeDirectory('department', { code: ' ', name: 'Name' }), /Nhập mã/)
+  await assert.rejects(api.createEmployeeDirectory('role', { code: 'A', name: 'Name' }), /không hợp lệ/)
   client.defaults.adapter = async config => ({ data: { success: true, data: {} }, status: 200, statusText: 'OK', headers: {}, config })
   await assert.rejects(api.loadSettings(), /không đúng định dạng/)
   client.defaults.adapter = async () => { throw Object.assign(new Error('Conflict'), { response: { status: 409, data: { message: 'Email đã được sử dụng' } } }) }
   await assert.rejects(api.saveEmployee(null, employee), /Email đã được sử dụng/)
+  await assert.rejects(api.createEmployeeDirectory('position', { code: 'CSKH', name: 'CSKH' }), /Email đã được sử dụng/)
   const { default: Employees } = await server.ssrLoadModule('/src/components/SystemSettings/EmployeesPanel.jsx')
   const { default: Permissions } = await server.ssrLoadModule('/src/components/SystemSettings/PermissionsPanel.jsx')
   const { default: Modal } = await server.ssrLoadModule('/src/components/SystemSettings/EmployeeModal.jsx')
@@ -68,9 +91,25 @@ try {
   assert.match(permissionHtml, /API Students/)
   assert.match(permissionHtml, /checked=""/)
   const modalHtml = renderToString(createElement(Modal, { modal: { type: 'form' }, roles: data.roles, directories: data, currentUserId: 'admin-1' }))
-  assert.match(modalHtml, /type="email" required=""/)
+  assert.match(modalHtml, /type="email"/)
+  assert.doesNotMatch(modalHtml, /type="email" required=""/)
   assert.match(modalHtml, /value="branch-1"/)
-  assert.match(modalHtml, /type="password" required=""/)
+  assert.doesNotMatch(modalHtml, /type="password"/)
+  assert.match(modalHtml, /chưa tạo tài khoản đăng nhập/)
+  assert.match(modalHtml, /aria-label="Thêm phòng ban"/)
+  assert.match(modalHtml, /aria-label="Thêm chức vụ"/)
+  const detailHtml = renderToString(createElement(Modal, { modal: { type: 'detail', row: view.employeeRows[0] }, roles: data.roles, directories: data, currentUserId: 'admin-1' }))
+  assert.doesNotMatch(detailHtml, /aria-label="Thêm phòng ban"|aria-label="Thêm chức vụ"/)
+  const businessModal = renderToString(createElement(Modal, { employeesOnly: true, modal: { type: 'form' }, roles: data.roles, directories: data, currentUserId: 'admin-1' }))
+  assert.doesNotMatch(businessModal, /Loại nhân viên|value="TEACHER"|value="ADMIN"/)
+  const businessRows = [...view.employeeRows, { ...view.employeeRows[0], id: 'sale', name: 'Sale Staff', typeValue: 'KINH_DOANH' }].filter(api.isBusinessEmployee)
+  assert.deepEqual(businessRows.map(row => row.id), ['sale'])
+  const businessHtml = renderToString(createElement(Employees, { employeesOnly: true, rows: businessRows, roles: data.roles, directories: data, keyword: '' }))
+  assert.match(businessHtml, /Sale Staff/)
+  assert.doesNotMatch(businessHtml, /API Employee|giáo viên/)
+  const teacherModal = renderToString(createElement(Modal, { modal: { type: 'form', row: { typeValue: 'TEACHER', email: 'teacher@test.local' } }, roles: data.roles, directories: data, currentUserId: 'admin-1' }))
+  assert.match(teacherModal, /type="email" required=""/)
+  assert.match(teacherModal, /để trống để tự sinh/)
   assert.match(renderToString(createElement(Page)), /Đang tải cài đặt hệ thống/)
   assert.match(renderToString(createElement(Employees, { rows: [], roles: [], directories: data, keyword: '' })), /Chưa có nhân viên phù hợp/)
   console.log('PASS: System Settings API contracts, persisted-data mapping, error propagation, employee/permission rendering and loading/empty states.')

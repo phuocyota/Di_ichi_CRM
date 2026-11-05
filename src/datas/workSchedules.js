@@ -29,7 +29,7 @@ export const createWorkEmployees = branches => branches.flatMap(branch => workEm
   catalogSource: 'sample',
 })))
 export const workClasses = courseClasses.map(item => ({ ...item, branchId: item.roomId === 'room-202' ? 'branch-2' : item.roomId === 'room-lab-a' ? 'branch-3' : 'branch-1' }))
-export const workTabs = [{ key: 'teacher', label: 'Phân lịch giáo viên' }, { key: 'employee', label: 'Phân lịch nhân viên' }]
+export const workTabs = [{ key: 'employee', label: 'Phân lịch nhân viên' }, { key: 'shifts', label: 'Quản lý ca làm' }]
 
 export const createWorkShifts = branches => branches.flatMap(branch => [
   { id: `${branch.id}-morning`, branchId: branch.id, name: 'Ca sáng', start: '07:30', end: '13:30', source: 'sample' },

@@ -19,6 +19,7 @@ import {
   initials
 } from '../../services/crmApi.js'
 import apiClient from '../../services/apiClient.js'
+import { scheduleTeacherAttendance } from '../../services/scheduleTeacherAttendance.js'
 import {generatePatternSessions,generatePatternUntil} from '../../services/schedulePattern.js'
 import {
   useWorkspace,
@@ -114,6 +115,7 @@ export default function SchedulePage() {
           classCode: c?.code || '—',
           course: c?.course || '—',
           teacher: nameOf(d.staff, s.teacherId),
+          teacherAttendance: scheduleTeacherAttendance(workspace.data.records, s),
           room: nameOf(d.room, s.roomId),
           branch: nameOf(d.branch, s.branchId),
           students,
@@ -130,7 +132,7 @@ export default function SchedulePage() {
           teacherNote: s.teacherNote || 'Chưa cập nhật'
         }
       }),
-    [d, classes]
+    [d, classes, workspace.data?.records]
   )
   const selected = events.find((e) => e.id === selectedId)
   const filtered = events.filter(

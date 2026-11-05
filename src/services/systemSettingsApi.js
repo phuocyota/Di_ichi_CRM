@@ -3,6 +3,10 @@ import apiClient from './apiClient.js'
 export const settingTabs = [{ key: 'employees', label: 'Nhân viên' }, { key: 'permissions', label: 'Phân quyền' }]
 export const actionLabels = { read: 'Xem', create: 'Thêm', update: 'Sửa', delete: 'Xóa' }
 export const staffTypes = [{ value: 'ADMIN', label: 'Quản trị viên' }, { value: 'TEACHER', label: 'Giáo viên' }, { value: 'KINH_DOANH', label: 'Kinh doanh / nhân viên nghiệp vụ' }]
+export function isBusinessEmployee(person) {
+  const type = String(person.typeValue || person.type || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').trim().toUpperCase().replace(/[\s-]+/g, '_')
+  return Boolean(type) && !['TEACHER', 'GIAO_VIEN', 'ADMIN', 'SUPER_ADMIN', 'STUDENT'].includes(type)
+}
 const date = value => value ? new Date(value).toLocaleString('vi-VN') : '—'
 const eventLabels = { 'staff.create': 'Thêm nhân viên', 'staff.update': 'Sửa nhân viên', 'account.lock': 'Khóa tài khoản', 'account.unlock': 'Mở khóa tài khoản', 'account.reset-password': 'Đặt lại mật khẩu', 'account.assign-roles': 'Gán vai trò', 'role.create': 'Thêm vai trò', 'role.update': 'Sửa vai trò', 'role.delete': 'Xóa vai trò', 'role.permissions': 'Cập nhật quyền' }
 export async function loadSettings(signal) {
@@ -26,6 +30,15 @@ export function settingsView(data) {
   return { employeeRows, roleRows, auditLogs }
 }
 export const saveEmployee = (row, payload) => row?.id ? apiClient.patch(`/system-settings/employees/${row.id}`, payload) : apiClient.post('/system-settings/employees', payload)
+export const deleteEmployee = id => apiClient.delete(`/system-settings/employees/${id}`)
+export async function createEmployeeDirectory(resource, value) {
+  if (!['department', 'position'].includes(resource)) throw new Error('Danh mục không hợp lệ')
+  const code = value.code?.trim(), name = value.name?.trim()
+  if (!code || !name) throw new Error('Nhập mã và tên danh mục')
+  const created = await apiClient.post(`/${resource}`, { code, name, status: 'active' })
+  if (!created?.id || !created.name) throw new Error('Đã gửi yêu cầu tạo nhưng API chưa trả đủ thông tin. Vui lòng tải lại danh mục trước khi thử thêm lần nữa.')
+  return created
+}
 export const lockAccount = (id, locked) => apiClient.patch(`/system-settings/accounts/${id}/lock`, { locked })
 export const resetPassword = (id, password) => apiClient.post(`/system-settings/accounts/${id}/password`, { password })
 export const assignRoles = (id, roleIds) => apiClient.put(`/system-settings/accounts/${id}/roles`, { roleIds })

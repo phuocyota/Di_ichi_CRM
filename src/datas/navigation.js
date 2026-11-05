@@ -8,12 +8,11 @@ import {
   LayoutDashboard,
   Megaphone,
   ReceiptText,
-  Settings,
   Users,
+  UsersRound,
 } from 'lucide-react'
 
 export const navigationItems = [
-  { label: 'Thư viện bài giảng', path: '/lesson-library', icon: BookOpen, color: 'bg-blue-50 text-blue-700 ring-blue-100', activeColor: 'bg-blue-600 text-white shadow-blue-200' },
   {
     label: 'Tổng quan',
     path: '/dashboard',
@@ -64,6 +63,13 @@ export const navigationItems = [
     activeColor: 'bg-violet-600 text-white shadow-violet-200',
   },
   {
+    label: 'Quản lý nhân viên',
+    path: '/employees',
+    icon: UsersRound,
+    color: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
+    activeColor: 'bg-indigo-600 text-white shadow-indigo-200',
+  },
+  {
     label: 'Tài chính',
     path: '/finance',
     enabled: false,
@@ -87,11 +93,5 @@ export const navigationItems = [
     color: 'bg-orange-50 text-orange-700 ring-orange-100',
     activeColor: 'bg-orange-500 text-white shadow-orange-200',
   },
-  {
-    label: 'Cài đặt hệ thống',
-    path: '/system-settings',
-    icon: Settings,
-    color: 'bg-slate-100 text-slate-700 ring-slate-200',
-    activeColor: 'bg-slate-700 text-white shadow-slate-200',
-  },
+  { label: 'Thư viện bài giảng', path: '/lesson-library', icon: BookOpen, color: 'bg-blue-50 text-blue-700 ring-blue-100', activeColor: 'bg-blue-600 text-white shadow-blue-200' },
 ].filter((item) => item.enabled !== false)

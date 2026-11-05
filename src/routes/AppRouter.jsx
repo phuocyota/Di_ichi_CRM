@@ -51,6 +51,7 @@ function AppRouter() {
               <Route path="/lesson-library" element={<LessonLibrary manage />} />
               <Route path="/schedule" element={<SchedulePage />} />
               <Route path="/staff" element={<StaffPage />} />
+              <Route path="/employees" element={<SystemSettingsPage key="employees" employeesOnly />} />
               <Route path="/finance" element={<FinancePage />} />
               <Route path="/marketing-sales" element={<MarketingSalesPage />} />
               <Route path="/reports" element={<ReportPage />} />

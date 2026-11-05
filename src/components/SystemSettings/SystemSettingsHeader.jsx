@@ -3,6 +3,7 @@ import PageHeader from '../common/PageHeader.jsx'
 import { SearchInput } from '../common/ui.jsx'
 
 export default function SystemSettingsHeader({
+  employeesOnly = false,
   activeTab,
   tabs,
   keyword,
@@ -11,8 +12,8 @@ export default function SystemSettingsHeader({
 }) {
   return (
     <PageHeader
-      title="Cài đặt hệ thống"
-      description="Quản lý nhân viên, tài khoản đăng nhập và quyền truy cập của trung tâm."
+      title={employeesOnly ? 'Quản lý nhân viên' : 'Cài đặt hệ thống'}
+      description={employeesOnly ? 'Quản lý hồ sơ nhân viên, tài khoản đăng nhập và vai trò tại trung tâm.' : 'Quản lý nhân viên, tài khoản đăng nhập và quyền truy cập của trung tâm.'}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={onTabChange}

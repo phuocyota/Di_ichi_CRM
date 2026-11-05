@@ -1,5 +1,6 @@
 import { loadSettings } from './systemSettingsApi.js'
-import { createWorkEmployees, createWorkShifts, workEmployeeTypes } from '../datas/workSchedules.js'
+import { createWorkEmployees, workEmployeeTypes } from '../datas/workSchedules.js'
+import { fixedWorkShifts } from './workShifts.js'
 
 const canonical = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '')
 const careCodes = new Set(['CSKH', 'CS_KH', 'CUSTOMER_CARE', 'CUSTOMER_SERVICE', 'CUSTOMER_SUPPORT', 'CHAM_SOC_KHACH_HANG', 'NHAN_VIEN_CSKH', 'NHAN_VIEN_CHAM_SOC_KHACH_HANG'])
@@ -27,8 +28,9 @@ export async function loadWorkScheduleEmployees(signal) {
 }
 
 export function shiftsForWorkBranches(existing, branches) {
-  const missing = branches.filter(branch => !existing.some(shift => shift.branchId === branch.id))
-  return [...existing, ...createWorkShifts(missing)]
+  const configured = branches.flatMap(branch => fixedWorkShifts(existing, branch.id))
+  const ids = new Set(configured.map(shift => shift.id))
+  return [...existing.filter(shift => !ids.has(shift.id)), ...configured]
 }
 
 export function withWorkEmployeeSamples(directory, assignments = []) {
