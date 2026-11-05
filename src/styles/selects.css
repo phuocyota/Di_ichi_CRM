@@ -31,9 +31,9 @@
 }
 :root select:not([multiple]):not([size]):is(:focus, :focus-visible, :open),
 :root select:not([multiple])[size='1']:is(:focus, :focus-visible, :open) {
-  border-color: #df9eaa;
+  border-color: var(--ui-focus-border);
   outline: none;
-  box-shadow: 0 0 0 3px #e6002310;
+  box-shadow: 0 0 0 3px var(--ui-focus-ring);
 }
 :root select:not([multiple]):not([size]):disabled,
 :root select:not([multiple])[size='1']:disabled,

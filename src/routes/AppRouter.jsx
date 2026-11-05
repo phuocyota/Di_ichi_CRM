@@ -15,6 +15,7 @@ const ParentPage = lazy(() => import('../pages/Parents/ParentPage.jsx'))
 // const PlaceholderPage = lazy(() => import('../pages/PlaceholderPage.jsx'))
 const ReportPage = lazy(() => import('../pages/Reports/ReportPage.jsx'))
 const SchedulePage = lazy(() => import('../pages/Schedule/SchedulePage.jsx'))
+const WorkSchedulePage = lazy(() => import('../pages/WorkSchedule/WorkSchedulePage.jsx'))
 const StaffPage = lazy(() => import('../pages/Staff/StaffPage.jsx'))
 const StudentPage = lazy(() => import('../pages/Students/StudentPage.jsx'))
 const SystemSettingsPage = lazy(() => import('../pages/SystemSettings/SystemSettingsPage.jsx'))
@@ -42,6 +43,7 @@ function AppRouter() {
             <Route element={<MainLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/work-schedule" element={<WorkSchedulePage />} />
               <Route path="/students" element={<StudentPage />} />
               <Route path="/parents" element={<ParentPage />} />
               <Route path="/classes" element={<Navigate to="/courses" replace />} />

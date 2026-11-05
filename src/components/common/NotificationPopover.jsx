@@ -8,6 +8,7 @@ import {
   readNotifications,
 } from "../../services/workspaceApi.js";
 import { USER_KEY } from "../../services/apiClient.js";
+import useWorkScheduleAlerts from '../WorkSchedule/useWorkScheduleAlerts.js'
 
 export default function NotificationPopover() {
   const ref = useRef(null);
@@ -25,6 +26,7 @@ export default function NotificationPopover() {
     }
   });
   const [alerts, setAlerts] = useState([]);
+  const workScheduleAlerts = useWorkScheduleAlerts(isAdmin);
   const [open, setOpen] = useState(false),
     [rows, setRows] = useState([]),
     [error, setError] = useState(""),
@@ -117,9 +119,9 @@ export default function NotificationPopover() {
         className="ui-button ui-icon-button relative"
       >
         <Bell size={19} />
-        {unread + alerts.length > 0 && (
+        {unread + alerts.length + workScheduleAlerts.length > 0 && (
           <span className="absolute -right-1 -top-1 rounded-full border-2 border-white bg-red-600 px-1.5 text-[10px] font-bold text-white">
-            {unread + alerts.length}
+            {unread + alerts.length + workScheduleAlerts.length}
           </span>
         )}
       </button>
@@ -176,6 +178,11 @@ export default function NotificationPopover() {
             </div>
           </header>
           <div className="max-h-[min(30rem,65vh)] overflow-y-auto p-2">
+            {filter !== 'teachers' && workScheduleAlerts.length > 0 && <Link to="/work-schedule" onClick={() => setOpen(false)} className="mb-2 block rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <strong>Lịch làm việc: {workScheduleAlerts.length} cảnh báo chấm công</strong>
+              <p className="mt-1">{workScheduleAlerts.filter(item => item.type === 'Đi trễ').length} đi trễ · {workScheduleAlerts.filter(item => item.type === 'Về sớm').length} về sớm · {workScheduleAlerts.filter(item => item.type === 'Quên chấm công').length} quên công</p>
+              <p className="mt-1 text-amber-700">Dữ liệu mẫu tuần này · Xem lịch làm việc</p>
+            </Link>}
             {filter !== "unread" &&
               alerts.map((alert) => (
                 <article
@@ -268,6 +275,7 @@ export default function NotificationPopover() {
               ))}
             {!loading &&
               !error &&
+              !workScheduleAlerts.length &&
               !(filter !== "unread" && alerts.length) &&
               !rows.some(
                 (r) =>

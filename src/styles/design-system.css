@@ -25,6 +25,8 @@
   --ui-selected: #e8f1ff;
   --ui-filter-surface: #f3f6fb;
   --ui-primary-ring: #e600231f;
+  --ui-focus-border: #60a5fa;
+  --ui-focus-ring: #3b82f61f;
   --ui-module: var(--ui-info);
   --ui-module-soft: var(--ui-info-soft);
   --ui-header-tint: #fff5f6;
@@ -79,6 +81,9 @@
 .crm-shell :where(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--ui-primary);
   outline-offset: 3px;
+}
+.crm-shell :where(input, select, textarea):focus-visible {
+  outline-color: var(--ui-focus-border);
 }
 .crm-shell button:not(:disabled),
 .ui-action-menu button:not(:disabled) {
@@ -253,8 +258,8 @@
   color: var(--ui-secondary);
 }
 .ui-search:focus-within {
-  border-color: var(--ui-primary-text);
-  box-shadow: 0 0 0 3px var(--ui-primary-ring);
+  border-color: var(--ui-focus-border);
+  box-shadow: 0 0 0 3px var(--ui-focus-ring);
 }
 .ui-search input {
   width: 100%;
@@ -1068,7 +1073,7 @@
     select,
     textarea
   ):focus {
-  border-color: var(--ui-primary-text);
+  border-color: var(--ui-focus-border);
 }
 
 /* Module accents are decorative; status colors are defined independently. */
@@ -1099,5 +1104,5 @@
 .ui-chart-card { border-top: 2px solid color-mix(in srgb, var(--ui-module) 24%, white); }
 .ui-columns-panel label:hover { background: var(--ui-info-soft); border-radius: 6px; }
 .ui-confirm-dialog { border-top: 3px solid var(--ui-primary); }
-.ui-input:focus-visible { box-shadow: 0 0 0 3px var(--ui-primary-ring); }
+.ui-input:focus-visible { box-shadow: 0 0 0 3px var(--ui-focus-ring); }
 @media (max-width: 1279px) { .ui-filter-grid { flex-basis: auto; } }
