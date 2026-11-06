@@ -7,6 +7,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import dayjs from 'dayjs'
 import viLocale from '@fullcalendar/core/locales/vi'
+import ScheduleAttendancePreview from './ScheduleAttendancePreview.jsx'
 import {
   CalendarDays,
   Clock,
@@ -76,6 +77,7 @@ function ScheduleCalendar({
               `${dayjs(item.start).format('HH:mm')} - ${dayjs(item.end).format('HH:mm')}`}
           </span>
         </div>
+        <ScheduleAttendancePreview scheduleId={item.id} records={item.teacherAttendance} />
       </div>
     )
   }
@@ -121,7 +123,7 @@ function ScheduleCalendar({
                   className={[
                     'inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition',
                     activeTab === tab.key
-                      ? 'bg-red-50 text-red-700'
+                      ? 'bg-blue-50 text-blue-700'
                       : 'text-slate-600 hover:bg-slate-100'
                   ].join(' ')}
                   onClick={() => setActiveTab(tab.key)}

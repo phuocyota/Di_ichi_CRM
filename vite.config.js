@@ -9,9 +9,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     optimizeDeps: {
-      include: ['xlsx'],
+      include: ['xlsx', 'react-hook-form', 'recharts'],
     },
     server: {
+      host: '0.0.0.0',
+      port: 5173,
+      strictPort: true,
       proxy: {
         '/socket.io': { target: env.VITE_API_PROXY_TARGET || 'http://localhost:3004', changeOrigin: true, ws: true },
         '/api': {
