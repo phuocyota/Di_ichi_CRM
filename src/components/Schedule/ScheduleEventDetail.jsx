@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
-import { teacherAttendanceTime } from '../../services/scheduleTeacherAttendance.js'
+import TeacherAttendanceDetails from './TeacherAttendanceDetails.jsx'
 import {
   Bell,
   BookOpenCheck,
@@ -99,37 +99,7 @@ function ScheduleEventDetail({ event, statuses, onClose, onOpenModal }) {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-gray-300 p-4 shadow-sm dark:border-slate-700">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-900 dark:text-white">Chấm công giáo viên</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{event.teacher}</p>
-                {event.teacherAttendance?.length ? event.teacherAttendance.map(record => (
-                  <div key={record.id} className="mt-3">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {record.scheduleId ? 'Chấm công buổi học' : `Chấm công theo ngày · ${dayjs(record.date).format('DD/MM/YYYY')}`}
-                    </p>
-                    <dl className="mt-2 grid gap-3 sm:grid-cols-2">
-                      {[
-                        ['Check-in', record.checkIn],
-                        ['Check-out', record.checkOut],
-                      ].map(([label, value]) => (
-                        <div key={label} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-                          <dt className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</dt>
-                          <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{teacherAttendanceTime(value)}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                )) : (
-                  <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {['Check-in', 'Check-out'].map(label => (
-                      <div key={label} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-                        <dt className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</dt>
-                        <dd className="mt-1 text-sm text-slate-500 dark:text-slate-400">Chưa ghi nhận</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </section>
+              <TeacherAttendanceDetails teacher={event.teacher} records={event.teacherAttendance} />
 
               <section className="rounded-xl border border-gray-300 p-4 shadow-sm dark:border-slate-700">
                 <div className="flex items-center justify-between gap-3">
