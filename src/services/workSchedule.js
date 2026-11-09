@@ -42,7 +42,17 @@ export function findAssignmentConflict(candidate, assignments) {
   return null
 }
 
-export function validateAssignment(candidate, assignments) {
+export const isWorkDayOff = (preferences, personId, date) => preferences.some(item => item.personId === personId && item.date === date && item.shiftId === 'OFF')
+
+export function setWorkDayOff(data, { personId, date, branchId }, off) {
+  if (!personId || !branchId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) throw new Error('Chọn nhân viên, cơ sở và ngày hợp lệ.')
+  if (off && data.assignments.some(item => item.personId === personId && item.date === date)) throw new Error('Nhân viên đã có lịch trong ngày này (có thể ở cơ sở khác). Hãy xóa hoặc đổi nhân viên của ca trước khi đánh dấu OFF.')
+  const preferences = data.preferences.filter(item => !(item.personId === personId && item.date === date && item.shiftId === 'OFF'))
+  if (off) preferences.push({ personId, date, branchId, shiftId: 'OFF' })
+  return { ...data, preferences }
+}
+
+export function validateAssignment(candidate, assignments, preferences = []) {
   const start = timeSeconds(candidate.start), end = timeSeconds(candidate.end)
   if (!candidate.personId || !candidate.branchId || !candidate.date || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) throw new Error('Chọn đủ thông tin, giờ hợp lệ và giờ kết thúc phải sau giờ bắt đầu.')
   const conflict = findAssignmentConflict(candidate, assignments)
@@ -54,6 +64,7 @@ export function validateAssignment(candidate, assignments) {
     throw new Error(`Trùng giờ: ${reason} ${item.start}–${item.end} ngày ${item.date.split('-').reverse().join('/')} (${classLabel}).`)
   }
   if (candidate.kind === 'employee') {
+    if (isWorkDayOff(preferences, candidate.personId, candidate.date)) throw new Error('Nhân viên đã được đánh dấu OFF ngày này. Hãy bỏ OFF trước khi phân ca.')
     const from = weekStart(candidate.date), to = addDays(from, 6)
     const days = new Set(assignments.filter(item => item.id !== candidate.id && item.personId === candidate.personId && item.date >= from && item.date <= to).map(item => item.date))
     days.add(candidate.date)
@@ -68,7 +79,7 @@ export function attendanceIssues(item, record, now = Date.now()) {
   return result
 }
 export function upsertWorkAssignment(data, candidate) {
-  validateAssignment(candidate, data.assignments)
+  validateAssignment(candidate, data.assignments, data.preferences || [])
   const previous = data.assignments.find(item => item.id === candidate.id)
   const changedIdentity = previous && ['personId', 'classId', 'branchId', 'date'].some(key => previous[key] !== candidate[key])
   return {

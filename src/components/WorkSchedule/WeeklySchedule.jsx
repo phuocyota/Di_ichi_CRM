@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeftRight, Check, Plus, Repeat2, X } from 'lucide-react'
-import { addDays, attendanceStatus } from '../../services/workSchedule.js'
+import { addDays, attendanceStatus, isWorkDayOff } from '../../services/workSchedule.js'
 import { workEmployeeTypes } from '../../datas/workSchedules.js'
 import { matchesWorkEmployeeType } from '../../services/workScheduleEmployees.js'
 import TeacherSelect from './TeacherSelect.jsx'
@@ -10,7 +10,7 @@ const shiftGroup = item => Number(item.start?.split(':')[0]) < 12 ? 'morning' : 
 const groups = [{ id: 'morning', label: 'Ca sáng' }, { id: 'evening', label: 'Ca tối' }]
 
 function ScheduleRow({ item, date, group, shifts, employees, record, disabled, onSave, onRemove, onDetail, onReplace }) {
-  const [value, setValue] = useState(() => ({ employeeType: '', personId: '', shiftId: shifts[0]?.id || '', start: shifts[0]?.start || (group.id === 'morning' ? '07:30' : '13:30'), end: shifts[0]?.end || (group.id === 'morning' ? '13:30' : '20:00'), ...item }))
+  const [value, setValue] = useState(() => ({ employeeType: '', personId: '', shiftId: shifts[0]?.id || '', start: shifts[0]?.start || (group.id === 'morning' ? '07:30' : '13:30'), end: shifts[0]?.end || (group.id === 'morning' ? '14:30' : '19:30'), ...item }))
   const [state, setState] = useState(item?.id ? 'saved' : 'draft')
   const [error, setError] = useState('')
   const saving = state === 'saving'
@@ -61,7 +61,7 @@ function DayShift({ date, group, items, shifts, employees, attendance, disabled,
   </div>
 }
 
-export default function WeeklySchedule({ week, branchId, people, availablePeople = people, assignments, shifts = [], allAssignments, attendance, disabled, onSave, onDetail, onReplace }) {
+export default function WeeklySchedule({ week, branchId, people, availablePeople = people, assignments, shifts = [], allAssignments, preferences = [], attendance, disabled, onSave, onSetDayOff, onDetail, onReplace }) {
   const days = Array.from({ length: 7 }, (_, index) => addDays(week, index))
   const employees = availablePeople.filter(person => person.kind === 'employee' && (person.catalogSource !== 'sample' || person.branchId === branchId))
   const activeShifts = shifts.filter(shift => !shift.deletedAt)
@@ -75,11 +75,17 @@ export default function WeeklySchedule({ week, branchId, people, availablePeople
         <thead><tr><th scope="col" rowSpan={2} className="work-matrix-shift">Ca</th>{days.map((date, index) => <th scope="col" key={date} className="work-matrix-day">{dayNames[index]}<small>{date.split('-').reverse().join('/')}</small></th>)}</tr>
           <tr>{days.map(date => <th key={date}><div className="work-inline-fields work-inline-labels"><span>Khung giờ</span><span>Loại nhân viên</span><span>Nhân viên</span></div></th>)}</tr></thead>
         <tbody>{groups.map(group => <tr key={group.id} className={group.id === 'evening' ? 'is-evening' : ''}><th scope="row" className="work-matrix-shift"><span>{group.label}</span></th>{days.map(date => <td key={date}><DayShift date={date} group={group} items={assignments.filter(item => item.date === date && shiftGroup(item) === group.id)} shifts={activeShifts} employees={employees} attendance={attendance} disabled={disabled} onSave={save} onDetail={onDetail} onReplace={onReplace} /></td>)}</tr>)}</tbody>
-        <tfoot><tr><th className="work-matrix-off-label">Nghỉ</th>{days.map(date => {
-          const off = people.filter(person => allAssignments.some(item => item.personId === person.id && item.date >= week && item.date <= days[6]) && !allAssignments.some(item => item.personId === person.id && item.date === date))
-          return <td key={date}>{off.length ? off.map(person => <span className="work-matrix-off" key={person.id}>{person.name}<small>OFF · Nghỉ</small></span>) : <span className="work-matrix-muted">—</span>}</td>
-        })}</tr></tfoot>
+        <tfoot>{[true, false].map(off => <tr key={String(off)}><th scope="row" className="work-matrix-off-label">{off ? 'OFF · Nghỉ' : 'Chưa phân ca'}</th>{days.map(date => {
+          const dayPeople = people.filter(person => off
+            ? isWorkDayOff(preferences, person.id, date)
+            : !isWorkDayOff(preferences, person.id, date) && !allAssignments.some(item => item.personId === person.id && item.date === date))
+          return <td key={date}>{dayPeople.length ? dayPeople.map(person => <div className={`work-matrix-day-person ${off ? 'is-off' : 'is-unassigned'}`} key={person.id}>
+            <span>{person.name}<small>{off ? 'OFF · Nghỉ đã đánh dấu' : 'Chưa được phân ca'}</small></span>
+            <button type="button" disabled={disabled} onClick={() => onSetDayOff(person, date, !off)} aria-label={`${off ? 'Bỏ OFF' : 'Đánh dấu OFF'} cho ${person.name} ngày ${date}`}>{off ? 'Bỏ OFF' : 'Đánh dấu OFF'}</button>
+          </div>) : <span className="work-matrix-muted">{off ? 'Chưa có nhân viên OFF' : 'Không có nhân viên chưa phân ca'}</span>}</td>
+        })}</tr>)}</tfoot>
       </table>
     </div>
+    <p className="work-report-note">OFF là ngày nghỉ được đánh dấu cho nhân viên tại tất cả cơ sở. Ngày không có ca và chưa đánh dấu OFF được hiển thị là “Chưa phân ca”. Bỏ OFF trước khi phân ca; ca làm ở cơ sở khác vẫn được tính là đã phân ca.</p>
   </div>
 }

@@ -6,7 +6,7 @@ import WorkScheduleDialog, { Field } from './WorkScheduleDialog.jsx'
 import TeacherSelect from './TeacherSelect.jsx'
 
 export default function AssignmentForm({ initial, data, catalog, people, employeeCatalog, replacement, onSave, onClose }) {
-  const [value, setValue] = useState(() => ({ periods: 2, start: '07:30', end: '13:30', ...initial, employeeType: initial.employeeType || people.find(person => person.id === initial.personId)?.employeeType || '' }))
+  const [value, setValue] = useState(() => ({ periods: 2, start: '07:30', end: '14:30', ...initial, employeeType: initial.employeeType || people.find(person => person.id === initial.personId)?.employeeType || '' }))
   const [error, setError] = useState('')
   const [courseId, setCourse] = useState(() => catalog.classes.find(item => item.id === initial.classId)?.courseId || initial.courseId || '')
   const change = (key, next) => { setValue(old => ({ ...old, [key]: next })); setError('') }
