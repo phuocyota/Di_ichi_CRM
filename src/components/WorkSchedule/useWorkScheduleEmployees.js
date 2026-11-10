@@ -8,17 +8,18 @@ export default function useWorkScheduleEmployees(enabled = true) {
   const [refreshError, setRefreshError] = useState('')
   const controller = useRef(null)
   const loaded = useRef(false)
-  const reload = useCallback(async () => {
+  const reload = useCallback(async ({ force = false, throwOnError = false } = {}) => {
     // Focus, reconnect and fallback polling can arrive together.
-    if (controller.current && !controller.current.signal.aborted) return
+    controller.current?.abort()
     const request = new AbortController()
     controller.current = request
     if (!loaded.current) { setLoading(true); setError('') }
     try {
-      const next = await loadWorkScheduleEmployees(request.signal)
+      const next = await loadWorkScheduleEmployees(request.signal, { force })
       if (!request.signal.aborted) {
         loaded.current = true
         setData(next); setError(''); setRefreshError('')
+        return next
       }
     } catch (cause) {
       if (!request.signal.aborted) {
@@ -26,12 +27,13 @@ export default function useWorkScheduleEmployees(enabled = true) {
         if (loaded.current) setRefreshError(message)
         else setError(message)
       }
+      if (throwOnError) throw cause
     } finally {
       if (!request.signal.aborted) setLoading(false)
       if (controller.current === request) controller.current = null
     }
   }, [])
   useEffect(() => { reload(); return () => controller.current?.abort() }, [reload])
-  useResourceUpdates(reload, ['staff', 'branch', 'position', 'role', 'user-role', 'user', 'system-settings'], enabled)
+  useResourceUpdates(change => reload({ force: !change?.resync || change.resources?.some(resource => ['staff','branch','position','role','user-role','user-account','system-settings'].includes(resource)) }), ['staff', 'branch', 'position', 'role', 'user-role', 'user-account', 'system-settings'], enabled)
   return { ...data, loading, error, refreshError, reload }
 }

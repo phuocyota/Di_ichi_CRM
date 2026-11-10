@@ -34,7 +34,7 @@ export default function ParentPage() {
   const [tab, setTab] = useState('dashboard'),
     [keyword, setKeyword] = useState(''),
     [editing, setEditing] = useState(null),
-    [selected, setSelected] = useState(null),
+    [selection, setSelected] = useState(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('')
   const d = workspace.data?.data
@@ -54,6 +54,7 @@ export default function ParentPage() {
         .reduce((n, t) => n + Number(t.debtAmount), 0)
     }
   })
+  const selected = rows.find(row => row.id === selection?.id)
   const filtered = rows.filter(
     (r) =>
       !keyword ||

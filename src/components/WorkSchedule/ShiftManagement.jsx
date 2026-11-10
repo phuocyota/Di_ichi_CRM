@@ -3,7 +3,7 @@ import { Sun, Moon, Clock3, Plus, X, RefreshCcw } from 'lucide-react'
 import { Field } from './WorkScheduleDialog.jsx'
 import { configuredWorkShifts } from '../../services/workShifts.js'
 
-function ShiftTimeForm({ branchId, shifts, revision, saved, saving, onSave }) {
+function ShiftTimeForm({ branchId, shifts, revision, saved, saving, onSave, renderHeader }) {
   const configured = configuredWorkShifts(shifts, branchId)
   const [draft, setDraft] = useState(null)
   const [error, setError] = useState('')
@@ -19,13 +19,15 @@ function ShiftTimeForm({ branchId, shifts, revision, saved, saving, onSave }) {
     if (saving || (!draft && saved)) return
     try { await onSave(values, draft ? draftRevision.current : revision); setDraft(null); setError('') } catch (cause) { setError(cause.message) }
   }
-  return <form className="work-form" onSubmit={submit}>
+  const addShift = () => {
+    if (!draft) draftRevision.current = revision
+    setDraft([...values, { id: crypto.randomUUID(), branchId, name: '', start: '', end: '' }]); setError('')
+  }
+  return <>
+    {renderHeader(addShift)}
+    <form className="work-form" onSubmit={submit}>
     <fieldset disabled={saving} className="contents">
     {!saved && <p className="work-hint">Cơ sở chưa lưu cấu hình ca làm. Đang hiển thị khung giờ mặc định từ máy chủ.</p>}
-    <div className="flex justify-end"><button type="button" className="ui-button" onClick={() => {
-      if (!draft) draftRevision.current = revision
-      setDraft([...values, { id: crypto.randomUUID(), branchId, name: '', start: '', end: '' }]); setError('')
-    }}><Plus size={16} />Thêm ca làm</button></div>
     <div className="grid gap-4 md:grid-cols-2">
       {values.map((shift, index) => {
         const Icon = index === 0 ? Sun : index === 1 ? Moon : Clock3
@@ -46,15 +48,18 @@ function ShiftTimeForm({ branchId, shifts, revision, saved, saving, onSave }) {
       <button className="ui-button ui-button-primary" disabled={!draft && saved}>{saving ? 'Đang lưu…' : 'Lưu khung giờ ca làm'}</button>
     </footer>
     </fieldset>
-  </form>
+  </form></>
 }
 
 export default function ShiftManagement({ branches, branchId, onBranchChange, shifts, revision, saved, saving, loading, error, onReload, onSave }) {
-  return <section className="work-panel">
+  const renderHeader = onAdd => (
     <div className="work-section-heading">
       <div><h2>Quản lý ca làm</h2><p>Thiết lập giờ Ca sáng, Ca tối và thêm ca làm theo từng cơ sở.</p></div>
-      <div className="work-toolbar"><button type="button" className="ui-button" disabled={saving || loading} onClick={onReload}><RefreshCcw size={16} />Tải lại</button><label className="work-branch"><span className="sr-only">Cơ sở quản lý ca làm</span><select aria-label="Cơ sở quản lý ca làm" value={branchId} disabled={saving || loading || Boolean(error)} onChange={event => onBranchChange(event.target.value)}><option value="" disabled>Chọn cơ sở</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label></div>
+      <div className="work-toolbar"><button type="button" className="ui-button" disabled={saving || loading} onClick={onReload}><RefreshCcw size={16} />Tải lại</button><button type="button" className="ui-button" disabled={saving || loading || Boolean(error) || !onAdd} onClick={onAdd}><Plus size={16} />Thêm ca làm</button><label className="work-branch"><span className="sr-only">Cơ sở quản lý ca làm</span><select aria-label="Cơ sở quản lý ca làm" value={branchId} disabled={saving || loading || Boolean(error)} onChange={event => onBranchChange(event.target.value)}><option value="" disabled>Chọn cơ sở</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label></div>
     </div>
-    {loading ? <p className="work-hint p-5" role="status">Đang tải cấu hình ca làm…</p> : error ? <div className="work-error m-5" role="alert">{error} <button type="button" className="ui-button" onClick={onReload}>Thử lại</button></div> : !branchId ? <p className="work-hint p-5">Chưa có cơ sở để cấu hình ca làm.</p> : <ShiftTimeForm key={branchId} branchId={branchId} shifts={shifts} revision={revision} saved={saved} saving={saving} onSave={onSave} />}
+  )
+  return <section className="work-panel">
+    {(loading || error || !branchId) && renderHeader()}
+    {loading ? <p className="work-hint p-5" role="status">Đang tải cấu hình ca làm…</p> : error ? <div className="work-error m-5" role="alert">{error} <button type="button" className="ui-button" onClick={onReload}>Thử lại</button></div> : !branchId ? <p className="work-hint p-5">Chưa có cơ sở để cấu hình ca làm.</p> : <ShiftTimeForm key={branchId} branchId={branchId} shifts={shifts} revision={revision} saved={saved} saving={saving} onSave={onSave} renderHeader={renderHeader} />}
   </section>
 }

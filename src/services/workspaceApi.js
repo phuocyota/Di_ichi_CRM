@@ -1,6 +1,7 @@
 import { useResourceUpdates } from './realtime.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import apiClient from './apiClient.js'
+import apiClient, { getAccessToken } from './apiClient.js'
+import { createSharedReads } from './sharedReads.js'
 
 const areas = [
   'finance',
@@ -141,14 +142,24 @@ export const saveWorkspaceRecord = (id, payload) =>
     : apiClient.post('/workspace/records', payload)
 export const deleteWorkspaceRecord = (id) =>
   apiClient.delete(`/workspace/records/${id}`)
-export const getNotifications = () => apiClient.get('/workspace/notifications')
-export const getScheduleAlerts = () => apiClient.get('/workspace/schedule-alerts')
-export const readNotifications = (id) =>
-  apiClient.patch(
+const notificationReads = createSharedReads()
+let notificationSession = ''
+function readNotificationResource(resource, { force = false } = {}) {
+  const token = getAccessToken()
+  if (token !== notificationSession) { notificationReads.clear(); notificationSession = token }
+  return notificationReads.read(resource, signal => apiClient.get(`/workspace/${resource}`, { signal }), { force })
+}
+export const getNotifications = options => readNotificationResource('notifications', options)
+export const getScheduleAlerts = options => readNotificationResource('schedule-alerts', options)
+export const readNotifications = async (id) => {
+  const result = await apiClient.patch(
     id
       ? `/workspace/notifications/${id}/read`
       : '/workspace/notifications/read-all'
   )
+  notificationReads.clear('notifications')
+  return result
+}
 export const money = (value) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
     Number(value || 0)

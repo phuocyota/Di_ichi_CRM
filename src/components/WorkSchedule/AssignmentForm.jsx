@@ -5,9 +5,10 @@ import { matchesWorkEmployeeType } from '../../services/workScheduleEmployees.js
 import WorkScheduleDialog, { Field } from './WorkScheduleDialog.jsx'
 import TeacherSelect from './TeacherSelect.jsx'
 
-export default function AssignmentForm({ initial, data, catalog, people, employeeCatalog, replacement, onSave, onClose }) {
+export default function AssignmentForm({ initial, data, catalog = { classes: [], courses: [], loading: false, error: '' }, people, employeeCatalog, replacement, saveError, onSave, onClose }) {
   const [value, setValue] = useState(() => ({ periods: 2, start: '07:30', end: '14:30', ...initial, employeeType: initial.employeeType || people.find(person => person.id === initial.personId)?.employeeType || '' }))
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [courseId, setCourse] = useState(() => catalog.classes.find(item => item.id === initial.classId)?.courseId || initial.courseId || '')
   const change = (key, next) => { setValue(old => ({ ...old, [key]: next })); setError('') }
   const shifts = data.shifts.filter(item => item.branchId === value.branchId && !item.deletedAt)
@@ -15,26 +16,29 @@ export default function AssignmentForm({ initial, data, catalog, people, employe
   const availableCourses = catalog.courses
   const classes = branchClasses.filter(item => item.courseId === courseId)
   const classItem = classes.find(item => item.id === value.classId)
-  const employees = people.filter(person => person.kind === 'employee' && matchesWorkEmployeeType(person, value.employeeType) && (person.catalogSource !== 'sample' || person.branchId === value.branchId))
-  const submit = event => {
+  const employees = people.filter(person => person.kind === 'employee' && matchesWorkEmployeeType(person, value.employeeType))
+  const submit = async event => {
     event.preventDefault()
+    if (saving) return
     if (value.kind === 'employee' && !workEmployeeTypes.some(type => type.value === value.employeeType)) return setError('Vui lòng chọn loại nhân viên CSKH hoặc Sale.')
     if (!value.personId) return setError(`Vui lòng tìm và chọn ${value.kind === 'teacher' ? 'giáo viên' : 'nhân viên'} trong danh sách.`)
     if (value.kind === 'employee' && !employees.some(person => person.id === value.personId)) return setError('Nhân viên không thuộc loại đã chọn. Vui lòng chọn lại.')
     if (value.kind === 'employee' && (employeeCatalog.loading || employeeCatalog.error)) return setError('Chưa tải được danh sách nhân viên / cơ sở. Vui lòng thử lại.')
     if (value.kind === 'teacher' && (catalog.loading || catalog.error)) return setError('Chưa tải được danh sách khóa học / lớp học. Vui lòng thử lại.')
-    try { onSave(value) } catch (cause) { setError(cause.message) }
+    setSaving(true)
+    try { await onSave(value) } catch (cause) { setError(cause.message) } finally { setSaving(false) }
   }
   return <WorkScheduleDialog title={replacement ? value.kind === 'teacher' ? 'Thay giáo viên dạy thế' : 'Đổi nhân viên làm thay' : initial.id ? 'Chi tiết phân lịch' : 'Thêm phân lịch'} onClose={onClose}>
     <form onSubmit={submit} className="work-form">
-      {initial.id && data.attendance.some(record => record.assignmentId === initial.id) && <p className="work-hint">Lịch mẫu đã có chấm công. Đổi giáo viên / nhân viên, lớp hoặc cơ sở sẽ xóa bản chấm công gắn với lịch này; đổi giờ hoặc số tiết sẽ giữ bản chấm công và cập nhật cảnh báo.</p>}
-      <Field label="Chi nhánh"><select disabled={replacement} value={value.branchId} onChange={e => { setCourse(''); setValue(old => ({ ...old, branchId: e.target.value, shiftId: '', classId: '', ...(people.find(person => person.id === old.personId)?.catalogSource === 'sample' ? { personId: '' } : {}) })) }}>{data.branches.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+      {saveError && <p className="work-error" role="alert">{saveError}</p>}
+      <Field label="Ngày làm việc"><input required disabled={replacement} type="date" value={value.date || ''} onChange={e => change('date', e.target.value)} /></Field>
+      {initial.id && data.attendance.some(record => record.assignmentId === initial.id) && <p className="work-hint">{replacement ? 'Lịch đã có chấm công nên máy chủ sẽ không cho đổi người. Hãy xóa lịch (kèm chấm công) rồi phân lại.' : 'Lịch đã có chấm công. Không thể chuyển sang ngày khác. Đổi nhân viên, lớp hoặc cơ sở sẽ xóa bản chấm công gắn với lịch này. Đổi giờ hoặc số tiết sẽ giữ bản chấm công và cập nhật cảnh báo.'}</p>}
+      <Field label="Chi nhánh"><select disabled={replacement} value={value.branchId} onChange={e => { setCourse(''); setValue(old => ({ ...old, branchId: e.target.value, shiftId: '', classId: '' })) }}>{data.branches.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
       {value.kind === 'teacher' ? <Field label="Giáo viên"><TeacherSelect people={people.filter(item => item.kind === 'teacher')} value={value.personId} onChange={id => change('personId', id)} /></Field> : <>
         {employeeCatalog.loading && <p className="work-hint" role="status">Đang tải danh sách nhân viên…</p>}
         {employeeCatalog.error && <p className="work-error" role="alert">Không tải được nhân viên: {employeeCatalog.error} <button type="button" className="underline" onClick={employeeCatalog.reload}>Thử lại</button></p>}
         <Field label="Loại nhân viên"><select required disabled={employeeCatalog.loading || Boolean(employeeCatalog.error)} value={value.employeeType} onChange={event => { setValue(old => ({ ...old, employeeType: event.target.value, personId: '' })); setError('') }}><option value="">Chọn loại nhân viên</option>{workEmployeeTypes.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}</select></Field>
         <Field label="Nhân viên"><TeacherSelect key={value.employeeType} disabled={!value.employeeType || employeeCatalog.loading || Boolean(employeeCatalog.error)} people={employees} value={value.personId} onChange={id => change('personId', id)} placeholder={value.employeeType ? 'Chọn nhân viên' : 'Chọn loại nhân viên trước'} searchLabel="Tìm nhân viên" searchPlaceholder="Tìm nhân viên..." emptyMessage="Không có nhân viên thuộc loại đã chọn." /></Field>
-        {employees.some(person => person.catalogSource === 'sample') && <p className="work-hint">Nhân viên có nhãn “(mẫu)” là dữ liệu thử nghiệm để phân lịch. Lịch được lưu trên trình duyệt.</p>}
       </>}
       {value.kind === 'teacher' ? <>
         {catalog.error && <p className="work-error" role="alert">Không tải được khóa học / lớp học: {catalog.error} <button type="button" className="underline" onClick={catalog.reload}>Thử lại</button></p>}

@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react'
-import { addDays, loadWorkSchedule, weekStart, workAlerts, WORK_SCHEDULE_KEY } from '../../services/workSchedule.js'
+import { useLocation } from 'react-router-dom'
+import { addDays, weekStart, workAlerts } from '../../services/workSchedule.js'
+import { useWorkScheduleSnapshot } from '../../services/workScheduleApi.js'
 
 export default function useWorkScheduleAlerts(enabled) {
-  const [alerts, setAlerts] = useState([])
+  const { pathname } = useLocation()
+  const ownsRequest = enabled && pathname.replace(/\/+$/, '') !== '/work-schedule'
+  const { data } = useWorkScheduleSnapshot(enabled, ownsRequest)
+  const [now, setNow] = useState(Date.now)
   useEffect(() => {
     if (!enabled) return
-    const update = () => {
-      const start = weekStart(), end = addDays(start, 6)
-      setAlerts(workAlerts(loadWorkSchedule()).filter(item => item.date >= start && item.date <= end))
-    }
-    const storage = event => { if (event.key === WORK_SCHEDULE_KEY) update() }
-    update()
-    const timer = setInterval(update, 30000)
-    window.addEventListener('work-schedule:updated', update)
-    window.addEventListener('storage', storage)
-    return () => { clearInterval(timer); window.removeEventListener('work-schedule:updated', update); window.removeEventListener('storage', storage) }
+    const timer = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(timer)
   }, [enabled])
-  return enabled ? alerts : []
+  if (!enabled) return []
+  const start = weekStart(), end = addDays(start, 6)
+  return workAlerts(data, now, []).filter(item => item.date >= start && item.date <= end)
 }

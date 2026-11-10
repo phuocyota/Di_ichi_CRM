@@ -300,7 +300,7 @@ function StudentPage() {
     await refreshSummary();
     if (studentDataLoaded) await refreshStudents();
     setProfileVersion(v => v + 1);
-  }, ['student','enrollment','class','class-staff','staff','student-guardian','finance-transaction','payment','score','workspace','portal'], !modal && !selectedStudent)
+  }, ['student','enrollment','class','course','branch','class-staff','staff','student-guardian','finance-transaction','payment','score','workspace','portal'], !modal && !selectedStudent)
   const handleCreateCourseClass = async (action, values) => {
     const resource = action.entity === 'course' ? 'course' : 'class'
     const payload = resource === 'course' ? coursePayload(values) : classPayload(values)

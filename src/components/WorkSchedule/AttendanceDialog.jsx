@@ -24,7 +24,7 @@ function AttendanceEvidence({ label, timestamp, evidence, branch, sample }) {
   </section>
 }
 
-export default function AttendanceDialog({ item, record, branch, classes, courses, people, isAdmin, onSave, onEdit, onDelete, onClose }) {
+export default function AttendanceDialog({ item, record, branch, classes = [], courses = [], people, isAdmin, onSave, onEdit, onDelete, onClose }) {
   const [manual, setManual] = useState(false)
   const [checkIn, setCheckIn] = useState(localTime(record?.checkIn))
   const [checkOut, setCheckOut] = useState(localTime(record?.checkOut))
@@ -35,7 +35,7 @@ export default function AttendanceDialog({ item, record, branch, classes, course
   const course = courses.find(row => row.id === classItem?.courseId)
   const status = attendanceStatus(item, record)
   const issues = attendanceIssues(item, record)
-  const submit = event => {
+  const submit = async event => {
     event.preventDefault(); setError('')
     try {
       if (!isAdmin || !manual) throw new Error('Chỉ quản trị viên được bổ sung chấm công.')
@@ -45,7 +45,7 @@ export default function AttendanceDialog({ item, record, branch, classes, course
       if ([checkIn, checkOut].some(value => value && value.slice(0, 10) !== item.date)) throw new Error('Giờ chấm công phải cùng ngày phân lịch.')
       if ([incoming, outgoing].some(value => value && Date.parse(value) > Date.now())) throw new Error('Không được chấm công trong tương lai.')
       if (outgoing && Date.parse(outgoing) <= Date.parse(incoming)) throw new Error('Check-out phải sau check-in.')
-      onSave({ ...record, assignmentId: item.id, checkIn: incoming, checkOut: outgoing, source: 'admin', note: note.trim() })
+      await onSave({ ...record, assignmentId: item.id, checkIn: incoming, checkOut: outgoing, source: 'admin', note: note.trim() })
     } catch (cause) { setError(cause.message) }
   }
   return <WorkScheduleDialog title="Chi tiết lịch làm việc" onClose={onClose}><form className="work-form" onSubmit={submit}>

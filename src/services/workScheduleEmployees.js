@@ -1,6 +1,9 @@
 import { loadSettings } from './systemSettingsApi.js'
-import { createWorkEmployees, workEmployeeTypes } from '../datas/workSchedules.js'
-import { fixedWorkShifts } from './workShifts.js'
+import { getAccessToken } from './apiClient.js'
+import { createSharedReads } from './sharedReads.js'
+
+const reads = createSharedReads()
+let session = ''
 
 const canonical = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '')
 const careCodes = new Set(['CSKH', 'CS_KH', 'CUSTOMER_CARE', 'CUSTOMER_SERVICE', 'CUSTOMER_SUPPORT', 'CHAM_SOC_KHACH_HANG', 'NHAN_VIEN_CSKH', 'NHAN_VIEN_CHAM_SOC_KHACH_HANG'])
@@ -23,19 +26,8 @@ export function normalizeWorkScheduleEmployees(data) {
   return { employees: employees.filter(person => person.employeeTypes.length > 0), unclassified: employees.filter(person => !person.employeeTypes.length), branches: active(data.branches) }
 }
 
-export async function loadWorkScheduleEmployees(signal) {
-  return normalizeWorkScheduleEmployees(await loadSettings(signal))
-}
-
-export function shiftsForWorkBranches(existing, branches) {
-  const configured = branches.flatMap(branch => fixedWorkShifts(existing, branch.id))
-  const ids = new Set(configured.map(shift => shift.id))
-  return [...existing.filter(shift => !ids.has(shift.id)), ...configured]
-}
-
-export function withWorkEmployeeSamples(directory, assignments = []) {
-  const sampleTypes = workEmployeeTypes.filter(type => !directory.employees.some(person => matchesWorkEmployeeType(person, type.value))).map(type => type.value)
-  const usedPeople = new Set(assignments.filter(item => item.kind === 'employee').map(item => item.personId))
-  const samples = createWorkEmployees(directory.branches).filter(person => sampleTypes.includes(person.employeeType) || usedPeople.has(person.id))
-  return { ...directory, employees: [...directory.employees, ...samples], sampleTypes }
+export async function loadWorkScheduleEmployees(signal, { force = false } = {}) {
+  const token = getAccessToken()
+  if (token !== session) { reads.clear(); session = token }
+  return reads.read('directory', async sharedSignal => normalizeWorkScheduleEmployees(await loadSettings(sharedSignal)), { signal, force })
 }

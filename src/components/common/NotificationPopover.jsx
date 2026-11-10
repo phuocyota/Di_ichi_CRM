@@ -33,14 +33,14 @@ export default function NotificationPopover() {
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [filter, setFilter] = useState("all");
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ force = false, notificationsOnly = false } = {}) => {
     const version = ++loadVersion.current;
     setLoading(true);
     setError("");
     try {
       const results = await Promise.allSettled([
-        getNotifications(),
-        isAdmin ? getScheduleAlerts() : Promise.resolve([]),
+        getNotifications({ force }),
+        ...(isAdmin && !notificationsOnly ? [getScheduleAlerts({ force })] : []),
       ]);
       if (version !== loadVersion.current) return;
       const messages = [];
@@ -63,19 +63,17 @@ export default function NotificationPopover() {
       if (version === loadVersion.current) setLoading(false);
     }
   }, [isAdmin]);
-  useResourceUpdates(load, ['notification','workspace','class','class-staff','schedule','portal'])
+  useResourceUpdates(change => load({ force: !change?.resync || change.resources?.some(resource => resource !== '*') }), ['notification','workspace','class','class-staff','schedule','portal','staff','branch','system-settings'], !busy)
   useEffect(() => {
     load();
     const timer = setInterval(() => {
       if (document.visibilityState !== "hidden") load();
     }, 60000);
     const focus = () => load();
-    window.addEventListener("focus", focus);
     window.addEventListener("crm:notifications-refresh", focus);
     return () => {
       invalidateLoads();
       clearInterval(timer);
-      window.removeEventListener("focus", focus);
       window.removeEventListener("crm:notifications-refresh", focus);
     };
   }, [load, invalidateLoads]);
@@ -100,7 +98,7 @@ export default function NotificationPopover() {
     setError("");
     try {
       await readNotifications(id);
-      await load();
+      await load({ force: true, notificationsOnly: true });
     } catch (cause) {
       setError(cause.message);
     } finally {
@@ -181,7 +179,7 @@ export default function NotificationPopover() {
             {filter !== 'teachers' && workScheduleAlerts.length > 0 && <Link to="/work-schedule" onClick={() => setOpen(false)} className="mb-2 block rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               <strong>Lịch làm việc: {workScheduleAlerts.length} cảnh báo chấm công</strong>
               <p className="mt-1">{workScheduleAlerts.filter(item => item.type === 'Đi trễ').length} đi trễ · {workScheduleAlerts.filter(item => item.type === 'Về sớm').length} về sớm · {workScheduleAlerts.filter(item => item.type === 'Quên chấm công').length} quên công</p>
-              <p className="mt-1 text-amber-700">Dữ liệu mẫu tuần này · Xem lịch làm việc</p>
+              <p className="mt-1 text-amber-700">Dữ liệu tuần này · Xem lịch làm việc</p>
             </Link>}
             {filter !== "unread" &&
               alerts.map((alert) => (

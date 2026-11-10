@@ -17,7 +17,8 @@ export function normalizeWorkScheduleCatalog(resources) {
       endDate: item.endDate?.slice(0, 10) || '',
     }
   })
-  return { courses, classes, branches }
+  const teachers = active(resources.staff || []).filter(person => person.type === 'TEACHER').map(person => ({ ...person, kind: 'teacher', role: 'Giáo viên', catalogSource: 'api' }))
+  return { courses, classes, branches, teachers }
 }
 
 export function classMatchesWorkBranch(item, branchId) {
@@ -25,7 +26,7 @@ export function classMatchesWorkBranch(item, branchId) {
 }
 
 export async function loadWorkScheduleCatalog(signal) {
-  const resources = ['course', 'class', 'branch', 'room', 'class-room']
+  const resources = ['course', 'class', 'branch', 'room', 'class-room', 'staff']
   const entries = await Promise.all(resources.map(async resource => [resource, await listAllCourseResource(resource, { signal })]))
   return normalizeWorkScheduleCatalog(Object.fromEntries(entries))
 }

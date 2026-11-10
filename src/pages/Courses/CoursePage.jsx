@@ -100,7 +100,7 @@ export default function CoursePage() {
     }
   }, [refresh])
 
-  useResourceUpdates(refresh, ['course','class','class-staff','class-weekly-schedule','enrollment','staff','portal','workspace','score'], !modal && !saving && !conversionTarget && !teacherCreateTarget)
+  useResourceUpdates(refresh, ['course','class','class-staff','class-room','room','class-weekly-schedule','enrollment','staff','student','portal','workspace','score'], !modal && !saving && !conversionTarget && !teacherCreateTarget)
   const courses = useMemo(
     () =>
       (data.course || []).map((item) => ({
