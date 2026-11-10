@@ -32,8 +32,8 @@ export const workClasses = courseClasses.map(item => ({ ...item, branchId: item.
 export const workTabs = [{ key: 'employee', label: 'Phân lịch nhân viên' }, { key: 'shifts', label: 'Quản lý ca làm' }]
 
 export const createWorkShifts = branches => branches.flatMap(branch => [
-  { id: `${branch.id}-morning`, branchId: branch.id, name: 'Ca sáng', start: '07:30', end: '13:30', source: 'sample' },
-  { id: `${branch.id}-evening`, branchId: branch.id, name: 'Ca tối', start: '13:30', end: '20:00', source: 'sample' },
+  { id: `${branch.id}-morning`, branchId: branch.id, name: 'Ca sáng', start: '07:30', end: '14:30', source: 'sample' },
+  { id: `${branch.id}-evening`, branchId: branch.id, name: 'Ca tối', start: '13:30', end: '19:30', source: 'sample' },
 ])
 
 export function createWorkScheduleData(week) {

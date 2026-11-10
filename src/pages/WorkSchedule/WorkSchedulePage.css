@@ -139,3 +139,92 @@
 .work-employee-off span { color: #667085; }
 .work-employee-calendar .work-slot-main > .work-lesson-teacher { color: #065f46; }
 .work-employee-calendar .work-replace { border-top-color: #a7f3d0; color: #047857; }
+
+.work-matrix-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; color: #73839b; border-bottom: 1px solid #cbdff4; }
+.work-matrix-toolbar strong { color: #344e70; font-weight: 600; }
+.work-matrix-toolbar > span:last-child { display: flex; align-items: center; gap: 8px; }
+.work-matrix-scroll { width: 100%; max-height: 720px; overflow: auto; scrollbar-color: #aaa39b #f8f5f0; }
+.work-shift-matrix { width: 100%; min-width: 5694px; table-layout: fixed; border-collapse: separate; border-spacing: 0; color: #475467; }
+.work-matrix-shift-col { width: 94px; }
+.work-matrix-day-col { width: 800px; }
+.crm-content table.work-shift-matrix th, .crm-content table.work-shift-matrix td { padding: 0; border-right: 1px solid #cbdff4; border-bottom: 1px solid #cbdff4; vertical-align: top; text-align: left; }
+.crm-content table.work-shift-matrix thead th { background: #f3f8ff; color: #526179; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; }
+.crm-content table.work-shift-matrix thead { position: sticky; top: 0; z-index: 20; }
+.crm-content table.work-shift-matrix thead .work-matrix-day { padding: 13px 12px; text-align: center; background: #dbeafe; color: #1d4ed8; font-size: 14px; font-weight: 600; }
+.work-matrix-day small { display: block; font-size: 11px; font-weight: 400; margin-top: 4px; color: #5276a6; }
+.crm-content table.work-shift-matrix .work-matrix-shift { position: sticky; left: 0; z-index: 12; background: #f5f9ff; vertical-align: middle; text-align: center; box-shadow: 3px 0 5px #48331408; }
+.crm-content table.work-shift-matrix thead .work-matrix-shift { background: #eaf3ff; }
+.work-matrix-shift > span { color: #1e5a99; font-size: 12px; text-transform: uppercase; font-weight: 700; white-space: nowrap; }
+.crm-content table.work-shift-matrix tbody td { background: white; }
+.crm-content table.work-shift-matrix tbody .is-evening td { background: #f8fbff; }
+.work-inline-fields { display: grid; grid-template-columns: 280px 160px minmax(0, 1fr); gap: 12px; align-items: start; }
+.work-inline-labels { padding: 13px 12px; }
+.work-inline-labels > span + span { border-left: 1px solid #cbdff4; padding-left: 12px; }
+.work-day-shift { min-height: 150px; padding-bottom: 12px; }
+.work-shift-matrix tbody tr:last-child .work-day-shift:has(.is-open) { padding-bottom: 240px; }
+.work-inline-row { position: relative; padding: 13px 12px 10px; border-bottom: 1px solid #e1edfa; }
+.work-inline-row:has(.work-teacher-trigger.is-open) { z-index: 10; }
+.work-inline-row .work-teacher-trigger { border: 1px solid #cbdff4; border-radius: 7px; box-shadow: none; min-height: 44px; padding: 10px; background: #fff; color: #344e70; font-size: 13px; }
+.work-inline-row .work-teacher-trigger.is-placeholder { color: #94a3b8; }
+.work-inline-row .work-teacher-trigger.is-open { border-color: #60a5fa; box-shadow: 0 0 0 2px #eff6ff; }
+.work-inline-row .work-teacher-dropdown { min-width: 240px; border-radius: 9px; z-index: 11; }
+.work-inline-row .work-teacher-options { max-height: 170px; }
+.work-inline-row .work-teacher-options button { padding: 11px 12px; font-size: 13px; }
+.work-inline-row .work-teacher-search input { width: 100%; font-size: 13px; }
+.work-inline-row .work-teacher-trigger:disabled { color: #94a3b8; background: #f2f6fc; cursor: not-allowed; }
+.work-inline-actions { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; min-height: 24px; }
+.work-inline-actions > button { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #2563eb; }
+.work-inline-actions > .work-inline-save { color: #2563eb; }
+.work-inline-actions > .work-inline-remove { color: #98a2b3; }
+.work-inline-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.work-inline-add { display: flex; align-items: center; gap: 5px; margin: 10px 12px; color: #6485af; font-size: 12px; }
+.work-inline-add:hover { color: #1d4ed8; }
+.work-inline-add:disabled { opacity: .5; cursor: not-allowed; }
+.work-inline-error { color: #be123c; background: #fff1f2; border-radius: 5px; padding: 7px; margin-top: 7px; font-size: 12px; }
+.work-matrix button:focus-visible, .work-matrix-scroll:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.crm-content table.work-shift-matrix tfoot th, .crm-content table.work-shift-matrix tfoot td { background: #f0f6ff; padding: 12px; }
+.crm-content table.work-shift-matrix .work-matrix-off-label { position: sticky; left: 0; z-index: 12; vertical-align: middle; font-size: 12px; text-align: center; }
+.work-matrix-off { display: inline-block; border: 1px dashed #bcd4ef; border-radius: 6px; background: white; padding: 8px 12px; margin: 3px; font-size: 12px; }
+.work-matrix-off small { display: block; margin-top: 3px; color: #5276a6; font-size: 11px; }
+.work-matrix-muted { color: #94a8c1; }
+.work-matrix-day-person { display: inline-flex; align-items: center; gap: 12px; margin: 4px; padding: 10px 12px; border: 1px solid #d0d5dd; border-radius: 7px; background: #fff; font-size: 12px; }
+.work-matrix-day-person.is-off { border-color: #c4b5fd; background: #f5f3ff; color: #6d28d9; }
+.work-matrix-day-person small { display: block; margin-top: 4px; font-size: 11px; color: #667085; }
+.work-matrix-day-person.is-off small { color: #7c3aed; }
+.work-matrix-day-person button { border: 1px solid currentColor; border-radius: 5px; padding: 5px 8px; color: #2563eb; font-size: 11px; white-space: nowrap; }
+.work-matrix-day-person button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 640px) { .work-matrix-toolbar { font-size: 11px; } }
+.work-inline-time-range { display: flex; align-items: center; gap: 5px; min-height: 44px; }
+.work-inline-time-range input { width: 0; min-width: 125px; flex: 1; min-height: 44px; border: 1px solid #cbdff4; border-radius: 7px; padding: 8px 10px; color: #344e70; background: white; font-size: 12px; font-variant-numeric: tabular-nums; }
+.work-inline-time-range input:focus { outline: 2px solid #bfdbfe; border-color: #60a5fa; }
+.work-inline-time-range input:disabled { background: #f2f6fc; opacity: .65; }
+.work-inline-time-range > span { color: #94a3b8; }
+.work-inline-sync { display: inline-flex; align-items: center; gap: 3px; margin-right: auto; font-size: 10px; color: #98a2b3; }
+.work-inline-sync.is-saved { color: #047857; }
+.work-inline-sync.is-error { color: #be123c; }
+.work-report-count { display: flex; align-items: center; gap: 6px; color: #667085; font-size: 12px; }
+.work-attendance-table { width: 100%; min-width: 1360px; border-collapse: collapse; font-size: 12px; text-align: left; }
+.crm-content table.work-attendance-table thead th { background: #eaf3ff; color: #255382; padding: 14px 12px; font-weight: 600; text-transform: none; letter-spacing: normal; white-space: nowrap; }
+.crm-content table.work-attendance-table tbody th, .crm-content table.work-attendance-table td { padding: 14px 12px; border: 1px solid #dde9f7; vertical-align: middle; font-variant-numeric: tabular-nums; }
+.work-attendance-table tbody th { color: #526179; font-weight: 500; white-space: nowrap; }
+.work-attendance-table strong { font-weight: 600; }
+.work-attendance-table small { display: block; margin-top: 5px; color: #98a2b3; font-size: 11px; font-weight: 400; }
+.work-attendance-table .is-day-start { border-top: 2px solid #cbdff4; }
+.work-report-location { display: inline-flex; align-items: flex-start; gap: 5px; color: #2563eb; font-size: 11px; }
+.work-report-location svg { flex-shrink: 0; margin-top: 1px; }
+.work-report-location:hover { text-decoration: underline; }
+.work-report-muted { color: #98a2b3; font-size: 11px; }
+.work-report-detail { text-align: left; color: #2563eb; white-space: nowrap; }
+.work-report-total { min-width: 145px; background: #f6fbf8; }
+.work-report-total strong { color: #047857; font-size: 14px; }
+.work-report-note { padding: 12px 16px; color: #667085; font-size: 11px; line-height: 1.7; border-top: 1px solid #e4e7ec; }
+.work-attendance-table .work-report-empty { text-align: center; padding: 40px; color: #98a2b3; }
+.work-attendance-table th:last-child, .work-attendance-table .work-report-total { position: sticky; right: 0; z-index: 1; box-shadow: -3px 0 6px #34405408; }
+.work-attendance-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px; padding: 14px 20px; background: #fafbfc; border-bottom: 1px solid #e4e7ec; }
+.work-attendance-filter-title { display: inline-flex; align-items: center; gap: 6px; color: #667085; font-size: 12px; }
+.work-attendance-filters label { display: flex; align-items: center; gap: 8px; color: #475467; font-size: 12px; }
+.work-attendance-filters input { min-height: 38px; padding: 7px 10px; border: 1px solid #d0d5dd; border-radius: 7px; background: white; color: #344e70; font: inherit; }
+.work-attendance-filters input:focus { outline: 2px solid #bfdbfe; border-color: #60a5fa; }
+.work-attendance-clear { color: #2563eb; font-size: 12px; }
+.work-attendance-filters > p { flex-basis: 100%; font-size: 12px; color: #be123c; }
+@media (max-width: 640px) { .work-attendance-filter-title { width: 100%; } .work-attendance-filters label { flex: 1; } .work-attendance-filters input { min-width: 0; width: 100%; } }

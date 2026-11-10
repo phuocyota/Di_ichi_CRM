@@ -10,19 +10,19 @@ export const scheduleStatuses = [
   {
     value: 'active',
     label: 'Đang học',
-    color: statusColor('active', 'schedule'),
+    color: '#2563eb',
     className: 'border-blue-200 bg-blue-50 text-blue-700'
   },
   {
     value: 'upcoming',
     label: 'Sắp diễn ra',
-    color: statusColor('upcoming', 'schedule'),
+    color: '#0284c7',
     className: 'border-amber-200 bg-amber-50 text-amber-700'
   },
   {
     value: 'checked',
     label: 'Đã điểm danh',
-    color: statusColor('checked', 'schedule'),
+    color: '#1d4ed8',
     className: 'border-emerald-200 bg-emerald-50 text-emerald-700'
   },
   {
@@ -40,7 +40,7 @@ export const scheduleStatuses = [
   {
     value: 'makeup',
     label: 'Học bù',
-    color: statusColor('makeup', 'schedule'),
+    color: '#0369a1',
     className: 'border-violet-200 bg-violet-50 text-violet-700'
   }
 ]

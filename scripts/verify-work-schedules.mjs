@@ -1,12 +1,41 @@
 import assert from 'node:assert/strict'
 import { createWorkScheduleData, workClasses, workPeople } from '../src/datas/workSchedules.js'
-import { addDays, attendanceIssues, attendanceMap, attendanceStatus, distanceMeters, todayVN, upsertWorkAssignment, removeWorkAssignment, validateAssignment, weekStart, workAlerts } from '../src/services/workSchedule.js'
+import { addDays, attendanceIssues, attendanceMap, attendanceStatus, distanceMeters, todayVN, upsertWorkAssignment, removeWorkAssignment, validateAssignment, weekStart, workAlerts, isWorkDayOff, setWorkDayOff, loadWorkSchedule, saveWorkSchedule } from '../src/services/workSchedule.js'
 import { createWeekTimetableLayout } from '../src/services/workScheduleLayout.js'
 
 assert.equal(todayVN(new Date('2026-11-01T18:00:00Z')), '2026-11-02')
 assert.equal(weekStart('2026-11-08'), '2026-11-02')
 assert.equal(addDays('2026-12-28', 6), '2027-01-03')
 const data = createWorkScheduleData('2026-11-02')
+// Explicit OFF is separate from an empty schedule and applies across branches.
+const blank = { ...data, assignments: [], preferences: [] }
+const dayOff = { personId: 'staff-off', branchId: 'branch-1', date: '2026-11-03' }
+assert.equal(isWorkDayOff(blank.preferences, dayOff.personId, dayOff.date), false)
+const marked = setWorkDayOff(blank, dayOff, true)
+assert.equal(isWorkDayOff(marked.preferences, dayOff.personId, dayOff.date), true)
+assert.equal(isWorkDayOff(marked.preferences, dayOff.personId, '2026-11-04'), false)
+assert.equal(isWorkDayOff(marked.preferences, 'other-staff', dayOff.date), false)
+assert.equal(setWorkDayOff(marked, { ...dayOff, branchId: 'branch-2' }, true).preferences.length, 1)
+const offCandidate = { ...dayOff, id: 'off-shift', kind: 'employee', branchId: 'branch-2', start: '08:00', end: '12:00' }
+assert.throws(() => upsertWorkAssignment(marked, offCandidate), /bỏ OFF/)
+const unmarked = setWorkDayOff(marked, { ...dayOff, branchId: 'branch-2' }, false)
+assert.equal(isWorkDayOff(unmarked.preferences, dayOff.personId, dayOff.date), false)
+const scheduled = upsertWorkAssignment(unmarked, offCandidate)
+assert.throws(() => setWorkDayOff(scheduled, dayOff, true), /đã có lịch/)
+assert.equal(scheduled.assignments.length, 1)
+assert.equal(blank.preferences.length, 0)
+assert.throws(() => setWorkDayOff(blank, { ...dayOff, date: '2026-02-30' }, true), /hợp lệ/)
+const legacyPreference = { ...dayOff, shiftId: 'morning' }
+assert.deepEqual(setWorkDayOff({ ...marked, preferences: [...marked.preferences, legacyPreference] }, dayOff, false).preferences, [legacyPreference])
+const stored = new Map()
+globalThis.localStorage = { getItem: key => stored.get(key), setItem: (key, value) => stored.set(key, value) }
+globalThis.window = { dispatchEvent() {} }
+saveWorkSchedule(marked)
+assert.equal(isWorkDayOff(loadWorkSchedule().preferences, dayOff.personId, dayOff.date), true)
+saveWorkSchedule(unmarked)
+assert.equal(isWorkDayOff(loadWorkSchedule().preferences, dayOff.personId, dayOff.date), false)
+delete globalThis.localStorage
+delete globalThis.window
 for (const item of data.assignments) {
   assert.ok(workPeople.some(person => person.id === item.personId))
   assert.ok(data.branches.some(branch => branch.id === item.branchId))
