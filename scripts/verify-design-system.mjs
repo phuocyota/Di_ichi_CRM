@@ -487,6 +487,33 @@ try {
     assert.equal(host.querySelectorAll('h1').length, 1)
     assert.ok(host.querySelector('.ui-breadcrumb'))
   }
+  // assignment-flow AC-004/005: exercise the real react-hook-form modal.
+  const ScheduleModal = await moduleDefault('/src/components/Schedule/ScheduleModal.jsx')
+  const homeworkCalls = []
+  const homeworkProps = {
+    modal: 'homework',
+    configs: { homework: { title: 'Giao Homework', intent: 'homework', submitText: 'Giao Homework' } },
+    event: { id: 'schedule-1', classId: 'class-1', homework: [{ title: 'Old homework', deadline: '2026-12-01T13:00:00Z' }] },
+    filters: {}, classes: [], teachers: [], classrooms: [], branches: [],
+    onClose() {}, onSubmit(...args) { homeworkCalls.push(args) },
+  }
+  await render(ScheduleModal, homeworkProps)
+  assert.equal(host.querySelector('input[name="homeworkTitle"]').value, '')
+  assert.equal(host.querySelector('input[name="homeworkDeadline"]').value, '')
+  assert.ok(host.querySelector('input[type="datetime-local"]'))
+  assert.ok(!host.textContent.includes('Trạng thái giao bài'))
+  await act(async () => {
+    fireEvent.change(host.querySelector('input[name="homeworkTitle"]'), { target: { value: 'Homework' } })
+    fireEvent.submit(host.querySelector('form'))
+  })
+  assert.equal(homeworkCalls.length, 0)
+  assert.match(host.textContent, /Vui lòng chọn hạn nộp/)
+  await act(async () => {
+    fireEvent.change(host.querySelector('input[name="homeworkDeadline"]'), { target: { value: '2026-12-01T20:00' } })
+    fireEvent.submit(host.querySelector('form'))
+  })
+  assert.equal(homeworkCalls.length, 1)
+  assert.equal(homeworkCalls[0][1].homeworkDeadline, '2026-12-01T20:00')
   assert.deepEqual(
     runtimeErrors,
     [],

@@ -1,3 +1,4 @@
+import { buildHomeworkPayload } from '../../services/homeworkPayload.js'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
@@ -253,13 +254,7 @@ export default function SchedulePage() {
         await deleteResource('schedule', event.id)
         setSelectedId('')
       } else if (type === 'homework')
-        await createResource('homework', {
-          classId: event.classId,
-          scheduleId: event.id,
-          title: values.homeworkTitle,
-          deadline: new Date(values.homeworkDeadline).toISOString(),
-          status: 'assigned'
-        })
+        await createResource('homework', buildHomeworkPayload(event, values))
       else if (type === 'notify')
         await apiClient.post('/workspace/notify', {
           classId: event.classId,

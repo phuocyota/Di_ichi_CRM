@@ -64,8 +64,8 @@ function ScheduleModal({
       totalSessions: 12,
       untilDate: dayjs(todayInputDate()).add(4,'month').format('YYYY-MM-DD'),
       schedulePattern: event?.start && event?.end ? `${dayjs(event.start).day()===0?'CN':'T'+(dayjs(event.start).day()+1)} ${dayjs(event.start).format('HH:mm')}-${dayjs(event.end).format('HH:mm')}` : '',
-      homeworkTitle: isEditing ? event?.homework?.[0]?.title || '' : '',
-      homeworkDeadline: isEditing ? event?.homework?.[0]?.deadline || '' : '',
+      homeworkTitle: '',
+      homeworkDeadline: '',
       notifyTitle: isEditing ? `Thông báo lịch học ${event?.className || ''}`.trim() : '',
       notifyContent: '',
       exportFormat: 'Excel',
@@ -256,15 +256,8 @@ function ScheduleModal({
           </label>
           <label className="block">
             <span className={labelClass}>Hạn nộp</span>
-            <input type="date" className={inputClass} {...register('homeworkDeadline')} />
-          </label>
-          <label className="block">
-            <span className={labelClass}>Trạng thái giao bài</span>
-            <select className={inputClass} {...register('homeworkStatus')}>
-              <option>Đã giao</option>
-              <option>Nháp</option>
-              <option>Chờ giao</option>
-            </select>
+            <input type="datetime-local" className={inputClass} {...register('homeworkDeadline', required('Vui lòng chọn hạn nộp'))} />
+            {renderError('homeworkDeadline')}
           </label>
         </div>
       )
