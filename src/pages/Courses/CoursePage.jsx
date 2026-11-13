@@ -462,15 +462,21 @@ export default function CoursePage() {
       />
       {teacherCreateTarget?<QuickClassTeacherModal item={teacherCreateTarget} onClose={()=>setTeacherCreateTarget(null)} onCreated={result=>{const teacher=result.teacher;setData(current=>({...current,staff:[...(current.staff||[]).filter(t=>t.id!==teacher.id),teacher],...(result.assignment?{'class-staff':[...(current['class-staff']||[]).filter(l=>l.id!==result.assignment.id),result.assignment]}:{})}));if(result.assignment)setModal(current=>current?.item?.id===result.classId?{...current,item:{...current.item,teacherId:teacher.id,teacherIds:[teacher.id,...(current.item.teacherIds||[]).filter(id=>id!==teacher.id)]}}:current);setTeacherCreateTarget(null);toast.success(result.assignment?'Đã tạo giáo viên và phân công vào lớp.':'Đã tạo hồ sơ giáo viên.');window.dispatchEvent(new Event('crm:notifications-refresh'));}}/>:null}
       {conversionTarget?<ClassPlanConversionModal item={conversionTarget} teachers={teachers} rooms={data.room||[]} onClose={()=>setConversionTarget(null)} onConverted={async result=>{setConversionTarget(null);setModal(null);window.dispatchEvent(new Event('crm:notifications-refresh'));toast.success(`Đã tạo ${result.created} buổi thực tế; ${result.alreadyExisting} buổi đã có được giữ nguyên.`);try{await refresh()}catch(error){toast.warning('Đã chuyển lịch, nhưng chưa tải lại được danh sách: '+error.message)}}}/>:null}
-      {enrollmentTarget ? <ClassEnrollmentModal key={enrollmentTarget.id} item={enrollmentTarget} onClose={() => setEnrollmentTarget(null)} onAdded={({ enrollment, alreadyEnrolled }) => {
-        const next = [...(data.enrollment || []).filter(row => row.id !== enrollment.id && !(row.classId === enrollment.classId && row.studentId === enrollment.studentId && row.isCurrent)), enrollment]
-        setData(current => ({ ...current, enrollment: next }))
-        setModal(current => current?.entity === 'class' && current.item?.id === enrollment.classId ? { ...current, item: { ...current.item, currentStudents: next.filter(row => row.classId === enrollment.classId && row.isCurrent).length } } : current)
+      {enrollmentTarget ? <ClassEnrollmentModal key={enrollmentTarget.id} item={enrollmentTarget} onClose={() => {
         setEnrollmentTarget(null)
-        if (alreadyEnrolled) toast.info('Học viên đã có trong lớp. Đã cập nhật sĩ số.')
-        else toast.success('Đã thêm học viên vào lớp.')
-        window.dispatchEvent(new Event('crm:notifications-refresh'))
-        refresh().catch(error => toast.warning('Ghi danh đã được lưu nhưng chưa tải lại được danh sách: ' + error.message))
+        refresh().catch(error => toast.warning('Chưa tải lại được sĩ số: ' + error.message))
+      }} onAdded={({ enrollments, addedCount, existingCount, close }) => {
+        const next = [...(data.enrollment || []).filter(row => !enrollments.some(saved => row.id === saved.id || (row.classId === saved.classId && row.studentId === saved.studentId && row.isCurrent))), ...enrollments]
+        setData(current => ({ ...current, enrollment: next }))
+        setModal(current => current?.entity === 'class' && current.item?.id === enrollmentTarget.id ? { ...current, item: { ...current.item, currentStudents: next.filter(row => row.classId === enrollmentTarget.id && row.isCurrent).length } } : current)
+        if (enrollments.length) window.dispatchEvent(new Event('crm:notifications-refresh'))
+        if (close) {
+          setEnrollmentTarget(null)
+          const message = `Đã thêm ${addedCount} học viên vào lớp.${existingCount ? ` ${existingCount} học viên đã có trong lớp.` : ''}`
+          if (addedCount) toast.success(message)
+          else toast.info(`${existingCount} học viên đã có trong lớp. Đã cập nhật sĩ số.`)
+          refresh().catch(error => toast.warning('Ghi danh đã được lưu nhưng chưa tải lại được danh sách: ' + error.message))
+        }
       }} /> : null}
       <LearningResultDetailModal
         result={selectedResult}

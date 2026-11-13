@@ -72,3 +72,19 @@ export async function addStudentToClass({ classId, studentId, enrolledAt, reason
   } catch { /* Báo chưa xác nhận, lần retry tiếp theo luôn đọc lại trước khi POST. */ }
   throw new Error(failure?.message || 'Chưa xác nhận được ghi danh. Vui lòng tải lại trước khi thử lại')
 }
+
+export async function addStudentsToClass({ classId, students, enrolledAt, reason }, onProgress) {
+  if (!Array.isArray(students) || !students.length || students.some(student => !student?.id)) throw new Error('Vui lòng chọn ít nhất một học viên')
+  const unique = [...new Map(students.map(student => [student.id, student])).values()]
+  const result = { added: [], existing: [], failed: [] }
+  for (const [index, student] of unique.entries()) {
+    try {
+      const saved = await addStudentToClass({ classId, studentId: student.id, enrolledAt, reason })
+      result[saved.alreadyEnrolled ? 'existing' : 'added'].push({ student, enrollment: saved.enrollment })
+    } catch (error) {
+      result.failed.push({ student, message: error.message })
+    }
+    onProgress?.({ completed: index + 1, total: unique.length })
+  }
+  return result
+}
