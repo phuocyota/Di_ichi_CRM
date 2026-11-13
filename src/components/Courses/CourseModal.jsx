@@ -53,6 +53,7 @@ function CourseModal({
   onClose,
   onSubmit,
   onConvert,
+  onAddStudents,
   onCreateTeacher,
   onAssignTeacher,
   inactive=false,
@@ -263,7 +264,8 @@ function CourseModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          {isReadonly&&isClass&&modal.item?.plannedSchedule?.sessions?.length>0&&onConvert?<button type="button" className="ui-button ui-button-primary mr-auto" onClick={()=>onConvert(modal.item)}>Chuyển sang lịch học thực tế</button>:null}
+          {isReadonly && isClass && onAddStudents ? <button type="button" className="ui-button ui-button-primary mr-auto" disabled={saving} onClick={() => onAddStudents(modal.item)}><Plus size={16} /> Thêm học viên</button> : null}
+            {isReadonly&&isClass&&modal.item?.plannedSchedule?.sessions?.length>0&&onConvert?<button type="button" className="ui-button ui-button-primary mr-auto" onClick={()=>onConvert(modal.item)}>Chuyển sang lịch học thực tế</button>:null}
           <button type="button" className="h-10 rounded-xl border border-gray-300 px-4 text-sm font-black text-slate-600" onClick={onClose}>
             {isReadonly ? 'Đóng' : 'Hủy'}
           </button>

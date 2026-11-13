@@ -1,7 +1,7 @@
 import apiClient from './apiClient.js'
 
 // Keep pagination metadata; the shared client normally unwraps `data`.
-export async function listAllCourseResource(resource, { signal } = {}) {
+export async function listAllCourseResource(resource, { signal, params = {} } = {}) {
   const items = []
   let page = 1
   while (true) {
@@ -10,7 +10,7 @@ export async function listAllCourseResource(resource, { signal } = {}) {
       response = await apiClient.get(`/${resource}`, {
         signal,
         preserveResponse: true,
-        params: page === 1 ? {} : { page },
+        params: page === 1 ? params : { ...params, page },
       })
     } catch (error) {
       if (page > 1 && error.status === 400) {

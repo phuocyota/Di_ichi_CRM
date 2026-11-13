@@ -1,5 +1,5 @@
 import React from 'react'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2, UserRoundPlus } from 'lucide-react'
 import { WorkspaceTable } from '../common/WorkspaceView.jsx'
 import { ActionDropdown, StatusBadge } from '../common/ui.jsx'
 const date = (value) =>
@@ -12,6 +12,7 @@ export default function CourseClassTable({
   roomMap,
   onView,
   onEdit,
+  onAddStudent,
   onDelete
 }) {
   const rows = classes.map((r) => ({
@@ -81,6 +82,7 @@ export default function CourseClassTable({
                 label={`Thao tác lớp ${r.name}`}
                 items={[
                   { label: 'Xem lớp học', icon: Eye, onClick: () => onView(r) },
+                  ...(onAddStudent ? [{ label: 'Thêm học viên', icon: UserRoundPlus, onClick: () => onAddStudent(r) }] : []),
                   {
                     label: 'Cập nhật lớp học',
                     icon: Pencil,

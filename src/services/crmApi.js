@@ -14,8 +14,8 @@ export async function listResource(resource, params = {}) {
   return []
 }
 
-export function getResource(resource, id, params) {
-  return apiClient.get(`/${pathFor(resource)}/${id}`, { params })
+export function getResource(resource, id, params, signal) {
+  return apiClient.get(`/${pathFor(resource)}/${id}`, { params, signal })
 }
 
 export function createResource(resource, payload) {

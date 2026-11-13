@@ -1,3 +1,4 @@
+import ClassEnrollmentModal from '../../components/Courses/ClassEnrollmentModal.jsx'
 import { useResourceUpdates } from '../../services/realtime.js'
 import { LoadingSkeleton } from '../../components/common/ui.jsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -46,6 +47,7 @@ export default function CoursePage() {
   const [modal, setModal] = useState(null)
   const [conversionTarget,setConversionTarget]=useState(null)
   const [teacherCreateTarget,setTeacherCreateTarget]=useState(null)
+  const [enrollmentTarget, setEnrollmentTarget] = useState(null)
   const [selectedResult, setSelectedResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
@@ -100,7 +102,7 @@ export default function CoursePage() {
     }
   }, [refresh])
 
-  useResourceUpdates(refresh, ['course','class','class-staff','class-room','room','class-weekly-schedule','enrollment','staff','student','portal','workspace','score'], !modal && !saving && !conversionTarget && !teacherCreateTarget)
+  useResourceUpdates(refresh, ['course','class','class-staff','class-room','room','class-weekly-schedule','enrollment','staff','student','portal','workspace','score'], !modal && !saving && !conversionTarget && !teacherCreateTarget && !enrollmentTarget)
   const courses = useMemo(
     () =>
       (data.course || []).map((item) => ({
@@ -423,6 +425,7 @@ export default function CoursePage() {
               roomMap={roomMap}
               statusMap={classStatusMap}
               {...actions('class')}
+              onAddStudent={setEnrollmentTarget}
             />
           ) : null}
           {activeTab === 'results' ? (
@@ -439,8 +442,9 @@ export default function CoursePage() {
         </>
       )}
       <CourseModal
-        inactive={Boolean(conversionTarget||teacherCreateTarget)}
+        inactive={Boolean(conversionTarget||teacherCreateTarget||enrollmentTarget)}
         onConvert={setConversionTarget}
+        onAddStudents={setEnrollmentTarget}
         onCreateTeacher={setTeacherCreateTarget}
         onAssignTeacher={handleAssignTeacher}
         modal={modal}
@@ -458,6 +462,16 @@ export default function CoursePage() {
       />
       {teacherCreateTarget?<QuickClassTeacherModal item={teacherCreateTarget} onClose={()=>setTeacherCreateTarget(null)} onCreated={result=>{const teacher=result.teacher;setData(current=>({...current,staff:[...(current.staff||[]).filter(t=>t.id!==teacher.id),teacher],...(result.assignment?{'class-staff':[...(current['class-staff']||[]).filter(l=>l.id!==result.assignment.id),result.assignment]}:{})}));if(result.assignment)setModal(current=>current?.item?.id===result.classId?{...current,item:{...current.item,teacherId:teacher.id,teacherIds:[teacher.id,...(current.item.teacherIds||[]).filter(id=>id!==teacher.id)]}}:current);setTeacherCreateTarget(null);toast.success(result.assignment?'Đã tạo giáo viên và phân công vào lớp.':'Đã tạo hồ sơ giáo viên.');window.dispatchEvent(new Event('crm:notifications-refresh'));}}/>:null}
       {conversionTarget?<ClassPlanConversionModal item={conversionTarget} teachers={teachers} rooms={data.room||[]} onClose={()=>setConversionTarget(null)} onConverted={async result=>{setConversionTarget(null);setModal(null);window.dispatchEvent(new Event('crm:notifications-refresh'));toast.success(`Đã tạo ${result.created} buổi thực tế; ${result.alreadyExisting} buổi đã có được giữ nguyên.`);try{await refresh()}catch(error){toast.warning('Đã chuyển lịch, nhưng chưa tải lại được danh sách: '+error.message)}}}/>:null}
+      {enrollmentTarget ? <ClassEnrollmentModal key={enrollmentTarget.id} item={enrollmentTarget} onClose={() => setEnrollmentTarget(null)} onAdded={({ enrollment, alreadyEnrolled }) => {
+        const next = [...(data.enrollment || []).filter(row => row.id !== enrollment.id && !(row.classId === enrollment.classId && row.studentId === enrollment.studentId && row.isCurrent)), enrollment]
+        setData(current => ({ ...current, enrollment: next }))
+        setModal(current => current?.entity === 'class' && current.item?.id === enrollment.classId ? { ...current, item: { ...current.item, currentStudents: next.filter(row => row.classId === enrollment.classId && row.isCurrent).length } } : current)
+        setEnrollmentTarget(null)
+        if (alreadyEnrolled) toast.info('Học viên đã có trong lớp. Đã cập nhật sĩ số.')
+        else toast.success('Đã thêm học viên vào lớp.')
+        window.dispatchEvent(new Event('crm:notifications-refresh'))
+        refresh().catch(error => toast.warning('Ghi danh đã được lưu nhưng chưa tải lại được danh sách: ' + error.message))
+      }} /> : null}
       <LearningResultDetailModal
         result={selectedResult}
         studentMap={studentMap}
