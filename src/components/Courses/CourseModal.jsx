@@ -96,11 +96,19 @@ function CourseModal({
       return
     }
     if (isClass && modal.mode === 'create') {
+      // "Tạo lịch thực tế" tạo ngay các buổi dạy; "Tạo lịch dự kiến" chỉ lưu kế hoạch.
+      const scheduleMode=event.nativeEvent?.submitter?.value==='actual'?'actual':'planned'
       try {
+        if(scheduleMode==='actual'&&!values.teacherId){
+          setValidationError('Chọn giáo viên để tạo lịch học thực tế.')
+          event.currentTarget.querySelector('#class-teacher')?.focus()
+          return
+        }
+        if(scheduleMode==='actual'&&!values.schedulePattern?.trim())throw new Error('Nhập lịch học hằng tuần để tạo lịch học thực tế.')
         const weeklySchedule=values.schedulePattern?.trim()?parseSchedulePattern(values.schedulePattern):[]
         if(weeklySchedule.length>21)throw new Error('Mỗi lớp hỗ trợ tối đa 21 khung giờ học mỗi tuần.')
-        if(values.repeatUntilEnd)generatePatternUntil(values.schedulePattern,values.startDate,values.endDate)
-        onSubmit(modal,{...values,weeklySchedule})
+        if(values.repeatUntilEnd||scheduleMode==='actual')generatePatternUntil(values.schedulePattern,values.startDate,values.endDate)
+        onSubmit(modal,{...values,weeklySchedule,scheduleMode})
       } catch(error) {
         setValidationError(error.message)
         event.currentTarget.querySelector('[name="schedulePattern"]')?.focus()
@@ -177,7 +185,7 @@ function CourseModal({
 
           {isClass && !isDelete ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <p className="md:col-span-2 text-sm text-slate-500">Có thể thêm lịch học hằng tuần khi tạo lớp. Giáo viên được cập nhật từ phân công lớp; sĩ số được tính từ ghi danh.</p>
+              <p className="md:col-span-2 text-sm text-slate-500">{modal.mode === 'create' ? 'Có thể chọn giáo viên chính và lịch học hằng tuần ngay khi tạo lớp. Sĩ số được tính từ ghi danh.' : 'Giáo viên được cập nhật từ phân công lớp; sĩ số được tính từ ghi danh.'}</p>
               {courseName ? (
                 <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
                   Lớp này thuộc khóa học: {courseName}
@@ -200,7 +208,7 @@ function CourseModal({
               </label>
               <div>
                 <label htmlFor="class-teacher" className="text-xs font-black uppercase text-slate-500">Giáo viên</label>
-                <div className="flex items-center gap-2"><select id="class-teacher" className={inputClass} value={values.teacherId || ''} disabled={!isReadonly || !onAssignTeacher || saving} onChange={(event) => updateValue('teacherId', event.target.value)}>
+                <div className="flex items-center gap-2"><select id="class-teacher" className={inputClass} value={values.teacherId || ''} disabled={saving || (modal.mode !== 'create' && (!isReadonly || !onAssignTeacher))} onChange={(event) => { updateValue('teacherId', event.target.value); setValidationError('') }}>
                   <option value="">Chưa phân công</option>
                   {teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>{isReadonly&&modal.item?.id&&onCreateTeacher?<button type="button" disabled={saving} aria-label="Tạo giáo viên cho lớp" title="Tạo giáo viên mới" className="ui-button ui-icon-button mt-2 h-11 w-11 shrink-0" onClick={()=>onCreateTeacher(modal.item)}><Plus size={19}/></button>:null}</div>
@@ -219,7 +227,7 @@ function CourseModal({
                 <p className="mt-2 text-xs text-slate-500">T2-T4 là thứ Hai và thứ Tư. Thêm khung giờ bằng dấu chấm phẩy, ví dụ: T6 09:00-11:00. Có thể để trống và bổ sung sau.</p>
                 <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-red-600" checked={Boolean(values.repeatUntilEnd)} disabled={saving} onChange={event=>{updateValue('repeatUntilEnd',event.target.checked);setValidationError('')}}/><span><span className="block text-sm font-semibold text-slate-700">Lặp lại toàn khóa</span><span className="mt-1 block text-xs text-slate-500">Lặp đúng thứ và giờ đã nhập từ ngày khai giảng đến hết ngày kết thúc. Số buổi được tính tự động.</span></span></label>
                 {patternError ? <p className="mt-2 text-xs text-red-600" role="status">{patternError}</p> : weeklyPreview.length>0 ? <div className="mt-3 flex flex-wrap gap-2" aria-label="Xem trước lịch tuần">{weeklyPreview.map(slot=><span key={`${slot.weekday}-${slot.startTime}`} className="rounded-lg border border-blue-100 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{slot.weekday===0?'Chủ nhật':`Thứ ${slot.weekday+1}`} · {slot.startTime}–{slot.endTime}</span>)}</div> : null}
-                {values.repeatUntilEnd && coursePreview.length>0 ? <section className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3" aria-label="Lịch toàn khóa"><h4 className="text-sm font-semibold text-emerald-900">Dự kiến {coursePreview.length} buổi học</h4><p className="mt-1 text-xs text-emerald-800">Buổi đầu {dayjs(coursePreview[0].date).format('DD/MM/YYYY')} · Buổi cuối {dayjs(coursePreview.at(-1).date).format('DD/MM/YYYY')}</p><ol className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">{coursePreview.slice(0,6).map((session,index)=><li key={session.startAt}>{index+1}. {session.weekday===0?'CN':`T${session.weekday+1}`} · {dayjs(session.date).format('DD/MM/YYYY')} · {session.startTime}–{session.endTime}</li>)}</ol>{coursePreview.length>6?<p className="mt-2 text-xs text-emerald-800">Và {coursePreview.length-6} buổi tiếp theo, không vượt ngày kết thúc.</p>:null}<p className="mt-2 text-xs text-slate-500">Toàn bộ lịch dự kiến được lưu cùng lớp, chưa cần giáo viên. Phân công giáo viên và tạo buổi dạy chính thức sau.</p></section> : null}
+                {values.repeatUntilEnd && coursePreview.length>0 ? <section className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3" aria-label="Lịch toàn khóa"><h4 className="text-sm font-semibold text-emerald-900">Dự kiến {coursePreview.length} buổi học</h4><p className="mt-1 text-xs text-emerald-800">Buổi đầu {dayjs(coursePreview[0].date).format('DD/MM/YYYY')} · Buổi cuối {dayjs(coursePreview.at(-1).date).format('DD/MM/YYYY')}</p><ol className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">{coursePreview.slice(0,6).map((session,index)=><li key={session.startAt}>{index+1}. {session.weekday===0?'CN':`T${session.weekday+1}`} · {dayjs(session.date).format('DD/MM/YYYY')} · {session.startTime}–{session.endTime}</li>)}</ol>{coursePreview.length>6?<p className="mt-2 text-xs text-emerald-800">Và {coursePreview.length-6} buổi tiếp theo, không vượt ngày kết thúc.</p>:null}<p className="mt-2 text-xs text-slate-500">“Tạo lịch dự kiến” chỉ lưu kế hoạch cùng lớp, có thể chuyển sang lịch thực tế sau. “Tạo lịch thực tế” tạo ngay các buổi dạy chính thức với giáo viên đã chọn.</p></section> : null}
               </section> : <label>
                 <span className="text-xs font-black uppercase text-slate-500">Lịch học</span>
                 <input
@@ -264,12 +272,21 @@ function CourseModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          {isReadonly && isClass && onAddStudents ? <button type="button" className="ui-button ui-button-primary mr-auto" disabled={saving} onClick={() => onAddStudents(modal.item)}><Plus size={16} /> Thêm học viên</button> : null}
-            {isReadonly&&isClass&&modal.item?.plannedSchedule?.sessions?.length>0&&onConvert?<button type="button" className="ui-button ui-button-primary mr-auto" onClick={()=>onConvert(modal.item)}>Chuyển sang lịch học thực tế</button>:null}
+          {isReadonly && isClass ? <div className="mr-auto flex flex-wrap gap-2">
+            {onAddStudents ? <button type="button" className="ui-button ui-button-primary" disabled={saving} onClick={() => onAddStudents(modal.item)}><Plus size={16} /> Thêm học viên</button> : null}
+            {modal.item?.plannedSchedule?.sessions?.length>0&&onConvert?<button type="button" className="ui-button ui-button-primary" onClick={()=>onConvert(modal.item)}>Chuyển sang lịch học thực tế</button>:null}
+          </div> : null}
           <button type="button" className="h-10 rounded-xl border border-gray-300 px-4 text-sm font-black text-slate-600" onClick={onClose}>
             {isReadonly ? 'Đóng' : 'Hủy'}
           </button>
-          {!isReadonly ? (
+          {isClass && modal.mode === 'create' ? <>
+            <button disabled={saving} type="submit" name="scheduleMode" value="planned" className="h-10 rounded-xl border border-blue-600 px-4 text-sm font-black text-blue-700 hover:bg-blue-50">
+              {saving ? 'Đang lưu...' : 'Tạo lịch dự kiến'}
+            </button>
+            <button disabled={saving} type="submit" name="scheduleMode" value="actual" className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-black text-white hover:bg-blue-700">
+              {saving ? 'Đang lưu...' : 'Tạo lịch thực tế'}
+            </button>
+          </> : !isReadonly ? (
             <button disabled={saving} type="submit" className={`h-10 rounded-xl px-4 text-sm font-black text-white ${isDelete ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
               {saving ? 'Đang lưu...' : isDelete ? 'Xóa' : 'Lưu'}
             </button>

@@ -115,6 +115,7 @@ export default function LessonLibrary({ manage = false }) {
         <p className="ll-hint">Chỉ bài giảng đã xuất bản mới hiển thị cho đối tượng và lớp được chọn.</p>
         <button className="ll-primary" disabled={busy}>{busy ? 'Đang xử lý…' : selected ? 'Lưu thay đổi' : 'Tạo bài giảng'}</button>
       </form> : <div className="ll-detail"><p>{selected.description}</p><div className="ll-tags">{[selected.subject,selected.grade,selected.topic].filter(Boolean).map((v,i) => <span key={i}>{v}</span>)}</div></div>}
+      {selected && <details className="ll-ai" key={selected.id}><summary>Xem mô tả AI</summary>{selected.aiDescription?.trim() ? <p>{selected.aiDescription}</p> : <p className="ll-hint">Chưa có mô tả AI cho bài giảng này.</p>}</details>}
       <section className="ll-assets"><h3>Tệp và liên kết</h3>
         {!selected ? <p className="ll-hint">Tạo bài giảng trước để thêm tệp và liên kết.</p> : <>
           {!selected.assets?.length && <p className="ll-hint">Chưa có tệp hoặc liên kết.</p>}

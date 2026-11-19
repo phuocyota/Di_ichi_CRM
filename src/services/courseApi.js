@@ -48,4 +48,6 @@ export const classPayload = (values) => ({
   status: values.status,
   ...(Array.isArray(values.weeklySchedule) ? {weeklySchedule: values.weeklySchedule.map(({weekday,startTime,endTime})=>({weekday:Number(weekday),startTime,endTime}))} : {}),
   ...(typeof values.repeatUntilEnd==='boolean'?{repeatUntilEnd:values.repeatUntilEnd}:{}),
+  // Chỉ gửi khi tạo lớp: giáo viên chính và chế độ lịch (dự kiến / thực tế).
+  ...(values.scheduleMode==='planned'||values.scheduleMode==='actual'?{scheduleMode:values.scheduleMode,...(values.teacherId?{teacherId:values.teacherId}:{})}:{}),
 })
