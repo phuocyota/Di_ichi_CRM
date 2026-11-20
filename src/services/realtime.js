@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import apiClient, { getAccessToken } from "./apiClient.js";
 import { startUpdates, affectsResources } from "./resourceUpdates.js";
@@ -12,13 +12,31 @@ export function createRealtimeSocket(namespace) {
     auth: (callback) => callback({ token: getAccessToken() }),
   });
 }
+export const REALTIME_STATUS_EVENT = "diichi:realtime-status";
+// Trạng thái gần nhất của kênh /updates để màn hình mở sau vẫn biết có cần polling dự phòng không.
+let lastStatus = "connecting";
 export function startResourceUpdates() {
-  return startUpdates({
+  const stop = startUpdates({
     client: createRealtimeSocket("updates"), target: window, document, eventName: RESOURCE_EVENT,
+    onStatus: status => {
+      lastStatus = status;
+      window.dispatchEvent(new CustomEvent(REALTIME_STATUS_EVENT, { detail: status }));
+    },
   });
+  return () => { stop(); lastStatus = "connecting"; };
 }
 export function useUpdatesConnection() {
   useEffect(() => startResourceUpdates(), []);
+}
+export function useRealtimeStatus() {
+  const [status, setStatus] = useState(lastStatus);
+  useEffect(() => {
+    const changed = event => setStatus(event.detail);
+    window.addEventListener(REALTIME_STATUS_EVENT, changed);
+    setStatus(lastStatus);
+    return () => window.removeEventListener(REALTIME_STATUS_EVENT, changed);
+  }, []);
+  return status;
 }
 export function useResourceUpdates(callback, resources = [], enabled = true) {
   const current = useRef(callback), allowed = useRef(resources), canRun = useRef(enabled);

@@ -1,4 +1,4 @@
-import { useResourceUpdates } from '../../services/realtime.js'
+import { useRealtimeStatus, useResourceUpdates } from '../../services/realtime.js'
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck, RefreshCcw, UserRoundX } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -63,20 +63,25 @@ export default function NotificationPopover() {
       if (version === loadVersion.current) setLoading(false);
     }
   }, [isAdmin]);
+  const realtimeStatus = useRealtimeStatus()
   useResourceUpdates(change => load({ force: !change?.resync || change.resources?.some(resource => resource !== '*') }), ['notification','workspace','class','class-staff','schedule','portal','staff','branch','system-settings'], !busy)
   useEffect(() => {
     load();
-    const timer = setInterval(() => {
-      if (document.visibilityState !== "hidden") load();
-    }, 60000);
     const focus = () => load();
     window.addEventListener("crm:notifications-refresh", focus);
     return () => {
       invalidateLoads();
-      clearInterval(timer);
       window.removeEventListener("crm:notifications-refresh", focus);
     };
   }, [load, invalidateLoads]);
+  // Thông báo mới đến qua /updates; chỉ polling dự phòng khi kênh realtime không live.
+  useEffect(() => {
+    if (realtimeStatus === "live") return undefined;
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") load();
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [realtimeStatus, load]);
   useEffect(() => {
     if (!open) return;
     load();

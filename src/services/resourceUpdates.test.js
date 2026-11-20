@@ -19,15 +19,15 @@ function setup() {
     connect() { this.connected = true; handlers.connect() },
     disconnect() { this.connected = false; handlers.disconnect() },
   }
-  const target = new EventTarget(), document = new EventTarget(), received = []
+  const target = new EventTarget(), document = new EventTarget(), received = [], statuses = []
   document.hidden = false
   target.addEventListener('updates', event => received.push(event.detail))
-  const stop = startUpdates({ client, target, document, timers, eventName: 'updates' })
+  const stop = startUpdates({ client, target, document, timers, eventName: 'updates', onStatus: value => statuses.push(value) })
   const advance = ms => {
     const due = [...tasks].filter(([, task]) => task.ms <= ms)
     for (const [id, task] of due) { tasks.delete(id); task.fn() }
   }
-  return { client, handlers, callbacks, tasks, intervals, target, received, stop, advance }
+  return { client, handlers, callbacks, tasks, intervals, target, received, statuses, stop, advance }
 }
 
 test('coalesces a burst, rejects malformed events, and resyncs after reconnect', () => {
@@ -86,4 +86,17 @@ test('refreshes dependent screens for composite writes without refreshing unrela
   assert.equal(affectsResources({ resources: ['portal'] }, ['score']), true)
   assert.equal(affectsResources({ resources: ['student'] }, ['course']), false)
   assert.equal(affectsResources({ resync: true }, ['course']), true)
+})
+
+test('báo trạng thái live/fallback để màn hình chỉ polling khi cần', () => {
+  const s = setup()
+  s.client.connect()
+  s.callbacks.shift()(null, { ok: true, ready: false })
+  s.handlers['updates:status']({ ready: true })
+  s.client.disconnect()
+  s.handlers.connect_error()
+  assert.deepEqual(s.statuses, ['fallback', 'live', 'fallback', 'fallback'])
+  s.stop()
+  s.handlers['updates:status']({ ready: true })
+  assert.equal(s.statuses.length, 4)
 })

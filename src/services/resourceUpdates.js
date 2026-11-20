@@ -1,8 +1,10 @@
 // Gom sự kiện và tải bù sau khi kết nối lại, dùng chung cho mọi màn CRM.
-export function startUpdates({ client, target, document, timers = globalThis, eventName }) {
+export function startUpdates({ client, target, document, timers = globalThis, eventName, onStatus = () => {} }) {
   let active = true, watching = false, live = false;
   let flushTimer, watchTimer, generation = 0;
   const pending = new Set();
+  // Báo 'live' khi backend LISTEN sẵn sàng; màn hình chỉ polling dự phòng khi khác 'live'.
+  const status = value => { if (active) onStatus(value); };
   const schedule = resource => {
     if (!active) return;
     pending.add(resource);
@@ -26,6 +28,7 @@ export function startUpdates({ client, target, document, timers = globalThis, ev
       const result = response?.data ?? response;
       watching = !error && result?.ok === true;
       live = watching && result.ready === true;
+      status(live ? 'live' : 'fallback');
       if (watching) schedule('*');
       else watchTimer = timers.setTimeout(watch, 3000);
     });
@@ -42,10 +45,11 @@ export function startUpdates({ client, target, document, timers = globalThis, ev
   });
   client.on('updates:status', event => {
     live = watching && event?.ready === true;
+    status(live ? 'live' : 'fallback');
     if (live) schedule('*');
   });
-  client.on('disconnect', reset);
-  client.on('connect_error', reset);
+  client.on('disconnect', () => { reset(); status('fallback'); });
+  client.on('connect_error', () => { reset(); status('fallback'); });
   const onFocus = () => {
     if (document.hidden) return;
     schedule('*');
