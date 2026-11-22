@@ -171,10 +171,12 @@ export default function EmployeeModal({
       else {
         if (!staffTypes.some((t) => t.value === form.type))
           throw new Error('Vui lòng chọn loại tài khoản được hỗ trợ')
+        if (!form.email.trim())
+          throw new Error('Email là bắt buộc để tạo tài khoản đăng nhập.')
         const payload = {
           ...form,
           email: form.email.trim().toLowerCase(),
-          roleIds: row.accountId || form.email.trim() ? form.roleIds : [],
+          roleIds: form.roleIds,
           code: form.code.trim(),
           name: form.name.trim()
         }
@@ -191,7 +193,6 @@ export default function EmployeeModal({
         ])
           payload[key] = payload[key] || null
         if (!payload.password) delete payload.password
-        if (!payload.email) { delete payload.email; delete payload.password }
         const result = await onSave(row, payload)
         if (result?.credentials) { setCredentials(result.credentials); return }
       }
@@ -314,7 +315,7 @@ export default function EmployeeModal({
                     label: b.name
                   }))
                 )}
-                {text('email', 'Email đăng nhập', 'email', form.type === 'TEACHER' || Boolean(row.accountId))}
+                {text('email', 'Email đăng nhập', 'email', true)}
                 {text('phone', 'Số điện thoại')}
                 {text('gender', 'Giới tính')}
                 {text('birthDate', 'Ngày sinh', 'date')}
@@ -366,7 +367,7 @@ export default function EmployeeModal({
                   </label>
                 </div>
               )}
-              {row.accountId || form.email.trim() ? <><h3 className="font-semibold">Vai trò</h3>{roleFields}<p className="text-sm text-slate-600">Có email: tài khoản đăng nhập được tạo cùng nhân viên. Có thể nhập mật khẩu hoặc để hệ thống tự sinh.</p></> : <p className="text-sm text-slate-600">Chưa nhập email: chỉ lưu hồ sơ nhân viên, chưa tạo tài khoản đăng nhập.</p>}
+              {row.accountId || form.email.trim() ? <><h3 className="font-semibold">Vai trò</h3>{roleFields}<p className="text-sm text-slate-600">Có email: tài khoản đăng nhập được tạo cùng nhân viên. Có thể nhập mật khẩu hoặc để hệ thống tự sinh.</p></> : <p className="text-sm text-slate-600">Nhập email để tạo tài khoản đăng nhập app nhân viên cùng hồ sơ; email là bắt buộc.</p>}
               {detail && (
                 <p className="text-sm text-slate-600">
                   {row.accountStatus} · Đăng nhập gần nhất: {row.lastLogin}

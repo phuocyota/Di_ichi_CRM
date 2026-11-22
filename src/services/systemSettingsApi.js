@@ -1,7 +1,7 @@
 import apiClient from './apiClient.js'
 
 export const settingTabs = [{ key: 'employees', label: 'Nhân viên' }, { key: 'permissions', label: 'Phân quyền' }]
-export const actionLabels = { read: 'Xem', create: 'Thêm', update: 'Sửa', delete: 'Xóa' }
+export const actionLabels = { read: 'Xem', create: 'Thêm', update: 'Sửa', delete: 'Xóa', checkIn: 'Tự chấm công' }
 export const staffTypes = [{ value: 'ADMIN', label: 'Quản trị viên' }, { value: 'TEACHER', label: 'Giáo viên' }, { value: 'KINH_DOANH', label: 'Kinh doanh / nhân viên nghiệp vụ' }]
 export function isBusinessEmployee(person) {
   const type = String(person.typeValue || person.type || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').trim().toUpperCase().replace(/[\s-]+/g, '_')
