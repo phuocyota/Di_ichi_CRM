@@ -11,7 +11,7 @@ test('uses server branch/revision and rejects missing or malformed roster data',
 test('sends only writable roster fields and preserves the revision of the edited snapshot', () => {
   const data = { ...emptyWorkSchedule(), branchId: 'branch-a', revision: 7,
     assignments: [{ id: 'id', kind: 'employee', personId: 'person', branchId: 'branch-a', date: '2026-11-09', start: '07:30', end: '13:30', employeeType: 'sale', shiftId: 'morning', classId: '', periods: 2, personName: 'Display only', shiftName: 'Display only', expectedRevision: 7 }],
-    attendance: [{ assignmentId: 'id', source: 'admin', checkIn: null, checkOut: null, note: 'Correction', displayOnly: true }],
+    attendance: [{ assignmentId: 'id', source: 'admin', checkIn: null, checkOut: null, note: 'Correction', checkInPhotoId: 'photo-id', displayOnly: true }],
     preferences: [{ personId: 'person', branchId: 'branch-a', date: '2026-11-10', shiftId: 'OFF', displayOnly: true }],
     audit: [{ actor: 'server' }],
   }
@@ -22,6 +22,7 @@ test('sends only writable roster fields and preserves the revision of the edited
   for (const field of ['classId', 'periods', 'personName', 'shiftName', 'expectedRevision']) assert.equal(payload.assignments[0][field], undefined)
   assert.equal(payload.attendance[0].checkIn, null)
   assert.equal(payload.attendance[0].displayOnly, undefined)
+  assert.equal(payload.attendance[0].checkInPhotoId, 'photo-id')
   assert.equal(payload.preferences[0].displayOnly, undefined)
 })
 

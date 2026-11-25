@@ -52,6 +52,9 @@ async function mutateRoster(branchId, request) {
   return publish(value, token)
 }
 const rosterPath = branchId => `/work-shifts/branches/${branchId}`
+// Ảnh nhân viên chụp khi tự check-in trên app Employee (nhị phân, cần Bearer token nên tải dạng blob).
+export const getAttendancePhoto = (branchId, fileId, signal) =>
+  apiClient.get(`${rosterPath(branchId)}/attendance-photos/${encodeURIComponent(fileId)}`, { responseType: 'blob', signal })
 export const assignEmployeeShifts = (branchId, revision, assignments) =>
   mutateRoster(branchId, () => apiClient.post(`${rosterPath(branchId)}/employee-assignments`, { revision, assignments }))
 export const swapWorkShift = (branchId, assignmentId, revision, shiftId) =>

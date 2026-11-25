@@ -1,17 +1,36 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MapPin, ExternalLink } from 'lucide-react'
 import { attendanceIssues, attendanceMap, attendanceStatus, distanceMeters } from '../../services/workSchedule.js'
+import { getAttendancePhoto } from '../../services/workShiftsApi.js'
 import WorkScheduleDialog, { Field } from './WorkScheduleDialog.jsx'
 
 const localTime = value => value ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value)).replace(' ', 'T') : ''
 const timeLabel = value => value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : 'Chưa chấm công'
 
-function AttendanceEvidence({ label, timestamp, evidence, branch, sample }) {
+// Ảnh check-in lưu trên server (`checkInPhotoId`): tải blob rồi hiển thị qua object URL, thu hồi khi unmount.
+function AttendancePhoto({ branchId, fileId, label }) {
+  const [url, setUrl] = useState('')
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    let objectUrl = ''
+    getAttendancePhoto(branchId, fileId, controller.signal)
+      .then(blob => { objectUrl = URL.createObjectURL(blob); setUrl(objectUrl) })
+      .catch(() => { if (!controller.signal.aborted) setFailed(true) })
+    return () => { controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [branchId, fileId])
+  if (failed) return <p className="work-hint">Không tải được ảnh {label}.</p>
+  if (!url) return <p className="work-hint">Đang tải ảnh {label}...</p>
+  return <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`Xem ảnh ${label}`}><img className="work-photo" src={url} alt={`Ảnh ${label}`} /></a>
+}
+
+function AttendanceEvidence({ label, timestamp, evidence, branch, sample, photoId }) {
   const map = timestamp ? attendanceMap(evidence) : null
   const [showMap, setShowMap] = useState(false)
   return <section className="work-evidence">
     <h3>{label}</h3><p className="work-evidence-time">{timeLabel(timestamp)}</p>
-    {timestamp && evidence?.photo && <a href={evidence.photo} target="_blank" rel="noopener noreferrer" aria-label={`Xem ảnh ${label}`}><img className="work-photo" src={evidence.photo} alt={`Ảnh ${label}`} /></a>}
+    {timestamp && photoId && branch?.id && <AttendancePhoto key={photoId} branchId={branch.id} fileId={photoId} label={label} />}
+    {timestamp && !photoId && evidence?.photo && <a href={evidence.photo} target="_blank" rel="noopener noreferrer" aria-label={`Xem ảnh ${label}`}><img className="work-photo" src={evidence.photo} alt={`Ảnh ${label}`} /></a>}
     {map ? <>
       <p className="work-hint"><MapPin size={14} /> {map.coordinates}</p>
       {Number.isFinite(evidence.accuracy) && <p className="work-hint">Độ chính xác GPS: ±{Math.round(evidence.accuracy)}m</p>}
@@ -59,7 +78,7 @@ export default function AttendanceDialog({ item, record, branch, classes = [], c
     </dl>
     {item.originalPersonId && <p className="work-hint">{item.kind === 'teacher' ? 'Dạy thế cho' : 'Làm thay cho'} {people.find(row => row.id === item.originalPersonId)?.name || item.originalPersonId}: {item.replacementReason}</p>}
     <section className="work-attendance-overview"><h3>Thông tin chấm công</h3><span className={`work-attendance-badge is-${status.tone}`}>{status.label}</span>{issues.length > 0 && <p className="work-warning">{issues.join(' · ')}</p>}<p className="work-hint">Nguồn ghi nhận: {record?.source === 'admin' ? 'Admin bổ sung / điều chỉnh' : record?.source === 'self' ? 'Nhân viên tự chấm công trên app' : record?.source === 'sample' ? 'Dữ liệu mẫu' : record ? 'Chấm công trực tiếp' : 'Chưa có bản ghi'}</p>{record?.note && <p className="work-hint">Ghi chú: {record.note}</p>}</section>
-    <AttendanceEvidence label="Check-in" timestamp={record?.checkIn} evidence={record?.checkInEvidence} branch={branch} sample={record?.checkInEvidence?.sample || record?.source === 'sample'} />
+    <AttendanceEvidence label="Check-in" timestamp={record?.checkIn} evidence={record?.checkInEvidence} photoId={record?.checkInPhotoId} branch={branch} sample={record?.checkInEvidence?.sample || record?.source === 'sample'} />
     <AttendanceEvidence label="Check-out" timestamp={record?.checkOut} evidence={record?.checkOutEvidence} branch={branch} sample={record?.checkOutEvidence?.sample || record?.source === 'sample'} />
     {isAdmin && <label className="work-checkbox"><input type="checkbox" checked={manual} onChange={event => { setManual(event.target.checked); setError('') }} /> Admin bổ sung / điều chỉnh chấm công</label>}
     {manual && <>

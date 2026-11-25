@@ -15,7 +15,8 @@ export function workSchedulePayload(value) {
       'originalPersonId', 'replacementReason',
       ...(item.kind === 'teacher' ? ['classId', 'periods'] : ['employeeType', 'shiftId']),
     ])),
-    attendance: value.attendance.map(record => pick(record, ['assignmentId', 'checkIn', 'checkOut', 'source', 'note'])),
+    // `checkInPhotoId` do server gán khi nhân viên tự check-in; phải gửi lại nguyên giá trị để không mất ảnh.
+    attendance: value.attendance.map(record => pick(record, ['assignmentId', 'checkIn', 'checkOut', 'source', 'note', 'checkInPhotoId'])),
     preferences: value.preferences.map(record => pick(record, ['personId', 'branchId', 'date', 'shiftId'])),
   }
 }
